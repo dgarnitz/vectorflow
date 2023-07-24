@@ -1,5 +1,8 @@
 import os
 import json
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
 from flask import Flask, request, jsonify
 from src.api.embeddings_metadata import EmbeddingsMetadata
 from src.api.vector_db_metadata import VectorDBMetadata
@@ -21,8 +24,7 @@ def embed():
     embeddings_metadata = EmbeddingsMetadata(
         embeddings_metadata_dict['embeddings_type'], 
         embeddings_metadata_dict['chunk_size'],
-        embeddings_metadata_dict['chunk_overlap'],
-        embeddings_metadata_dict['docker_image'])
+        embeddings_metadata_dict['chunk_overlap'])
     
     vector_db_metadata_dict = json.loads(request.form.get('VectorDBMetadata'))
     vector_db_metadata = VectorDBMetadata(
@@ -55,8 +57,8 @@ def embed():
         embeddings_metadata.api_key = os.getenv('OPEN_AI_KEY')
         vector_db_metadata.api_key = os.getenv('PINECONE_KEY')
 
-        create_batches(file_content, job_id, embeddings_metadata, vector_db_metadata)
-        return jsonify({'message': 'TXT file added to queue successfully', 'JobID': job_id}), 200
+        batch_count = create_batches(file_content, job_id, embeddings_metadata, vector_db_metadata)
+        return jsonify({'message': f"Successfully added {batch_count} batches to the queue", 'JobID': job_id}), 200
     else:
         return jsonify({'message': 'Uploaded file is not a TXT file'}), 400
 
@@ -95,12 +97,13 @@ def update_job(job_id):
 
 def create_batches(file_content, job_id, embeddings_metadata, vector_db_metadata):
     batch_count = 0
-    for i, chunk in enumerate(split_file(file_content)):
+    for i, chunk in enumerate(split_file(file_content)):  
         batch = Batch(chunk, f"{job_id}-{i}", job_id, embeddings_metadata, vector_db_metadata)
         pipeline.add_to_queue(batch)
         pipeline.create_batch(batch)
         batch_count+=1
     pipeline.update_job_total_batches(job_id, batch_count)
+    return batch_count
     
 def split_file(file_content, lines_per_chunk=1000):
     lines = file_content.splitlines()

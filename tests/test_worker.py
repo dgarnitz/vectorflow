@@ -48,7 +48,9 @@ class TestWorker(unittest.TestCase):
 
     def test_chunk_data(self):
         # arrange
-        data = "thisistest" * 38 + "test" # 384 characters, should be 3 chunks, since the last chunk will be partial
+        # 384 characters, should be 3 chunks, since the last chunk will be partial
+        data = ["thisistest"] * 38
+        data.append("test") 
 
         # act
         chunks = worker.chunk_data(data, 256, 128)

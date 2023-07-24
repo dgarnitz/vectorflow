@@ -29,7 +29,6 @@ class TestApp(unittest.TestCase):
                                             'VectorDBMetadata': json.dumps(test_vector_db_metadata.to_dict())})
         
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['message'],  'TXT file added to queue successfully')
         self.assertEqual(pipeline.get_queue_size(), 2) 
 
         job = pipeline.database['jobs'][response.json['JobID']]
@@ -62,7 +61,8 @@ class TestApp(unittest.TestCase):
         test_vector_db_metadata = VectorDBMetadata(VectorDBType.PINECONE, "test_index", "test_environment")
 
         with open('tests/fixtures/test_text.txt', 'rb') as data_file:
-            batch = Batch(source_data=data_file.read().decode('utf-8'), 
+            source_data=[data_file.read().decode('utf-8')]
+            batch = Batch(source_data=source_data, 
                           batch_id=1,
                           job_id=1, 
                           embeddings_metadata=test_embeddings_metadata, 

@@ -1,3 +1,3 @@
 venv/
 __pycache__/
-env_vars.py
+env_vars.sh

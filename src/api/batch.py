@@ -5,16 +5,19 @@ class Batch:
         self.source_data = source_data
         self.batch_id = batch_id
         self.job_id = job_id
-        self.embeddings_metadata = embeddings_metadata # TODO: this could be swapped for an ID that can be looked up in the DB
-        self.vector_db_metadata = vector_db_metadata # TODO: this could be swapped for an ID that can be looked up in the DB
+        self.embeddings_metadata = embeddings_metadata
+        self.vector_db_metadata = vector_db_metadata
         self.batch_status = BatchStatus.NOT_STARTED
 
     def serialize(self):
-        if not isinstance(self.source_data, str):
-            raise ValueError("source_data must be a string")
+        if not isinstance(self.source_data, list):
+            raise ValueError("source_data must be a list of strings")
+
+        # Ensure all elements of source_data are strings
+        source_data = [item.decode() if isinstance(item, bytes) else item for item in self.source_data]
+
         return {
-            #TODO: unclear the best way to pass source_data to the worker. Need a more permanent solution
-            'source_data': self.source_data,
+            'source_data': source_data,
             'batch_id': self.batch_id,
             'job_id': self.job_id,
             'embeddings_metadata': self.embeddings_metadata.to_dict() if self.embeddings_metadata else None,

@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
 import time
 import requests
 import openai
@@ -53,7 +57,8 @@ def embed_openai_batch(batch):
     embeddings = response["data"][0]["embedding"]
     return write_embeddings_to_vector_db(embeddings, chunked_data, batch['vector_db_metadata'], batch['batch_id'], batch['job_id'])   
 
-def chunk_data(data, chunk_size, chunk_overlap):
+def chunk_data(data_chunks, chunk_size, chunk_overlap):
+    data = "".join(data_chunks)
     chunks = []
     for i in range(0, len(data), chunk_size - chunk_overlap):
         chunks.append(data[i:i + chunk_size])
