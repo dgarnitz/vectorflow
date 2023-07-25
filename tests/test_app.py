@@ -16,6 +16,9 @@ class TestApp(unittest.TestCase):
         self.app = app
         self.client = self.app.test_client()
         auth.set_internal_api_key('test_key')
+        self.headers = {
+            "VectorFlowKey": auth.internal_api_key
+        }
 
     def test_embed_endpoint(self):
         test_embeddings_metadata = EmbeddingsMetadata(EmbeddingsType.OPEN_AI)
@@ -24,9 +27,9 @@ class TestApp(unittest.TestCase):
         with open('tests/fixtures/test_text.txt', 'rb') as data_file:
             response = self.client.post('/embed', 
                                         data={'SourceData': data_file, 
-                                            'VectorFlowKey': auth.internal_api_key, 
                                             'EmbeddingsMetadata': json.dumps(test_embeddings_metadata.to_dict()), 
-                                            'VectorDBMetadata': json.dumps(test_vector_db_metadata.to_dict())})
+                                            'VectorDBMetadata': json.dumps(test_vector_db_metadata.to_dict())},
+                                        headers=self.headers)
         
         self.assertEqual(response.status_code, 200)
         self.assertEqual(pipeline.get_queue_size(), 2) 
@@ -40,19 +43,19 @@ class TestApp(unittest.TestCase):
         self.assertEqual(batch.batch_status, BatchStatus.NOT_STARTED)
 
     def test_get_job_status_endpoint_no_job(self):
-        response = self.client.get('/jobs/1')
+        response = self.client.get('/jobs/1', headers=self.headers)
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json['error'], 'Job not found')
     
     def test_get_job_status_endpoint_job_exists(self):
         job_id = pipeline.create_job('test_webhook_url')
 
-        response = self.client.get(f"/jobs/{job_id}")
+        response = self.client.get(f"/jobs/{job_id}", headers=self.headers)
         self.assertEqual(response.status_code, 200)
         self.assertEquals(response.json['JobStatus'], 'NOT_STARTED')
     
     def test_dequeue_endpoint_empty(self):
-        response = self.client.get('/dequeue')
+        response = self.client.get('/dequeue', headers=self.headers)
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json['error'], 'No jobs in queue') 
 
@@ -73,7 +76,7 @@ class TestApp(unittest.TestCase):
         self.assertEqual(pipeline.get_queue_size(), 1)
 
         # test the dequeue endpoint
-        response = self.client.get('/dequeue')
+        response = self.client.get('/dequeue', headers=self.headers)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(pipeline.get_queue_size(), 0)
 
@@ -95,7 +98,7 @@ class TestApp(unittest.TestCase):
         pipeline.database['jobs'][test_job_id].total_batches = 1
         
         # act
-        response = self.client.put(f"/jobs/{test_job_id}", json={'batch_id': 12131, 'batch_status': 'COMPLETED'})
+        response = self.client.put(f"/jobs/{test_job_id}", json={'batch_id': 12131, 'batch_status': 'COMPLETED'}, headers=self.headers)
 
         # assert
         self.assertEqual(response.status_code, 200)
@@ -112,7 +115,7 @@ class TestApp(unittest.TestCase):
         pipeline.database['jobs'][test_job_id].total_batches = 2
         
         # act
-        response = self.client.put(f"/jobs/{test_job_id}", json={'batch_id': 12131, 'batch_status': 'COMPLETED'})
+        response = self.client.put(f"/jobs/{test_job_id}", json={'batch_id': 12131, 'batch_status': 'COMPLETED'}, headers=self.headers)
 
         # assert
         self.assertEqual(response.status_code, 202)
@@ -130,7 +133,7 @@ class TestApp(unittest.TestCase):
         pipeline.database['jobs'][test_job_id].batches_processed = 1
         
         # act
-        response = self.client.put(f"/jobs/{test_job_id}", json={'batch_id': 12131, 'batch_status': 'COMPLETED'})
+        response = self.client.put(f"/jobs/{test_job_id}", json={'batch_id': 12131, 'batch_status': 'COMPLETED'}, headers=self.headers)
 
         # assert
         self.assertEqual(response.status_code, 206)
@@ -147,7 +150,7 @@ class TestApp(unittest.TestCase):
         pipeline.database['jobs'][test_job_id].total_batches = 1
         
         # act
-        response = self.client.put(f"/jobs/{test_job_id}", json={'batch_id': 12131, 'batch_status': 'FAILED'})
+        response = self.client.put(f"/jobs/{test_job_id}", json={'batch_id': 12131, 'batch_status': 'FAILED'}, headers=self.headers)
 
         # assert
         self.assertEqual(response.status_code, 500)

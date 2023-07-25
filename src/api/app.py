@@ -19,9 +19,11 @@ CORS(app)
 
 @app.route("/embed", methods=['POST'])
 def embed():
-    vectorflow_key = request.form.get('VectorFlowKey')
-    webhook_url = request.form.get('WebhookURL')
+    vectorflow_key = request.headers.get('VectorFlowKey')
+    if not vectorflow_key or not auth.validate_credentials(vectorflow_key):
+        return jsonify({'error': 'Invalid credentials'}), 401
     
+    webhook_url = request.form.get('WebhookURL')
     embeddings_metadata_dict = json.loads(request.form.get('EmbeddingsMetadata'))
     embeddings_metadata = EmbeddingsMetadata(
         embeddings_metadata_dict['embeddings_type'], 
@@ -33,10 +35,6 @@ def embed():
         vector_db_metadata_dict['vector_db_type'], 
         vector_db_metadata_dict['index_name'], 
         vector_db_metadata_dict['environment'])
-    
-
-    if not vectorflow_key or not auth.validate_credentials(vectorflow_key):
-        return jsonify({'error': 'Invalid credentials'}), 401
  
     if not embeddings_metadata or not vector_db_metadata:
         return jsonify({'error': 'Missing required fields'}), 400
@@ -61,6 +59,10 @@ def embed():
 
 @app.route('/jobs/<int:job_id>', methods=['GET'])
 def get_job(job_id):
+    vectorflow_key = request.headers.get('VectorFlowKey')
+    if not vectorflow_key or not auth.validate_credentials(vectorflow_key):
+        return jsonify({'error': 'Invalid credentials'}), 401
+    
     job_status = pipeline.get_job_status(job_id)
     if job_status:
         return jsonify({'JobStatus': job_status.value}), 200
@@ -70,6 +72,9 @@ def get_job(job_id):
 
 @app.route("/dequeue")
 def dequeue():
+    vectorflow_key = request.headers.get('VectorFlowKey')
+    if not vectorflow_key or not auth.validate_credentials(vectorflow_key):
+        return jsonify({'error': 'Invalid credentials'}), 401
     if pipeline.get_queue_size() == 0:
         return jsonify({'error': 'No jobs in queue'}), 404
     else:
@@ -78,6 +83,10 @@ def dequeue():
 
 @app.route('/jobs/<int:job_id>', methods=['PUT'])
 def update_job(job_id):
+    vectorflow_key = request.headers.get('VectorFlowKey')
+    if not vectorflow_key or not auth.validate_credentials(vectorflow_key):
+        return jsonify({'error': 'Invalid credentials'}), 401
+    
     try:
         job_status = pipeline.update_job_with_batch(job_id, request.json['batch_id'], request.json['batch_status'])
         if job_status == JobStatus.COMPLETED:

@@ -99,7 +99,7 @@ def write_embeddings_to_pinecone(upsert_list, vector_db_metadata):
     
 # this implementation mocks the data service. Using this instead because DB not implement yet
 def update_job_status(job_id, batch_status, batch_id):
-    headers = {"Content-Type": "application/json"}
+    headers = {"Content-Type": "application/json", "VectorFlowKey": os.getenv('VECTORFLOW_KEY')}
     data = {
         "batch_id": batch_id,
         "batch_status": batch_status,
@@ -111,8 +111,9 @@ def update_job_status(job_id, batch_status, batch_id):
 
 if __name__ == "__main__":
     while True:
+        headers = {"VectorFlowKey": os.getenv('VECTORFLOW_KEY')}
         response = requests.get(f"{base_request_url}/dequeue")
-        if response.status_code == 404 or response.status_code == 403 or response.status_code == 500:
+        if response.status_code == 404 or response.status_code == 403 or response.status_code == 500 or response.status_code == 401:
             print("Request denied")
             time.sleep(5)
         elif response.status_code == 200:
