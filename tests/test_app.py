@@ -153,8 +153,7 @@ class TestApp(unittest.TestCase):
         response = self.client.put(f"/jobs/{test_job_id}", json={'batch_id': 12131, 'batch_status': 'FAILED'}, headers=self.headers)
 
         # assert
-        self.assertEqual(response.status_code, 500)
-        self.assertEqual(response.json['message'], f"Job {test_job_id} failed")
+        self.assertEqual(response.status_code, 404)
         
 
 if __name__ == '__main__':

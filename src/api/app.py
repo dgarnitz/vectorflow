@@ -96,10 +96,10 @@ def update_job(job_id):
         elif job_status == JobStatus.PARTIALLY_COMPLETED:
             return jsonify({'message': f'Job {job_id} partially completed'}), 206
         else:
-            return jsonify({'message': f'Job {job_id} failed'}), 500
+            return jsonify({'message': f'Job {job_id} processed all batches and failed to complete any'}), 404
     except Exception as e:
         print(e)
-        return jsonify({'message': f'Job {job_id} failed'}), 500
+        return jsonify({'message': f'Job {job_id} failed due to server error'}), 500
 
 def create_batches(file_content, job_id, embeddings_metadata, vector_db_metadata):
     batch_count = 0
