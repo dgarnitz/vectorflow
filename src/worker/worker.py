@@ -10,9 +10,7 @@ from src.api.embeddings_type import EmbeddingsType
 from src.api.vector_db_type import VectorDBType
 from src.api.batch_status import BatchStatus
 
-# TODO: load this from an ENV Var or config file
-base_request_url = 'http://127.0.0.1:5000' 
-
+base_request_url = os.getenv('API_REQUEST_URL') 
 
 def process_batch(batch):
     embeddings_type = batch['embeddings_metadata']['embeddings_type']
@@ -29,7 +27,6 @@ def process_batch(batch):
 
 def embed_openai_batch(batch):
     openai.api_key = os.getenv('OPEN_AI_KEY')
-    # openai.api_key = get_api_key()
     chunked_data = chunk_data(batch['source_data'], batch['embeddings_metadata']['chunk_size'], batch['embeddings_metadata']['chunk_overlap'])
     text_embeddings_map = dict()
 
@@ -52,7 +49,6 @@ def embed_openai_batch(batch):
                     print("Open AI Embedding API call failed after 5 attempts. Adding batch to retry queue.")
                     update_job_status(batch['job_id'], BatchStatus.Failed, batch['batch_id'])
                     return
-            
             if i == 4:
                     print("Open AI Embedding API call did not return a value for the embeddings after 5 attempts. Adding batch to retry queue.")
                     update_job_status(batch['job_id'], BatchStatus.Failed, batch['batch_id'])
@@ -60,6 +56,7 @@ def embed_openai_batch(batch):
 
         text_embeddings_map[chunk] = response["data"][0]["embedding"]
     
+    print("Open AI Embeddings completed successfully")
     return write_embeddings_to_vector_db(text_embeddings_map, batch['vector_db_metadata'], batch['batch_id'], batch['job_id'])   
 
 def chunk_data(data_chunks, chunk_size, chunk_overlap):
@@ -87,14 +84,13 @@ def create_source_chunk_dict(text_embeddings_map, batch_id, job_id):
 
 def write_embeddings_to_pinecone(upsert_list, vector_db_metadata):
     pinecone_api_key = os.getenv('PINECONE_KEY')
-    # pinecone_api_key = get_api_key()
     pinecone.init(api_key=pinecone_api_key, environment=vector_db_metadata['environment'])
     index = pinecone.Index(vector_db_metadata['index_name'])
     if not index:
         print(f"Index {vector_db_metadata['index_name']} does not exist in environment {vector_db_metadata['environment']}")
         return None
     
-    #TODO: parallelize upsert
+    print("Starting pinecone upsert")
     return index.upsert(vectors=upsert_list)
     
 # this implementation mocks the data service. Using this instead because DB not implement yet
