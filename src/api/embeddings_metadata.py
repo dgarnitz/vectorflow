@@ -6,7 +6,6 @@ class EmbeddingsMetadata:
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
         self.docker_image = docker_image
-        self.api_key = None
 
     def to_dict(self):
         return {

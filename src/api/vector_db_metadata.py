@@ -5,7 +5,6 @@ class VectorDBMetadata:
         self.vector_db_type = vector_db_type
         self.index_name = index_name
         self.environment = environment
-        self.api_key = None
 
     def to_dict(self):
         return {

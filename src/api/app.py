@@ -4,6 +4,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from src.api.embeddings_metadata import EmbeddingsMetadata
 from src.api.vector_db_metadata import VectorDBMetadata
 from src.api.batch import Batch
@@ -14,6 +15,7 @@ from src.api.job_status import JobStatus
 auth = Auth()
 pipeline = Pipeline()
 app = Flask(__name__)
+CORS(app) 
 
 @app.route("/embed", methods=['POST'])
 def embed():
@@ -52,11 +54,6 @@ def embed():
     if file and file.filename.endswith('.txt'):
         file_content = file.read()
         job_id = pipeline.create_job(webhook_url)
-
-        # this is done in the API so the lookup only has to happen once 
-        embeddings_metadata.api_key = os.getenv('OPEN_AI_KEY')
-        vector_db_metadata.api_key = os.getenv('PINECONE_KEY')
-
         batch_count = create_batches(file_content, job_id, embeddings_metadata, vector_db_metadata)
         return jsonify({'message': f"Successfully added {batch_count} batches to the queue", 'JobID': job_id}), 200
     else:
