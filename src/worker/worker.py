@@ -99,26 +99,30 @@ def write_embeddings_to_pinecone(upsert_list, vector_db_metadata):
     
 # this implementation mocks the data service. Using this instead because DB not implement yet
 def update_job_status(job_id, batch_status, batch_id):
-    headers = {"Content-Type": "application/json", "VectorFlowKey": os.getenv('VECTORFLOW_KEY')}
+    headers = {"Content-Type": "application/json", "VectorFlowKey": os.getenv('INTERNAL_API_KEY')}
     data = {
         "batch_id": batch_id,
-        "batch_status": batch_status,
+        "batch_status": batch_status.value,
     }
-    response = requests.put(f"{base_request_url}/jobs/{job_id}", headers=headers, data=data)
+    response = requests.put(f"{base_request_url}/jobs/{job_id}", headers=headers, json=data)
     print(f"Response status: {response.status_code}")
 
     # TODO: implement webhook callback logic - can pass it back in the response and call it with the response code
 
 if __name__ == "__main__":
     while True:
-        headers = {"VectorFlowKey": os.getenv('VECTORFLOW_KEY')}
-        response = requests.get(f"{base_request_url}/dequeue")
-        if response.status_code == 404 or response.status_code == 403 or response.status_code == 500 or response.status_code == 401:
-            print("Request denied")
+        headers = {"VectorFlowKey": os.getenv('INTERNAL_API_KEY')}
+        response = requests.get(f"{base_request_url}/dequeue", headers=headers)
+        if response.status_code == 404:
+            print("Queue Empty - Sleeping for 5 seconds")
             time.sleep(5)
         elif response.status_code == 200:
             batch = response.json()['batch']
+            print("Batch retrieved successfully")
             process_batch(batch)
+            print("Batch processed successfully")
+        elif response.status_code == 401:
+            print('Invalid credentials')
         else:
             print('Unexpected status code:', response.status_code)
 
