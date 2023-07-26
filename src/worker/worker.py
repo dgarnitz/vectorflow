@@ -116,8 +116,8 @@ if __name__ == "__main__":
         headers = {"VectorFlowKey": os.getenv('INTERNAL_API_KEY')}
         response = requests.get(f"{base_request_url}/dequeue", headers=headers)
         if response.status_code == 404:
-            print("Queue Empty - Sleeping for 5 seconds")
-            time.sleep(5)
+            print("Queue Empty - Sleeping for 10 seconds")
+            time.sleep(10)
         elif response.status_code == 200:
             batch = response.json()['batch']
             print("Batch retrieved successfully")
