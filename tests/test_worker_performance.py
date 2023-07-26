@@ -21,7 +21,7 @@ def get_openai_embedding(chunk, attempts=5):
 def embed_openai_batch_concurrency(chunked_data):
     openai.api_key = os.getenv('OPEN_AI_KEY')
 
-    with ThreadPoolExecutor(max_workers=20) as executor:
+    with ThreadPoolExecutor(max_workers=30) as executor:
         futures = [executor.submit(get_openai_embedding, chunk) for chunk in chunked_data]
         for future in as_completed(futures):
             chunk, embedding = future.result()
@@ -56,7 +56,7 @@ def embed_openai_batch_without_concurrency(chunked_data):
                     return
     return 
 
-def test_embed_openai_batch():
+def test_embed_openai_batch(batch):
     start_time_without_concurrency = time.time()
     embed_openai_batch_without_concurrency(batch)
     end_time_without_concurrency = time.time()
@@ -67,15 +67,13 @@ def test_embed_openai_batch():
     start_time_with_concurrency = time.time()
     embed_openai_batch_concurrency(batch)
     end_time_with_concurrency = time.time()
-    execution_time_concurrency = start_time_with_concurrency - end_time_with_concurrency
+    execution_time_concurrency = end_time_with_concurrency - start_time_with_concurrency
     print("EXECUTION TIME WITH CONCURRENCY")
     print(execution_time_concurrency)
 
 with open('tests/fixtures/test_text.txt', 'r') as f:
     file_content = f.read()
     text_array = file_content.split('\n')
-    print(len(text_array))
     batch = chunk_data(text_array, 256, 128)
-    print(len(batch))
-    #test_embed_openai_batch(batch)
+    test_embed_openai_batch(batch)
 

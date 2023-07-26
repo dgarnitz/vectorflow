@@ -118,4 +118,4 @@ def split_file(file_content, lines_per_chunk=1000):
 
 
 if __name__ == '__main__':
-   app.run(debug=True)
+   app.run(host='0.0.0.0', debug=True)
