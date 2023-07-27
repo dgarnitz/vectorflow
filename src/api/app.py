@@ -35,6 +35,8 @@ def embed():
         vector_db_metadata_dict['vector_db_type'], 
         vector_db_metadata_dict['index_name'], 
         vector_db_metadata_dict['environment'])
+    
+    lines_per_chunk = int(request.form.get('LinesPerChunk')) if request.form.get('LinesPerChunk') else 1000
  
     if not embeddings_metadata or not vector_db_metadata:
         return jsonify({'error': 'Missing required fields'}), 400
@@ -52,7 +54,7 @@ def embed():
     if file and file.filename.endswith('.txt'):
         file_content = file.read()
         job_id = pipeline.create_job(webhook_url)
-        batch_count = create_batches(file_content, job_id, embeddings_metadata, vector_db_metadata)
+        batch_count = create_batches(file_content, job_id, embeddings_metadata, vector_db_metadata, lines_per_chunk)
         return jsonify({'message': f"Successfully added {batch_count} batches to the queue", 'JobID': job_id}), 200
     else:
         return jsonify({'message': 'Uploaded file is not a TXT file'}), 400
@@ -101,9 +103,9 @@ def update_job(job_id):
         print(e)
         return jsonify({'message': f'Job {job_id} failed due to server error'}), 500
 
-def create_batches(file_content, job_id, embeddings_metadata, vector_db_metadata):
+def create_batches(file_content, job_id, embeddings_metadata, vector_db_metadata, lines_per_chunk):
     batch_count = 0
-    for i, chunk in enumerate(split_file(file_content)):  
+    for i, chunk in enumerate(split_file(file_content, lines_per_chunk)):  
         batch = Batch(chunk, f"{job_id}-{i}", job_id, embeddings_metadata, vector_db_metadata)
         pipeline.add_to_queue(batch)
         pipeline.create_batch(batch)

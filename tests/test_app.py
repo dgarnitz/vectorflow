@@ -52,7 +52,7 @@ class TestApp(unittest.TestCase):
 
         response = self.client.get(f"/jobs/{job_id}", headers=self.headers)
         self.assertEqual(response.status_code, 200)
-        self.assertEquals(response.json['JobStatus'], 'NOT_STARTED')
+        self.assertEqual(response.json['JobStatus'], 'NOT_STARTED')
     
     def test_dequeue_endpoint_empty(self):
         response = self.client.get('/dequeue', headers=self.headers)
