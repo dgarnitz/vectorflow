@@ -6,6 +6,7 @@ import time
 import requests
 import openai
 import pinecone 
+import src.worker.config as config
 from src.api.embeddings_type import EmbeddingsType
 from src.api.vector_db_type import VectorDBType
 from src.api.batch_status import BatchStatus
@@ -47,7 +48,7 @@ def embed_openai_batch(batch):
     open_ai_batches = create_openai_batches(chunked_data)
     text_embeddings_list = list()
 
-    with ThreadPoolExecutor(max_workers=20) as executor:
+    with ThreadPoolExecutor(max_workers=config.MAX_THREADS_OPENAI) as executor:
         futures = [executor.submit(get_openai_embedding, chunk) for chunk in open_ai_batches]
         for future in as_completed(futures):
             chunk, embeddings = future.result()
@@ -70,7 +71,7 @@ def chunk_data(data_chunks, chunk_size, chunk_overlap):
 
 def create_openai_batches(batches):
     # Maximum number of items allowed in a batch by OpenAIs embedding API. There is also an 8191 token per item limit
-    max_batch_size = 2048
+    max_batch_size = config.MAX_OPENAI_EMBEDDING_BATCH_SIZE
     open_ai_batches = [batches[i:i + max_batch_size] for i in range(0, len(batches), max_batch_size)]
     return open_ai_batches
 
@@ -100,7 +101,7 @@ def write_embeddings_to_pinecone(upsert_list, vector_db_metadata):
     
     print(f"Starting pinecone upsert for {len(upsert_list)} vectors")
 
-    batch_size = 128
+    batch_size = config.PINECONE_BATCH_SIZE
     vectors_uploaded = 0
 
     for i in range(0,len(upsert_list), batch_size):
@@ -131,8 +132,8 @@ if __name__ == "__main__":
         headers = {"VectorFlowKey": os.getenv('INTERNAL_API_KEY')}
         response = requests.get(f"{base_request_url}/dequeue", headers=headers)
         if response.status_code == 404:
-            print("Queue Empty - Sleeping for 10 seconds")
-            time.sleep(10)
+            print(f"Queue Empty - Sleeping for {config.SLEEP_SECONDS} second(s)")
+            time.sleep(config.SLEEP_SECONDS)
         elif response.status_code == 200:
             batch = response.json()['batch']
             print("Batch retrieved successfully")
