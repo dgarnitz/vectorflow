@@ -99,13 +99,20 @@ def write_embeddings_to_pinecone(upsert_list, vector_db_metadata):
         return None
     
     print(f"Starting pinecone upsert for {len(upsert_list)} vectors")
-    try:
-        vectors_uploaded = index.upsert(vectors=upsert_list)
-        print(f"Successfully uploaded {vectors_uploaded} vectors to pinecone")
-        return vectors_uploaded
-    except Exception as e:
-        print('Error writing embeddings to pinecone:', e)
-        return None
+
+    batch_size = 128
+    vectors_uploaded = 0
+
+    for i in range(0,len(upsert_list), batch_size):
+        try:
+            upsert_response = index.upsert(vectors=upsert_list[i:i+batch_size])
+            vectors_uploaded += upsert_response["upserted_count"]
+        except Exception as e:
+            print('Error writing embeddings to pinecone:', e)
+            return None
+    
+    print(f"Successfully uploaded {vectors_uploaded} vectors to pinecone")
+    return vectors_uploaded
     
 # this implementation mocks the data service. Using this instead because DB not implement yet
 def update_job_status(job_id, batch_status, batch_id):

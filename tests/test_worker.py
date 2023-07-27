@@ -63,7 +63,7 @@ class TestWorker(unittest.TestCase):
         # arrange
         data = "thisistest" * 38 + "test"
         chunks = worker.chunk_data(data, 256, 128)
-        text_embeddings_dict = {chunk: [1.0, 2.0, 3.0, 4.0, 5.0] for chunk in chunks}
+        text_embeddings_dict = [(chunk, [1.0, 2.0, 3.0, 4.0, 5.0]) for chunk in chunks]
         batch_id = 1
         job_id = 1
 
