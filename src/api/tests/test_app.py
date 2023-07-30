@@ -1,15 +1,15 @@
 import unittest
 import json
+import auth
 from flask import Flask
 from flask.testing import FlaskClient
-from src.api.batch_status import BatchStatus
-from src.api.app import app, pipeline, auth
-from src.api.auth import Auth
-from src.api.embeddings_metadata import EmbeddingsMetadata
-from src.api.embeddings_type import EmbeddingsType
-from src.api.vector_db_metadata import VectorDBMetadata
-from src.api.vector_db_type import VectorDBType
-from src.api.batch import Batch 
+from batch_status import BatchStatus
+from app import app, pipeline, auth
+from embeddings_metadata import EmbeddingsMetadata
+from embeddings_type import EmbeddingsType
+from vector_db_metadata import VectorDBMetadata
+from vector_db_type import VectorDBType
+from batch import Batch 
 
 class TestApp(unittest.TestCase):
     def setUp(self):
@@ -40,7 +40,12 @@ class TestApp(unittest.TestCase):
         self.assertEqual(job.batches_succeeded, 0)
 
         batch = pipeline.database['batches'][f"{job.job_id}-0"]
-        self.assertEqual(batch.batch_status, BatchStatus.NOT_STARTED)
+        self.assertEqual(batch.batch_status.value, BatchStatus.NOT_STARTED.value)
+
+        batch_status = BatchStatus(batch.batch_status.value)
+        self.assertEqual(batch_status, BatchStatus.NOT_STARTED)
+        
+
 
     def test_get_job_status_endpoint_no_job(self):
         response = self.client.get('/jobs/1', headers=self.headers)
