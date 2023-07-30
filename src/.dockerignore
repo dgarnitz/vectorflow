@@ -1,9 +1,10 @@
-venv/
-__pycache__/
-*.pyc
-*.pyo
-*~
-.dockerignore
-Dockerfile
-Dockerfile-*
+worker/venv/
+worker/__pycache__/
+worker/.dockerignore
+worker/tests/
 
+api/venv/
+api/tests/
+api/Dockerfile
+api/.dockerignore
+api/__pycache__/

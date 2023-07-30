@@ -1,11 +1,11 @@
 import unittest
-from src.api.batch_status import BatchStatus
-import src.worker.worker as worker
+from api.batch_status import BatchStatus
+import worker.worker as worker
 from unittest.mock import patch
 
 class TestWorker(unittest.TestCase):
-    @patch('src.worker.worker.embed_openai_batch')
-    @patch('src.worker.worker.update_job_status')
+    @patch('worker.worker.embed_openai_batch')
+    @patch('worker.worker.update_job_status')
     def test_process_batch_success(self, mock_update_job_status, mock_embed_openai_batch):
         # arrange
         batch = {"embeddings_metadata": {"embeddings_type": "open_ai"}, "job_id": "test_job_id", "batch_id": "test_batch_id"}
@@ -18,8 +18,8 @@ class TestWorker(unittest.TestCase):
         mock_embed_openai_batch.assert_called_once_with(batch)
         mock_update_job_status.assert_called_with(batch['job_id'], BatchStatus.COMPLETED, batch['batch_id'])
 
-    @patch('src.worker.worker.embed_openai_batch')
-    @patch('src.worker.worker.update_job_status')
+    @patch('worker.worker.embed_openai_batch')
+    @patch('worker.worker.update_job_status')
     def test_process_batch_failure_no_vectors(self, mock_update_job_status, mock_embed_openai_batch):
         # arrange
         batch = {"embeddings_metadata": {"embeddings_type": "open_ai"}, "job_id": "test_job_id", "batch_id": "test_batch_id"}
@@ -32,8 +32,8 @@ class TestWorker(unittest.TestCase):
         mock_embed_openai_batch.assert_called_once_with(batch)
         mock_update_job_status.assert_called_with(batch['job_id'], BatchStatus.FAILED, batch['batch_id'])
 
-    @patch('src.worker.worker.embed_openai_batch')
-    @patch('src.worker.worker.update_job_status')
+    @patch('worker.worker.embed_openai_batch')
+    @patch('worker.worker.update_job_status')
     def test_process_batch_failure_openai(self, mock_update_job_status, mock_embed_openai_batch):
         # arrange
         batch = {"embeddings_metadata": {"embeddings_type": "open_ai"}, "job_id": "test_job_id", "batch_id": "test_batch_id"}

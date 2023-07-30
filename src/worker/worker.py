@@ -1,5 +1,7 @@
 import sys
 import os
+
+# this is needed to import classes from the API. it will be removed when the worker is refactored
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
 import time
@@ -7,7 +9,7 @@ import requests
 import openai
 import pinecone 
 import logging
-import config as config
+import worker.config as config
 from api.embeddings_type import EmbeddingsType
 from api.vector_db_type import VectorDBType
 from api.batch_status import BatchStatus
