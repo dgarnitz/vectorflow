@@ -1,16 +1,12 @@
-import os
 import json
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from src.api.embeddings_metadata import EmbeddingsMetadata
-from src.api.vector_db_metadata import VectorDBMetadata
-from src.api.batch import Batch
-from src.api.auth import Auth
-from src.api.pipeline import Pipeline
-from src.api.job_status import JobStatus
+from embeddings_metadata import EmbeddingsMetadata
+from vector_db_metadata import VectorDBMetadata
+from batch import Batch
+from auth import Auth
+from pipeline import Pipeline
+from job_status import JobStatus
 
 auth = Auth()
 pipeline = Pipeline()

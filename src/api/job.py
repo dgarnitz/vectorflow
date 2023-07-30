@@ -1,4 +1,4 @@
-from src.api.job_status import JobStatus
+from job_status import JobStatus
 
 class Job:
     def __init__(self, job_id, webhook_url):

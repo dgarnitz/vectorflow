@@ -1,4 +1,4 @@
-from src.api.batch_status import BatchStatus
+from batch_status import BatchStatus
 
 class Batch:
     def __init__(self, source_data, batch_id, job_id, embeddings_metadata, vector_db_metadata) -> None:

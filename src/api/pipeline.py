@@ -1,8 +1,8 @@
-import random # TODO: remove
+import random
 from queue import Queue
-from src.api.job_status import JobStatus
-from src.api.batch_status import BatchStatus
-from src.api.job import Job
+from job_status import JobStatus
+from batch_status import BatchStatus
+from job import Job
 
 class Pipeline:
     def __init__(self):
