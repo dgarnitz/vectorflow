@@ -1,3 +1,4 @@
+import datetime
 from job_status import JobStatus
 
 class Job:
@@ -8,3 +9,4 @@ class Job:
         self.batches_processed = 0
         self.batches_succeeded = 0
         self.total_batches = 0
+        self.start_time = datetime.datetime.now()

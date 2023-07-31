@@ -55,7 +55,7 @@ def embed():
     else:
         return jsonify({'message': 'Uploaded file is not a TXT file'}), 400
 
-@app.route('/jobs/<int:job_id>', methods=['GET'])
+@app.route('/jobs/<int:job_id>/status', methods=['GET'])
 def get_job_status(job_id):
     vectorflow_key = request.headers.get('VectorFlowKey')
     if not vectorflow_key or not auth.validate_credentials(vectorflow_key):

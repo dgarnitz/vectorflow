@@ -1,3 +1,4 @@
+import datetime
 from batch_status import BatchStatus
 
 class Batch:
@@ -8,6 +9,8 @@ class Batch:
         self.embeddings_metadata = embeddings_metadata
         self.vector_db_metadata = vector_db_metadata
         self.batch_status = BatchStatus.NOT_STARTED
+        self.start_time = datetime.datetime.now()
+        self.retries = 0
 
     def serialize(self):
         if not isinstance(self.source_data, list):
@@ -22,5 +25,7 @@ class Batch:
             'job_id': self.job_id,
             'embeddings_metadata': self.embeddings_metadata.to_dict() if self.embeddings_metadata else None,
             'vector_db_metadata': self.vector_db_metadata.to_dict() if self.vector_db_metadata else None,
-            'batch_status': self.batch_status.value if self.batch_status else 'NOT_STARTED'
+            'batch_status': self.batch_status.value if self.batch_status else 'NOT_STARTED',
+            'start_time': self.start_time.isoformat(),
+            'retries': self.retries
         }

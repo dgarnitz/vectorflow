@@ -43,19 +43,17 @@ class TestApp(unittest.TestCase):
         self.assertEqual(batch.batch_status.value, BatchStatus.NOT_STARTED.value)
 
         batch_status = BatchStatus(batch.batch_status.value)
-        self.assertEqual(batch_status, BatchStatus.NOT_STARTED)
-        
-
+        self.assertEqual(batch_status, BatchStatus.NOT_STARTED) 
 
     def test_get_job_status_endpoint_no_job(self):
-        response = self.client.get('/jobs/1', headers=self.headers)
+        response = self.client.get('/jobs/1/status', headers=self.headers)
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json['error'], 'Job not found')
     
     def test_get_job_status_endpoint_job_exists(self):
         job_id = pipeline.create_job('test_webhook_url')
 
-        response = self.client.get(f"/jobs/{job_id}", headers=self.headers)
+        response = self.client.get(f"/jobs/{job_id}/status", headers=self.headers)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json['JobStatus'], 'NOT_STARTED')
     
