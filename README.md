@@ -1,6 +1,39 @@
 # Introduction
 VectorFlow is an open source, high throughput, fault tolerant vector embedding pipeline. With a simple API request, you can send raw data that will be embedded and stored in any vector database or returned back to you. 
 
+## Request & Response Payload
+All requests require an HTTP Header with `VectorFlowKey` key and a your `INTERNAL_API_KEY` env var as the value. 
+
+To check the status of a `job`, make a `GET` request to this endpoint: `/jobs/<int:job_id>/status`. The response will be in the form:
+```
+{'JobStatus': job_status.value}
+```
+
+To submit a `job` for embedding, make a `POST` request to this endpoint: `/embed` with the following payload and the `'Content-Type: multipart/form-data'` header:
+```
+{
+    'SourceData=path_to_txt_file'
+    'EmbeddingsMetadata={
+        "embeddings_type": "_", 
+        "chunk_size": _, 
+        "chunk_overlap": _
+    }'
+    'VectorDBMetadata={
+        "vector_db_type": "_", 
+        "index_name": "_", 
+        "environment": "_"
+    }'
+}
+``` 
+
+You will get the following payload back:
+```
+{
+    message': f"Successfully added {batch_count} batches to the queue", 
+    'JobID': job_id
+}
+```
+
 # How to Run Locally
 The api and the worker each have their own virtual environments which you must set up - `python -m venv venv  `. Install the `requirements.txt` for each app into the venv. 
 
@@ -69,7 +102,7 @@ Please tag `dgarnitz` on all PRs.
 - [ ] Connectors to other vector databases such as Weaviate, Milvus, Chroma, Deeplake and Vespa
 - [ ] Support for more files types such as `csv`, `word`, `xls`, etc
 - [ ] Support for multi-file, directory data ingestion from sources such as S3, Google docs, etc
-- [ ] SQL support with SQL ALchemy & Alembic for persistent storage of job & batch information
+- [ ] SQL support with SQL Alchemy & Alembic for persistent storage of job & batch information
 - [ ] Turn shared objects in Api into package
 - [ ] Add stand alone Queue, like SQS or RabbitMQ, with interface to make it technology agnostic
 - [ ] Retry mechanism

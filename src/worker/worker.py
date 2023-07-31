@@ -19,6 +19,12 @@ logging.basicConfig(filename='./log.txt', level=config.LOG_LEVEL)
 base_request_url = os.getenv('API_REQUEST_URL') 
 
 def process_batch(batch):
+    if batch['batch_status'] == BatchStatus.NOT_STARTED.value:
+        update_batch_status(batch['batch_status'], batch['batch_id'])
+    else:
+        update_batch_retry_count(batch['batch_id'], batch['retries']+1)
+        logging.info(f"Retrying batch {batch['batch_id']}")
+    
     embeddings_type = batch['embeddings_metadata']['embeddings_type']
     if embeddings_type == EmbeddingsType.OPEN_AI.value:
         try:
@@ -121,7 +127,7 @@ def write_embeddings_to_pinecone(upsert_list, vector_db_metadata):
     logging.info(f"Successfully uploaded {vectors_uploaded} vectors to pinecone")
     return vectors_uploaded
     
-# this implementation mocks the data service. Using this instead because DB not implement yet
+# These implementations below mock the data service. Using these instead because DB not implement yet
 def update_job_status(job_id, batch_status, batch_id):
     headers = {"Content-Type": "application/json", "VectorFlowKey": os.getenv('INTERNAL_API_KEY')}
     data = {
@@ -131,7 +137,23 @@ def update_job_status(job_id, batch_status, batch_id):
     response = requests.put(f"{base_request_url}/jobs/{job_id}", headers=headers, json=data)
     logging.info(f"Response status: {response.status_code}")
 
-    # TODO: implement webhook callback logic - can pass it back in the response and call it with the response code
+def update_batch_status(batch_status, batch_id):
+    headers = {"Content-Type": "application/json", "VectorFlowKey": os.getenv('INTERNAL_API_KEY')}
+    data = {
+        "batch_id": batch_id,
+        "batch_status": batch_status.value,
+    }
+    # response = requests.put(f"{base_request_url}/batch/{batch_id}", headers=headers, json=data)
+    # logging.info(f"Response status: {response.status_code}")
+
+def update_batch_retry_count(batch_id, retries):
+    headers = {"Content-Type": "application/json", "VectorFlowKey": os.getenv('INTERNAL_API_KEY')}
+    data = {
+        "batch_id": batch_id,
+        "retries": retries,
+    }
+    # response = requests.put(f"{base_request_url}/batch/{batch_id}", headers=headers, json=data)
+    # logging.info(f"Response status: {response.status_code}")
 
 if __name__ == "__main__":
     while True:
