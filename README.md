@@ -76,3 +76,5 @@ Please tag `dgarnitz` on all PRs.
 - [ ] DLQ mechanism
 - [ ] Cron job to detect failed and hanging jobs
 - [ ] Support for key & secret management
+- [ ] Langchain & Llama Index integrations
+- [ ] Support for object metadata store and application logic
