@@ -97,15 +97,17 @@ def update_job(job_id):
         return jsonify({'error': 'Invalid credentials'}), 401
     
     try:
-        job_status = pipeline.update_job_with_batch(job_id, request.json['batch_id'], request.json['batch_status'])
-        if job_status == JobStatus.COMPLETED:
-            return jsonify({'message': f'Job {job_id} completed successfully'}), 200
-        elif job_status == JobStatus.IN_PROGRESS:
-            return jsonify({'message': f'Job {job_id} is in progress'}), 202
-        elif job_status == JobStatus.PARTIALLY_COMPLETED:
-            return jsonify({'message': f'Job {job_id} partially completed'}), 206
-        else:
-            return jsonify({'message': f'Job {job_id} processed all batches and failed to complete any'}), 404
+        with job_service.get_db() as db:
+            updated_batch_status = batch_service.update_batch_status(db, request.json['batch_id'], request.json['batch_status'])
+            job = job_service.update_job_with_batch(db, job_id, updated_batch_status)
+            if job.job_status == JobStatus.COMPLETED:
+                return jsonify({'message': f'Job {job_id} completed successfully'}), 200
+            elif job.job_status == JobStatus.IN_PROGRESS:
+                return jsonify({'message': f'Job {job_id} is in progress'}), 202
+            elif job.job_status == JobStatus.PARTIALLY_COMPLETED:
+                return jsonify({'message': f'Job {job_id} partially completed'}), 206
+            else:
+                return jsonify({'message': f'Job {job_id} processed all batches and failed to complete any'}), 404
     except Exception as e:
         print(e)
         return jsonify({'message': f'Job {job_id} failed due to server error'}), 500
