@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Enum
-from .base import Base
+from services.database.database import Base
 from shared.embeddings_type import EmbeddingsType
 
 class EmbeddingsMetadata(Base):

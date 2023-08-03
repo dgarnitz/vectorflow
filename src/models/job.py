@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, Enum
 from sqlalchemy.sql import func
-from .base import Base
+from services.database.database import Base
 from shared.job_status import JobStatus
 
 class Job(Base):

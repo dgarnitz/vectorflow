@@ -5,8 +5,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
 from sqlalchemy import create_engine
-from models.base import Base, engine
-#from models import Batch, Job, EmbeddingsMetadata, VectorDBMetadata
+from services.database.database import Base, engine
 import models.batch 
 import models.job
 import models.vector_db_metadata

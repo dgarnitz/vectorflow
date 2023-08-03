@@ -1,4 +1,4 @@
-from .base import Base
+from services.database.database import Base
 from sqlalchemy import Column, Integer, String, Enum
 from shared.vector_db_type import VectorDBType
 

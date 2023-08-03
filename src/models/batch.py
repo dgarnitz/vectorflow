@@ -1,7 +1,7 @@
 from sqlalchemy import ForeignKey, Column, Integer, String, DateTime, Enum
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
-from .base import Base
+from services.database.database import Base
 from shared.batch_status import BatchStatus
 
 class Batch(Base):

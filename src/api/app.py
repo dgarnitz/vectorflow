@@ -5,6 +5,8 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
 import json
+import services.database.batch_service as batch_service
+import services.database.job_service as job_service
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from models.embeddings_metadata import EmbeddingsMetadata
@@ -55,9 +57,11 @@ def embed():
     # Check if the file has a .txt extension
     if file and file.filename.endswith('.txt'):
         file_content = file.read()
-        job_id = pipeline.create_job(webhook_url)
-        batch_count = create_batches(file_content, job_id, embeddings_metadata, vector_db_metadata, lines_per_chunk)
-        return jsonify({'message': f"Successfully added {batch_count} batches to the queue", 'JobID': job_id}), 200
+
+        with job_service.get_db() as db:
+            job = job_service.create_job(db, webhook_url)
+        batch_count = create_batches(file_content, job.id, embeddings_metadata, vector_db_metadata, lines_per_chunk)
+        return jsonify({'message': f"Successfully added {batch_count} batches to the queue", 'JobID': job.id}), 200
     else:
         return jsonify({'message': 'Uploaded file is not a TXT file'}), 400
 
@@ -67,11 +71,12 @@ def get_job_status(job_id):
     if not vectorflow_key or not auth.validate_credentials(vectorflow_key):
         return jsonify({'error': 'Invalid credentials'}), 401
     
-    job_status = pipeline.get_job_status(job_id)
-    if job_status:
-        return jsonify({'JobStatus': job_status.value}), 200
-    else:
-        return jsonify({'error': "Job not found"}), 404
+    with job_service.get_db() as db:
+        job = job_service.get_job(db, job_id)
+        if job:
+            return jsonify({'JobStatus': job.job_status.value}), 200
+        else:
+            return jsonify({'error': "Job not found"}), 404
 
 
 @app.route("/dequeue")
@@ -106,20 +111,20 @@ def update_job(job_id):
         return jsonify({'message': f'Job {job_id} failed due to server error'}), 500
 
 def create_batches(file_content, job_id, embeddings_metadata, vector_db_metadata, lines_per_chunk):
-    batch_count = 0
-    for i, chunk in enumerate(split_file(file_content, lines_per_chunk)):
-        # TODO: this has to be altered because chunk needs to be a string  
-        # TODO: this needs to be written to the DB by a data service
-        batch = Batch(chunk, f"{job_id}-{i}", job_id, embeddings_metadata, vector_db_metadata)
+    batches = []
+    for chunk in split_file(file_content, lines_per_chunk):
+        chunk = '\n'.join(chunk) # TODO: This is very inefficient, need to implement a better way
+        batch = Batch(job_id=job_id, embeddings_metadata=embeddings_metadata, vector_db_metadata=vector_db_metadata, source_data=chunk)
         pipeline.add_to_queue(batch)
-        pipeline.create_batch(batch)
-        batch_count+=1
-    pipeline.update_job_total_batches(job_id, batch_count)
-    return batch_count
+        batches.append(batch)
+    
+    with batch_service.get_db() as db:
+        batch_count = batch_service.create_batches(db, batches)
+        job = job_service.update_job_total_batches(db, job_id, batch_count)
+    return job.total_batches if job else None
     
 def split_file(file_content, lines_per_chunk=1000):
     lines = file_content.splitlines()
-    #TODO: the has to be altered because chunk needs to be a string
     for i in range(0, len(lines), lines_per_chunk):
         yield lines[i:i+lines_per_chunk]
 
