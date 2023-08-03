@@ -10,9 +10,9 @@ import openai
 import pinecone 
 import logging
 import worker.config as config
-from api.embeddings_type import EmbeddingsType
-from api.vector_db_type import VectorDBType
-from api.batch_status import BatchStatus
+from shared.embeddings_type import EmbeddingsType
+from shared.vector_db_type import VectorDBType
+from shared.batch_status import BatchStatus
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 logging.basicConfig(filename='./log.txt', level=config.LOG_LEVEL)

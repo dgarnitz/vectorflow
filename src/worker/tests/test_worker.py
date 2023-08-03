@@ -1,5 +1,5 @@
 import unittest
-from api.batch_status import BatchStatus
+from shared.batch_status import BatchStatus
 import worker.worker as worker
 from unittest.mock import patch
 

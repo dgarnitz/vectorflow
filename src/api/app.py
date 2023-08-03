@@ -1,12 +1,18 @@
+import sys
+import os
+
+# this is needed to import classes from other modules
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
+
 import json
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from embeddings_metadata import EmbeddingsMetadata
-from vector_db_metadata import VectorDBMetadata
-from batch import Batch
+from models.embeddings_metadata import EmbeddingsMetadata
+from models.vector_db_metadata import VectorDBMetadata
+from models.batch import Batch
 from auth import Auth
 from pipeline import Pipeline
-from job_status import JobStatus
+from shared.job_status import JobStatus
 
 auth = Auth()
 pipeline = Pipeline()
@@ -101,7 +107,9 @@ def update_job(job_id):
 
 def create_batches(file_content, job_id, embeddings_metadata, vector_db_metadata, lines_per_chunk):
     batch_count = 0
-    for i, chunk in enumerate(split_file(file_content, lines_per_chunk)):  
+    for i, chunk in enumerate(split_file(file_content, lines_per_chunk)):
+        # TODO: this has to be altered because chunk needs to be a string  
+        # TODO: this needs to be written to the DB by a data service
         batch = Batch(chunk, f"{job_id}-{i}", job_id, embeddings_metadata, vector_db_metadata)
         pipeline.add_to_queue(batch)
         pipeline.create_batch(batch)
@@ -111,6 +119,7 @@ def create_batches(file_content, job_id, embeddings_metadata, vector_db_metadata
     
 def split_file(file_content, lines_per_chunk=1000):
     lines = file_content.splitlines()
+    #TODO: the has to be altered because chunk needs to be a string
     for i in range(0, len(lines), lines_per_chunk):
         yield lines[i:i+lines_per_chunk]
 

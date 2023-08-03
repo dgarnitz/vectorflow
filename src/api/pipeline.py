@@ -1,8 +1,7 @@
-import random
 from queue import Queue
-from job_status import JobStatus
-from batch_status import BatchStatus
-from job import Job
+from shared.job_status import JobStatus
+from shared.batch_status import BatchStatus
+from models.job import Job
 
 class Pipeline:
     def __init__(self):
@@ -19,9 +18,9 @@ class Pipeline:
         return self.queue.qsize()
     
     def create_job(self, webhook_url):
-        job_id = random.randint(1, 10000000)
-        self.database['jobs'][job_id] = Job(job_id, webhook_url)
-        return job_id
+        #self.database['jobs'][job_id] = Job(job_id=job_id, webhook_url=webhook_url)
+        print("mocking job creation")
+        return 123
     
     def update_job_with_batch(self, job_id, batch_id, batch_status):
         batch = self.database['batches'][batch_id]

@@ -13,6 +13,7 @@ To submit a `job` for embedding, make a `POST` request to this endpoint: `/embed
 ```
 {
     'SourceData=path_to_txt_file'
+    'chunk_overlap=_'
     'EmbeddingsMetadata={
         "embeddings_type": "_", 
         "chunk_size": _, 
@@ -53,6 +54,11 @@ OPEN_AI_KEY
 PINECONE_KEY
 ```
 
+The database can also be run locally. We recommend using postgres but SQL Alchemy allows it to work with any flavor of SQL. 
+```
+docker run --network=vectorflow --name postgres -e POSTGRES_PASSWORD=yourpassword -e POSTGRES_DB=vectorflow -p 5432:5432 -d postgres
+```
+
 ## Docker
 You must have Docker installed locally. First create a `docker network` for the images to run on so the workers can communicate with the api. 
 ```
@@ -77,7 +83,7 @@ docker run --network=vectorflow --name=vectorflow_worker -d --env-file=/Users/da
 ```
 
 # How to Deploy
-We recommend deploying using the Docker images available in our [public repo.](https://hub.docker.com/repository/docker/dgarnitz/vectorflow/general). The api runs with `gunicorn` and needs a port open to accept active connections. Your 
+We recommend deploying using the Docker images available in our [public repo.](https://hub.docker.com/repository/docker/dgarnitz/vectorflow/general). The api runs with `gunicorn` and needs a port open to accept active connections.  
 
 # How to Test
 Api tests are run from the `api` directory (`vectorflow/src/api`) and can be run with:
