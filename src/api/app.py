@@ -15,6 +15,9 @@ from models.batch import Batch
 from auth import Auth
 from pipeline import Pipeline
 from shared.job_status import JobStatus
+from services.database.database import get_db
+from shared.embeddings_type import EmbeddingsType
+from shared.vector_db_type import VectorDBType
 
 auth = Auth()
 pipeline = Pipeline()
@@ -30,15 +33,15 @@ def embed():
     webhook_url = request.form.get('WebhookURL')
     embeddings_metadata_dict = json.loads(request.form.get('EmbeddingsMetadata'))
     embeddings_metadata = EmbeddingsMetadata(
-        embeddings_metadata_dict['embeddings_type'], 
-        embeddings_metadata_dict['chunk_size'],
-        embeddings_metadata_dict['chunk_overlap'])
+        embeddings_type = EmbeddingsType(embeddings_metadata_dict['embeddings_type']), 
+        chunk_size = embeddings_metadata_dict['chunk_size'],
+        chunk_overlap = embeddings_metadata_dict['chunk_overlap'])
     
     vector_db_metadata_dict = json.loads(request.form.get('VectorDBMetadata'))
     vector_db_metadata = VectorDBMetadata(
-        vector_db_metadata_dict['vector_db_type'], 
-        vector_db_metadata_dict['index_name'], 
-        vector_db_metadata_dict['environment'])
+        vector_db_type = VectorDBType(vector_db_metadata_dict['vector_db_type']), 
+        index_name = vector_db_metadata_dict['index_name'], 
+        environment = vector_db_metadata_dict['environment'])
     
     lines_per_chunk = int(request.form.get('LinesPerChunk')) if request.form.get('LinesPerChunk') else 1000
  
@@ -56,9 +59,9 @@ def embed():
     
     # Check if the file has a .txt extension
     if file and file.filename.endswith('.txt'):
-        file_content = file.read()
+        file_content = file.read().decode('utf-8')
 
-        with job_service.get_db() as db:
+        with get_db() as db:
             job = job_service.create_job(db, webhook_url)
         batch_count = create_batches(file_content, job.id, embeddings_metadata, vector_db_metadata, lines_per_chunk)
         return jsonify({'message': f"Successfully added {batch_count} batches to the queue", 'JobID': job.id}), 200
@@ -71,7 +74,7 @@ def get_job_status(job_id):
     if not vectorflow_key or not auth.validate_credentials(vectorflow_key):
         return jsonify({'error': 'Invalid credentials'}), 401
     
-    with job_service.get_db() as db:
+    with get_db() as db:
         job = job_service.get_job(db, job_id)
         if job:
             return jsonify({'JobStatus': job.job_status.value}), 200
@@ -87,8 +90,8 @@ def dequeue():
     if pipeline.get_queue_size() == 0:
         return jsonify({'error': 'No jobs in queue'}), 404
     else:
-        next_batch = pipeline.get_from_queue()
-        return jsonify({'batch': next_batch.serialize()}), 200
+        next_batch, source_data = pipeline.get_from_queue()
+        return jsonify({'batch': next_batch, 'source_data': source_data}), 200
 
 @app.route('/jobs/<int:job_id>', methods=['PUT'])
 def update_job(job_id):
@@ -97,7 +100,7 @@ def update_job(job_id):
         return jsonify({'error': 'Invalid credentials'}), 401
     
     try:
-        with job_service.get_db() as db:
+        with get_db() as db:
             updated_batch_status = batch_service.update_batch_status(db, request.json['batch_id'], request.json['batch_status'])
             job = job_service.update_job_with_batch(db, job_id, updated_batch_status)
             if job.job_status == JobStatus.COMPLETED:
@@ -115,12 +118,11 @@ def update_job(job_id):
 def create_batches(file_content, job_id, embeddings_metadata, vector_db_metadata, lines_per_chunk):
     batches = []
     for chunk in split_file(file_content, lines_per_chunk):
-        chunk = '\n'.join(chunk) # TODO: This is very inefficient, need to implement a better way
-        batch = Batch(job_id=job_id, embeddings_metadata=embeddings_metadata, vector_db_metadata=vector_db_metadata, source_data=chunk)
-        pipeline.add_to_queue(batch)
+        batch = Batch(job_id=job_id, embeddings_metadata=embeddings_metadata, vector_db_metadata=vector_db_metadata)
+        pipeline.add_to_queue((batch.serialize(), chunk))
         batches.append(batch)
     
-    with batch_service.get_db() as db:
+    with get_db() as db:
         batch_count = batch_service.create_batches(db, batches)
         job = job_service.update_job_total_batches(db, job_id, batch_count)
     return job.total_batches if job else None

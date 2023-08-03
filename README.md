@@ -59,6 +59,8 @@ The database can also be run locally. We recommend using postgres but SQL Alchem
 docker run --network=vectorflow --name postgres -e POSTGRES_PASSWORD=yourpassword -e POSTGRES_DB=vectorflow -p 5432:5432 -d postgres
 ```
 
+Then run the `create_database.py` script to create the tables. 
+
 ## Docker
 You must have Docker installed locally. First create a `docker network` for the images to run on so the workers can communicate with the api. 
 ```
@@ -77,9 +79,9 @@ API_REQUEST_URL=http://vectorflow_api:8000
 
 Run the containers locally with these commands:
 ```
-docker run -d -p 8000:8000 --network vectorflow --name=vectorflow_api --env-file=/Users/davidgarnitz/Documents/Programming/vectorflow/scripts/env_vars.env vectorflow_api:latest 
+docker run -d -p 8000:8000 --network vectorflow --name=vectorflow_api --env-file=path/to/.env vectorflow_api:latest 
 
-docker run --network=vectorflow --name=vectorflow_worker -d --env-file=/Users/davidgarnitz/Documents/Programming/vectorflow/scripts/env_vars.env vectorflow_worker:latest
+docker run --network=vectorflow --name=vectorflow_worker -d --env-file=path/to.env vectorflow_worker:latest
 ```
 
 # How to Deploy

@@ -1,16 +1,8 @@
 from sqlalchemy.orm import Session
-from database import SessionLocal
 from models.batch import Batch
 from models.job import Job
 from shared.batch_status import BatchStatus
 from shared.job_status import JobStatus
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 def create_job(db: Session, webhook_url: str):
     job = Job(webhook_url=webhook_url)
@@ -20,10 +12,10 @@ def create_job(db: Session, webhook_url: str):
     return job
 
 def get_job(db: Session, job_id: str):
-    return db.query(Job).filter(Job.job_id == job_id).first()
+    return db.query(Job).filter(Job.id == job_id).first()
 
 def update_job_with_batch(db: Session, job_id: int, batch_status: str):
-    job = db.query(Job).filter(Job.job_id == job_id).first()
+    job = db.query(Job).filter(Job.id == job_id).first()
     job.batches_processed += 1
     
     if batch_status == BatchStatus.COMPLETED:
@@ -44,7 +36,7 @@ def update_job_with_batch(db: Session, job_id: int, batch_status: str):
     return job.job_status
 
 def update_job_total_batches(db: Session, job_id: int, total_batches: int):
-    job = db.query(Job).filter(Job.job_id == job_id).first()
+    job = db.query(Job).filter(Job.id == job_id).first()
     if job:
         job.total_batches = total_batches
         db.commit()

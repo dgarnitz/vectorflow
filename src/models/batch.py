@@ -19,18 +19,14 @@ class Batch(Base):
     vecotr_db_metadata_id = Column(Integer, ForeignKey('vector_db_metadata.id'))
     vector_db_metadata = relationship('VectorDBMetadata')
 
-    # Assuming source_data is a string; if not, this will need to change
-    source_data = Column(String)
-
     def serialize(self):
         return {
-            'source_data': self.source_data,
-            'batch_id': self.batch_id,
+            'batch_id': self.id,
             'job_id': self.job_id,
             'embeddings_metadata': self.embeddings_metadata.serialize() if self.embeddings_metadata else None,
             'vector_db_metadata': self.vector_db_metadata.serialize() if self.vector_db_metadata else None,
             'batch_status': self.batch_status.value if self.batch_status else 'NOT_STARTED',
-            'start_time': self.start_time.isoformat(),
+            'start_time': self.start_time,
             'retries': self.retries
         }
 
