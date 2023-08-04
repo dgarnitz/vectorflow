@@ -36,14 +36,14 @@ You will get the following payload back:
 ```
 
 # How to Run Locally
-The api and the worker each have their own virtual environments which you must set up - `python -m venv venv  `. Install the `requirements.txt` for each app into the venv. 
+The api and the worker each have their own virtual environments which you must set up - `python -m venv venv  `. Install the `requirements.txt` for each app into the venv. Run both from the `src` directory.
 
-The api can be run locally with `python app.py` in the `api` directory. You must set the following environment variable:
+The api can be run locally with `python api/app.py`. You must set the following environment variable:
 ```
 INTERNAL_API_KEY
 ```
 
-The worker can be run with `python worker/worker.py` in the `src` directory. You must set the follow environment variables:
+The worker can be run with `python worker/worker.py`. You must set the follow environment variables:
 ```
 INTERNAL_API_KEY
 API_REQUEST_URL

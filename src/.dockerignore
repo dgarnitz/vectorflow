@@ -8,3 +8,6 @@ api/tests/
 api/Dockerfile
 api/.dockerignore
 api/__pycache__/
+
+models/__pycache__/
+services/database/__pycache__/

@@ -12,8 +12,8 @@ from flask_cors import CORS
 from models.embeddings_metadata import EmbeddingsMetadata
 from models.vector_db_metadata import VectorDBMetadata
 from models.batch import Batch
-from auth import Auth
-from pipeline import Pipeline
+from api.auth import Auth
+from api.pipeline import Pipeline
 from shared.job_status import JobStatus
 from services.database.database import get_db
 from shared.embeddings_type import EmbeddingsType
@@ -90,8 +90,8 @@ def dequeue():
     if pipeline.get_queue_size() == 0:
         return jsonify({'error': 'No jobs in queue'}), 404
     else:
-        next_batch, source_data = pipeline.get_from_queue()
-        return jsonify({'batch': next_batch, 'source_data': source_data}), 200
+        batch_id, source_data = pipeline.get_from_queue()
+        return jsonify({'batch_id': batch_id, 'source_data': source_data}), 200
 
 @app.route('/jobs/<int:job_id>', methods=['PUT'])
 def update_job(job_id):
@@ -116,15 +116,15 @@ def update_job(job_id):
         return jsonify({'message': f'Job {job_id} failed due to server error'}), 500
 
 def create_batches(file_content, job_id, embeddings_metadata, vector_db_metadata, lines_per_chunk):
-    batches = []
-    for chunk in split_file(file_content, lines_per_chunk):
-        batch = Batch(job_id=job_id, embeddings_metadata=embeddings_metadata, vector_db_metadata=vector_db_metadata)
-        pipeline.add_to_queue((batch.serialize(), chunk))
-        batches.append(batch)
+    chunks = [chunk for chunk in split_file(file_content, lines_per_chunk)]
     
     with get_db() as db:
-        batch_count = batch_service.create_batches(db, batches)
-        job = job_service.update_job_total_batches(db, job_id, batch_count)
+        batches = [Batch(job_id=job_id, embeddings_metadata=embeddings_metadata, vector_db_metadata=vector_db_metadata) for _ in len(chunks)]
+        batches = batch_service.create_batches(db, batches)
+        job = job_service.update_job_total_batches(db, job_id, len(batches))
+
+        for batch, chunk in zip(batches, chunks):
+            pipeline.add_to_queue((batch.id, chunk))
     return job.total_batches if job else None
     
 def split_file(file_content, lines_per_chunk=1000):

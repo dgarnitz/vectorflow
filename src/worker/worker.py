@@ -10,32 +10,38 @@ import openai
 import pinecone 
 import logging
 import worker.config as config
+import services.database.batch_service as batch_service
 from shared.embeddings_type import EmbeddingsType
 from shared.vector_db_type import VectorDBType
 from shared.batch_status import BatchStatus
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from services.database.database import get_db
 
 logging.basicConfig(filename='./log.txt', level=config.LOG_LEVEL)
 base_request_url = os.getenv('API_REQUEST_URL') 
 
-def process_batch(batch):
-    if batch['batch_status'] == BatchStatus.NOT_STARTED.value:
-        update_batch_status(batch['batch_status'], batch['batch_id'])
-    else:
-        update_batch_retry_count(batch['batch_id'], batch['retries']+1)
-        logging.info(f"Retrying batch {batch['batch_id']}")
+def process_batch(batch_id, source_data):
+    with get_db() as db:
+        batch = batch_service.get_batch(db, batch_id)
+        
+        if batch.batch_status == BatchStatus.NOT_STARTED:
+            batch_service.update_batch_status(db, batch.id, BatchStatus.IN_PROGRESS)
+            db.refresh(batch)
+        else:
+            update_batch_retry_count(batch['batch_id'], batch['retries']+1)
+            logging.info(f"Retrying batch {batch['batch_id']}")
     
-    embeddings_type = batch['embeddings_metadata']['embeddings_type']
-    if embeddings_type == EmbeddingsType.OPEN_AI.value:
-        try:
-            vectors_uploaded = embed_openai_batch(batch)
-            update_job_status(batch['job_id'], BatchStatus.COMPLETED, batch['batch_id']) if vectors_uploaded else update_job_status(batch['job_id'], BatchStatus.FAILED, batch['batch_id'])
-        except Exception as e:
-            logging.error('Error embedding batch:', e)
+        embeddings_type = batch.embeddings_metadata.embeddings_type
+        if embeddings_type == EmbeddingsType.OPEN_AI.value:
+            try:
+                vectors_uploaded = embed_openai_batch(batch, source_data)
+                update_job_status(batch['job_id'], BatchStatus.COMPLETED, batch['batch_id']) if vectors_uploaded else update_job_status(batch['job_id'], BatchStatus.FAILED, batch['batch_id'])
+            except Exception as e:
+                logging.error('Error embedding batch:', e)
+                update_job_status(batch['job_id'], BatchStatus.FAILED, batch['batch_id'])
+        else:
+            logging.error('Unsupported embeddings type:', embeddings_type)
             update_job_status(batch['job_id'], BatchStatus.FAILED, batch['batch_id'])
-    else:
-        logging.error('Unsupported embeddings type:', embeddings_type)
-        update_job_status(batch['job_id'], BatchStatus.FAILED, batch['batch_id'])
 
 def get_openai_embedding(batch, attempts=5):
     for i in range(attempts):
@@ -51,11 +57,11 @@ def get_openai_embedding(batch, attempts=5):
             time.sleep(2**i)  # Exponential backoff: 1, 2, 4, 8, 16 seconds.
     return batch, None
 
-def embed_openai_batch(batch):
+def embed_openai_batch(batch, source_data):
     logging.info("Starting Open AI Embeddings")
     openai.api_key = os.getenv('OPEN_AI_KEY')
 
-    chunked_data = chunk_data(batch['source_data'], batch['embeddings_metadata']['chunk_size'], batch['embeddings_metadata']['chunk_overlap'])
+    chunked_data = chunk_data(source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
     open_ai_batches = create_openai_batches(chunked_data)
     text_embeddings_list = list()
 
@@ -137,15 +143,6 @@ def update_job_status(job_id, batch_status, batch_id):
     response = requests.put(f"{base_request_url}/jobs/{job_id}", headers=headers, json=data)
     logging.info(f"Response status: {response.status_code}")
 
-def update_batch_status(batch_status, batch_id):
-    headers = {"Content-Type": "application/json", "VectorFlowKey": os.getenv('INTERNAL_API_KEY')}
-    data = {
-        "batch_id": batch_id,
-        "batch_status": batch_status.value,
-    }
-    # response = requests.put(f"{base_request_url}/batch/{batch_id}", headers=headers, json=data)
-    # logging.info(f"Response status: {response.status_code}")
-
 def update_batch_retry_count(batch_id, retries):
     headers = {"Content-Type": "application/json", "VectorFlowKey": os.getenv('INTERNAL_API_KEY')}
     data = {
@@ -163,13 +160,15 @@ if __name__ == "__main__":
             logging.info(f"Queue Empty - Sleeping for {config.SLEEP_SECONDS} second(s)")
             time.sleep(config.SLEEP_SECONDS)
         elif response.status_code == 200:
-            batch = response.json()['batch']
+            batch_id = response.json()['batch_id']
+            source_data = response.json()['source_data']
             logging.info("Batch retrieved successfully")
-            process_batch(batch)
-            logging.info("Batch processed successfully")
+            try:
+                process_batch(batch_id, source_data)
+                logging.info("Batch processed successfully")
+            except Exception as e:
+                logging.error('Error processing batch:', e)
         elif response.status_code == 401:
             logging.error('Invalid credentials')
         else:
             logging.error('Unexpected status code:', response.status_code)
-
-

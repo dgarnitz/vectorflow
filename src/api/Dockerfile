@@ -10,15 +10,17 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends gcc
 
-# Copy requirements.txt and install Python dependencies
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy key requirements
+COPY api /app/api
+COPY shared /app/shared
+COPY models /app/models
+COPY services /app/services
 
-# Copy the current directory contents into the container at /app
-COPY . .
+# Install Python dependencies
+RUN pip install --no-cache-dir -r /app/api/requirements.txt
 
 # Make port 8000 available to the world outside this container
 EXPOSE 8000
 
 # Run the command to start gunicorn with 1 worker. NOTE you may have to alter the number of workers.
-CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:8000", "app:app"]
+CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:8000", "api.app:app"]
