@@ -93,33 +93,11 @@ def dequeue():
         batch_id, source_data = pipeline.get_from_queue()
         return jsonify({'batch_id': batch_id, 'source_data': source_data}), 200
 
-@app.route('/jobs/<int:job_id>', methods=['PUT'])
-def update_job(job_id):
-    vectorflow_key = request.headers.get('VectorFlowKey')
-    if not vectorflow_key or not auth.validate_credentials(vectorflow_key):
-        return jsonify({'error': 'Invalid credentials'}), 401
-    
-    try:
-        with get_db() as db:
-            updated_batch_status = batch_service.update_batch_status(db, request.json['batch_id'], request.json['batch_status'])
-            job = job_service.update_job_with_batch(db, job_id, updated_batch_status)
-            if job.job_status == JobStatus.COMPLETED:
-                return jsonify({'message': f'Job {job_id} completed successfully'}), 200
-            elif job.job_status == JobStatus.IN_PROGRESS:
-                return jsonify({'message': f'Job {job_id} is in progress'}), 202
-            elif job.job_status == JobStatus.PARTIALLY_COMPLETED:
-                return jsonify({'message': f'Job {job_id} partially completed'}), 206
-            else:
-                return jsonify({'message': f'Job {job_id} processed all batches and failed to complete any'}), 404
-    except Exception as e:
-        print(e)
-        return jsonify({'message': f'Job {job_id} failed due to server error'}), 500
-
 def create_batches(file_content, job_id, embeddings_metadata, vector_db_metadata, lines_per_chunk):
     chunks = [chunk for chunk in split_file(file_content, lines_per_chunk)]
     
     with get_db() as db:
-        batches = [Batch(job_id=job_id, embeddings_metadata=embeddings_metadata, vector_db_metadata=vector_db_metadata) for _ in len(chunks)]
+        batches = [Batch(job_id=job_id, embeddings_metadata=embeddings_metadata, vector_db_metadata=vector_db_metadata) for _ in chunks]
         batches = batch_service.create_batches(db, batches)
         job = job_service.update_job_total_batches(db, job_id, len(batches))
 

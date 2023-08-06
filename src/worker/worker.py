@@ -11,11 +11,13 @@ import pinecone
 import logging
 import worker.config as config
 import services.database.batch_service as batch_service
+import services.database.job_service as job_service
 from shared.embeddings_type import EmbeddingsType
 from shared.vector_db_type import VectorDBType
 from shared.batch_status import BatchStatus
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from services.database.database import get_db
+from shared.job_status import JobStatus
 
 logging.basicConfig(filename='./log.txt', level=config.LOG_LEVEL)
 base_request_url = os.getenv('API_REQUEST_URL') 
@@ -26,22 +28,22 @@ def process_batch(batch_id, source_data):
         
         if batch.batch_status == BatchStatus.NOT_STARTED:
             batch_service.update_batch_status(db, batch.id, BatchStatus.IN_PROGRESS)
-            db.refresh(batch)
         else:
-            update_batch_retry_count(batch['batch_id'], batch['retries']+1)
-            logging.info(f"Retrying batch {batch['batch_id']}")
-    
+            batch_service.update_batch_retry_count(db, batch.id, batch.retries+1)
+            logging.info(f"Retrying batch {batch.id}")
+
+        db.refresh(batch)
         embeddings_type = batch.embeddings_metadata.embeddings_type
-        if embeddings_type == EmbeddingsType.OPEN_AI.value:
+        if embeddings_type == EmbeddingsType.OPEN_AI:
             try:
                 vectors_uploaded = embed_openai_batch(batch, source_data)
-                update_job_status(batch['job_id'], BatchStatus.COMPLETED, batch['batch_id']) if vectors_uploaded else update_job_status(batch['job_id'], BatchStatus.FAILED, batch['batch_id'])
+                update_batch_and_job_status(batch.job_id, BatchStatus.COMPLETED, batch.id) if vectors_uploaded else update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
             except Exception as e:
                 logging.error('Error embedding batch:', e)
-                update_job_status(batch['job_id'], BatchStatus.FAILED, batch['batch_id'])
+                update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
         else:
             logging.error('Unsupported embeddings type:', embeddings_type)
-            update_job_status(batch['job_id'], BatchStatus.FAILED, batch['batch_id'])
+            update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
 
 def get_openai_embedding(batch, attempts=5):
     for i in range(attempts):
@@ -74,11 +76,11 @@ def embed_openai_batch(batch, source_data):
                     text_embeddings_list.append((text, embedding['embedding']))
             else:
                 logging.error(f"Failed to get embedding for chunk {chunk}. Adding batch to retry queue.")
-                update_job_status(batch['job_id'], BatchStatus.Failed, batch['batch_id'])
+                update_batch_and_job_status(batch.job_id, BatchStatus.Failed, batch.id)
                 return
     
     logging.info("Open AI Embeddings completed successfully")
-    return write_embeddings_to_vector_db(text_embeddings_list, batch['vector_db_metadata'], batch['batch_id'], batch['job_id']) 
+    return write_embeddings_to_vector_db(text_embeddings_list, batch.vector_db_metadata, batch.id, batch.job_id) 
 
 def chunk_data(data_chunks, chunk_size, chunk_overlap):
     data = "".join(data_chunks)
@@ -94,11 +96,11 @@ def create_openai_batches(batches):
     return open_ai_batches
 
 def write_embeddings_to_vector_db(text_embeddings_list, vector_db_metadata, batch_id, job_id):
-    if vector_db_metadata['vector_db_type'] == VectorDBType.PINECONE.value:
+    if vector_db_metadata.vector_db_type == VectorDBType.PINECONE:
         upsert_list = create_source_chunk_dict(text_embeddings_list, batch_id, job_id)
         return write_embeddings_to_pinecone(upsert_list, vector_db_metadata)
     else:
-        logging.error('Unsupported vector DB type:', vector_db_metadata['vector_db_type'])
+        logging.error('Unsupported vector DB type:', vector_db_metadata.vector_db_type)
 
 def create_source_chunk_dict(text_embeddings_list, batch_id, job_id):
     upsert_list = []
@@ -111,10 +113,10 @@ def create_source_chunk_dict(text_embeddings_list, batch_id, job_id):
 
 def write_embeddings_to_pinecone(upsert_list, vector_db_metadata):
     pinecone_api_key = os.getenv('PINECONE_KEY')
-    pinecone.init(api_key=pinecone_api_key, environment=vector_db_metadata['environment'])
-    index = pinecone.Index(vector_db_metadata['index_name'])
+    pinecone.init(api_key=pinecone_api_key, environment=vector_db_metadata.environment)
+    index = pinecone.Index(vector_db_metadata.index_name)
     if not index:
-        logging.error(f"Index {vector_db_metadata['index_name']} does not exist in environment {vector_db_metadata['environment']}")
+        logging.error(f"Index {vector_db_metadata.index_name} does not exist in environment {vector_db_metadata.environment}")
         return None
     
     logging.info(f"Starting pinecone upsert for {len(upsert_list)} vectors")
@@ -134,31 +136,28 @@ def write_embeddings_to_pinecone(upsert_list, vector_db_metadata):
     return vectors_uploaded
     
 # These implementations below mock the data service. Using these instead because DB not implement yet
-def update_job_status(job_id, batch_status, batch_id):
-    headers = {"Content-Type": "application/json", "VectorFlowKey": os.getenv('INTERNAL_API_KEY')}
-    data = {
-        "batch_id": batch_id,
-        "batch_status": batch_status.value,
-    }
-    response = requests.put(f"{base_request_url}/jobs/{job_id}", headers=headers, json=data)
-    logging.info(f"Response status: {response.status_code}")
-
-def update_batch_retry_count(batch_id, retries):
-    headers = {"Content-Type": "application/json", "VectorFlowKey": os.getenv('INTERNAL_API_KEY')}
-    data = {
-        "batch_id": batch_id,
-        "retries": retries,
-    }
-    # response = requests.put(f"{base_request_url}/batch/{batch_id}", headers=headers, json=data)
-    # logging.info(f"Response status: {response.status_code}")
+def update_batch_and_job_status(job_id, batch_status, batch_id):
+    try:
+        with get_db() as db:
+            updated_batch_status = batch_service.update_batch_status(db, batch_id, batch_status)
+            job = job_service.update_job_with_batch(db, job_id, updated_batch_status)
+            if job.job_status == JobStatus.COMPLETED:
+                logging.info(f"Job {job_id} completed successfully")
+            elif job.job_status == JobStatus.PARTIALLY_COMPLETED:
+                logging.info(f"Job {job_id} partially completed. {job.batches_succeeded} out of {job.total_batches} batches succeeded")
+                
+    except Exception as e:
+        logging.error('Error updating job and batch status:', e)
 
 if __name__ == "__main__":
     while True:
         headers = {"VectorFlowKey": os.getenv('INTERNAL_API_KEY')}
         response = requests.get(f"{base_request_url}/dequeue", headers=headers)
+        
         if response.status_code == 404:
             logging.info(f"Queue Empty - Sleeping for {config.SLEEP_SECONDS} second(s)")
             time.sleep(config.SLEEP_SECONDS)
+        
         elif response.status_code == 200:
             batch_id = response.json()['batch_id']
             source_data = response.json()['source_data']
@@ -168,7 +167,9 @@ if __name__ == "__main__":
                 logging.info("Batch processed successfully")
             except Exception as e:
                 logging.error('Error processing batch:', e)
+        
         elif response.status_code == 401:
             logging.error('Invalid credentials')
+        
         else:
             logging.error('Unexpected status code:', response.status_code)

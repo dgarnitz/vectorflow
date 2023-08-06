@@ -33,7 +33,7 @@ def update_job_with_batch(db: Session, job_id: int, batch_status: str):
 
     db.commit()
     db.refresh(job)
-    return job.job_status
+    return job
 
 def update_job_total_batches(db: Session, job_id: int, total_batches: int):
     job = db.query(Job).filter(Job.id == job_id).first()
