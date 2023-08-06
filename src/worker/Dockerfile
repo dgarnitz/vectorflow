@@ -9,12 +9,13 @@ ENV PYTHONUNBUFFERED 1
 WORKDIR /app
 
 # Copy the 'api' and 'worker' contents into the container at /app
-COPY api /app/api
 COPY worker /app/worker
+COPY shared /app/shared
+COPY models /app/models
+COPY services /app/services
 
 # install requirements
 RUN pip install --no-cache-dir -r /app/worker/requirements.txt
-RUN pip install --no-cache-dir -r /app/api/requirements.txt
 
 # Set the working directory to /app/worker, as 'worker.py' is here
 WORKDIR /app/worker
