@@ -62,16 +62,8 @@ You will get the following payload back:
     'JobID': job_id
 }
 ```
-
-# How to Run
-## Docker Compose
-The easiest way to run the application locally is with docker-compose:
-```
-docker-compose build --no-cache
-docker-compose up -d
-```
-
-## Local Development
+# Getting Started
+## Run VectorFlow Locally
 The api and the worker each have their own virtual environments which you must set up - `python -m venv venv  `. Install the `requirements.txt` for each app into the venv. Run both from the `src` directory.
 
 The api can be run locally with `python api/app.py`. 
@@ -152,8 +144,8 @@ Worker tests are run from the `src` directory with the `worker` prefix, for exam
 python -m unittest src.worker.tests.test_worker
 ```
 
-# Contributing
-We love feedback from the community. If you have an idea of how to make this project better, we encourage you to open an issue or join our Discord. Please tag `dgarnitz` and `danmeier2`.
+# How to Contribute
+We love feedback from the community. If you have an idea of how to make this project better, we encourage you to open an issue. Please tag `dgarnitz` and `danmeier2`, and we can discuss how best to approach it. Or you can email us directly at `dan@getvectorflow.com`.
 
 Our roadmap is outlined in the section below and we would love help in building it out. We recommend you open an issue with a proposed approach in mind before submitting a PR.
 
