@@ -37,8 +37,15 @@ You will get the following payload back:
 }
 ```
 
-# How to Run 
-## Locally
+# How to Run
+## Docker Compose
+The easiest way to run the application locally is with docker-compose:
+```
+docker-compose build --no-cache
+docker-compose up -d
+```
+
+## Local Development
 The api and the worker each have their own virtual environments which you must set up - `python -m venv venv  `. Install the `requirements.txt` for each app into the venv. Run both from the `src` directory.
 
 The api can be run locally with `python api/app.py`. 
