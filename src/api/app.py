@@ -82,6 +82,7 @@ def get_job_status(job_id):
             return jsonify({'error': "Job not found"}), 404
 
 
+#: NOTE: This endpoint is for debugging and testing only. 
 @app.route("/dequeue")
 def dequeue():
     vectorflow_key = request.headers.get('VectorFlowKey')
@@ -90,7 +91,9 @@ def dequeue():
     if pipeline.get_queue_size() == 0:
         return jsonify({'error': 'No jobs in queue'}), 404
     else:
-        batch_id, source_data = pipeline.get_from_queue()
+        body = pipeline.get_from_queue()
+        data = json.loads(body)
+        batch_id, source_data = data
         return jsonify({'batch_id': batch_id, 'source_data': source_data}), 200
 
 def create_batches(file_content, job_id, embeddings_metadata, vector_db_metadata, lines_per_chunk):
@@ -102,7 +105,9 @@ def create_batches(file_content, job_id, embeddings_metadata, vector_db_metadata
         job = job_service.update_job_total_batches(db, job_id, len(batches))
 
         for batch, chunk in zip(batches, chunks):
-            pipeline.add_to_queue((batch.id, chunk))
+            data = (batch.id, chunk)
+            json_data = json.dumps(data)
+            pipeline.add_to_queue(json_data)
     return job.total_batches if job else None
     
 def split_file(file_content, lines_per_chunk=1000):
