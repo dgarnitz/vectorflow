@@ -17,6 +17,10 @@ COPY services /app/services
 # install requirements
 RUN pip install --no-cache-dir -r /app/worker/requirements.txt
 
+# run script to enable docker compose to sync with rabbitmq
+COPY ../scripts/wait-for-it.sh /wait-for-it.sh
+RUN chmod +x /wait-for-it.sh
+
 # Set the working directory to /app/worker, as 'worker.py' is here
 WORKDIR /app/worker
 

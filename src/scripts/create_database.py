@@ -4,7 +4,6 @@ import os
 # this is needed to import classes from other modules
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
-from sqlalchemy import create_engine
 from services.database.database import Base, engine
 import models.batch 
 import models.job

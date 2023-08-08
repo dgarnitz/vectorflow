@@ -1,0 +1,68 @@
+version: '1.0'
+
+services:
+  postgres:
+    image: postgres
+    container_name: postgres
+    env_file:
+    - ./env_scripts/env_vars.env
+    networks:
+      - vectorflow
+    ports:
+      - "5432:5432"
+
+  db-init:
+    build:
+      context: ./src
+      dockerfile: scripts/Dockerfile
+    env_file:
+      - ./env_scripts/env_vars.env
+    depends_on:
+      - postgres
+    networks:
+      - vectorflow
+
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq
+    networks:
+      - vectorflow
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  api:
+    build:
+      context: ./src
+      dockerfile: api/Dockerfile
+    container_name: vectorflow_api
+    env_file:
+      - ./env_scripts/env_vars.env
+    networks:
+      - vectorflow
+    depends_on:
+      - postgres
+      - db-init
+      - rabbitmq
+    ports:
+      - "8000:8000"
+    command: ["bash", "/wait-for-it.sh", "rabbitmq:5672", "--", "gunicorn", "-w", "1", "-b", "0.0.0.0:8000", "api.app:app"]
+
+  worker:
+    build:
+      context: ./src
+      dockerfile: worker/Dockerfile
+    container_name: vectorflow_worker
+    env_file:
+      - ./env_scripts/env_vars.env
+    networks:
+      - vectorflow
+    depends_on:
+      - postgres
+      - db-init
+      - rabbitmq
+    command: ["bash", "/wait-for-it.sh", "rabbitmq:5672", "--", "python", "worker.py"]
+
+networks:
+  vectorflow:
+    name: vectorflow
