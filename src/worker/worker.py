@@ -5,7 +5,8 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
 import time
-import requests
+import pika
+import json
 import openai
 import pinecone 
 import logging
@@ -149,27 +150,33 @@ def update_batch_and_job_status(job_id, batch_status, batch_id):
     except Exception as e:
         logging.error('Error updating job and batch status:', e)
 
+def callback(ch, method, properties, body):
+    try:
+        data = json.loads(body)
+        batch_id, source_data = data
+        logging.info("Batch retrieved successfully")
+        process_batch(batch_id, source_data)
+        logging.info("Batch processed successfully")
+    except Exception as e:
+        logging.error('Error processing batch:', e)
+
+    ch.basic_ack(delivery_tag=method.delivery_tag)
+
 if __name__ == "__main__":
-    while True:
-        headers = {"VectorFlowKey": os.getenv('INTERNAL_API_KEY')}
-        response = requests.get(f"{base_request_url}/dequeue", headers=headers)
-        
-        if response.status_code == 404:
-            logging.info(f"Queue Empty - Sleeping for {config.SLEEP_SECONDS} second(s)")
-            time.sleep(config.SLEEP_SECONDS)
-        
-        elif response.status_code == 200:
-            batch_id = response.json()['batch_id']
-            source_data = response.json()['source_data']
-            logging.info("Batch retrieved successfully")
-            try:
-                process_batch(batch_id, source_data)
-                logging.info("Batch processed successfully")
-            except Exception as e:
-                logging.error('Error processing batch:', e)
-        
-        elif response.status_code == 401:
-            logging.error('Invalid credentials')
-        
-        else:
-            logging.error('Unexpected status code:', response.status_code)
+    credentials = pika.PlainCredentials(os.getenv('RABBITMQ_USERNAME'), os.getenv('RABBITMQ_PASSWORD'))
+
+    connection_params = pika.ConnectionParameters(
+        host=os.getenv('RABBITMQ_HOST'),
+        credentials=credentials
+    )
+
+    connection = pika.BlockingConnection(connection_params)
+    channel = connection.channel()
+
+    queue_name = os.getenv('RABBITMQ_QUEUE')
+    channel.queue_declare(queue=queue_name)
+
+    channel.basic_consume(queue=queue_name, on_message_callback=callback)
+
+    logging.info('Waiting for messages.')
+    channel.start_consuming()

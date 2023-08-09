@@ -32,23 +32,25 @@ All requests require an HTTP Header with `VectorFlowKey` key and a your `INTERNA
 
 To check the status of a `job`, make a `GET` request to this endpoint: `/jobs/<int:job_id>/status`. The response will be in the form:
 ```
-{'JobStatus': job_status.value}
+{
+    'JobStatus': job_status.value
+}
 ```
 
 To submit a `job` for embedding, make a `POST` request to this endpoint: `/embed` with the following payload and the `'Content-Type: multipart/form-data'` header:
 ```
 {
     'SourceData=path_to_txt_file'
-    'chunk_overlap=_'
+    'LinesPerChunk=4096'
     'EmbeddingsMetadata={
-        "embeddings_type": "_", 
-        "chunk_size": _, 
-        "chunk_overlap": _
+        "embeddings_type": "open_ai", 
+        "chunk_size": 512, 
+        "chunk_overlap": 128
     }'
     'VectorDBMetadata={
-        "vector_db_type": "_", 
-        "index_name": "_", 
-        "environment": "_"
+        "vector_db_type": "pinecone", 
+        "index_name": "index_name", 
+        "environment": "env_name"
     }'
 }
 ``` 
@@ -64,28 +66,45 @@ You will get the following payload back:
 ## Run VectorFlow Locally
 The api and the worker each have their own virtual environments which you must set up - `python -m venv venv  `. Install the `requirements.txt` for each app into the venv. Run both from the `src` directory.
 
-The api can be run locally with `python api/app.py`. You must set the following environment variable:
-```
-INTERNAL_API_KEY
-```
+The api can be run locally with `python api/app.py`. 
 
-The worker can be run with `python worker/worker.py`. You must set the follow environment variables:
+The worker can be run with `python worker/worker.py`. 
+
+## Environment Variables
+The following must all be set:
 ```
 INTERNAL_API_KEY
-API_REQUEST_URL
-```
-Plus any 3rd party API keys such as:
-```
 OPEN_AI_KEY
 PINECONE_KEY
+POSTGRES_USERNAME
+POSTGRES_PASSWORD
+POSTGRES_DB
+POSTGRES_HOST=postgres
+RABBITMQ_USERNAME
+RABBITMQ_PASSWORD
+RABBITMQ_HOST
+RABBITMQ_QUEUE
 ```
 
+## Database 
 The database can also be run locally. We recommend using postgres but SQL Alchemy allows it to work with any flavor of SQL. 
 ```
+docker pull postgres
 docker run --network=vectorflow --name postgres -e POSTGRES_PASSWORD=yourpassword -e POSTGRES_DB=vectorflow -p 5432:5432 -d postgres
 ```
 
 Then run the `create_database.py` script to create the tables. 
+
+## Rabbit MQ
+This project uses RabbitMQ as its message broker. We recommend running it through Docker. Run the following to set up.
+
+```
+docker pull rabbitmq
+docker run -d --network vectorflow --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:management
+
+```
+
+You can check the RabbitMQ management console at `http://localhost:15672/`', which is useful for monitoring and debugging.
 
 ## Docker
 You must have Docker installed locally. First create a `docker network` for the images to run on so the workers can communicate with the api. 
@@ -95,12 +114,12 @@ docker network create vectorflow
 
 Then build the docker images with these commands:
 ```
-docker build -t vectorflow_api:latest .
-docker build -file worker/Dockerfile -t vectorflow_worker:latest . 
+docker build --file api/Dockerfile -t vectorflow_api:latest .
+docker build --file worker/Dockerfile -t vectorflow_worker:latest . 
 ```
-Create an `.env` file with the environment variables - you will pass this file into the containers when they run. Change the `API_REQUEST_URL` to use the name of the api container, for example:
+Create an `.env` file with the environment variables - you will pass this file into the containers when they run. For example:
 ```
-API_REQUEST_URL=http://vectorflow_api:8000
+POSTGRES_DB=vectorflow
 ```
 
 Run the containers locally with these commands:

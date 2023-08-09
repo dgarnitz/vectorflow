@@ -19,6 +19,10 @@ COPY services /app/services
 # Install Python dependencies
 RUN pip install --no-cache-dir -r /app/api/requirements.txt
 
+# run script to enable docker compose to sync with rabbitmq
+COPY ../scripts/wait-for-it.sh /wait-for-it.sh
+RUN chmod +x /wait-for-it.sh
+
 # Make port 8000 available to the world outside this container
 EXPOSE 8000
 

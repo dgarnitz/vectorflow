@@ -6,13 +6,13 @@ from contextlib import contextmanager
 
 username = os.getenv('POSTGRES_USERNAME')
 password = os.getenv('POSTGRES_PASSWORD')
-database_name = os.getenv('POSTGRES_DATABASE_NAME')
+database_name = os.getenv('POSTGRES_DB')
 host = os.getenv('POSTGRES_HOST')
 
 SQLALCHEMY_DATABASE_URL = f"postgresql://{username}:{password}@{host}:5432/{database_name}"
 
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, echo=True
+    SQLALCHEMY_DATABASE_URL
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
