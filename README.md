@@ -1,4 +1,30 @@
+<div align="center">
+    <a href="https://www.getvectorflow.com/">
+        <h1>VectorFlow</h1>
+    </a>
+    <h3>Open source, high-throughput, fault-tolerant vector embedding pipeline</h3>
+    <span>Simple API endpoint that ingests large volumes of raw data, processes, and stores or returns the vectors quickly and reliably</span>
+    <br></br>   
+</div>
+<h4 align="center">
+  <a href="https://discord.gg/9VZ3ujWE">Join our Discord</a> |
+  <a href="https://infisical.com/docs/documentation/getting-started/introduction">Docs</a> |
+  <a href="https://www.infisical.com">Website</a>
+    <a href="https://www.infisical.com">Feature Request</a>
+    <a href="https://www.infisical.com">Get in touch</a>
+</h4>
+
+<div align="center">
+
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/aQOlOT14DaA/0.jpg)](https://www.youtube.com/watch?v=aQOlOT14DaA)
+
+</div>
+
+
+
 # Introduction
+This current version is an MVP and should not be used in production yet.
+
 VectorFlow is an open source, high throughput, fault tolerant vector embedding pipeline. With a simple API request, you can send raw data that will be embedded and stored in any vector database or returned back to you. 
 
 ## Request & Response Payload
@@ -34,8 +60,8 @@ You will get the following payload back:
     'JobID': job_id
 }
 ```
-
-# How to Run Locally
+# Getting Started
+## Run VectorFlow Locally
 The api and the worker each have their own virtual environments which you must set up - `python -m venv venv  `. Install the `requirements.txt` for each app into the venv. Run both from the `src` directory.
 
 The api can be run locally with `python api/app.py`. You must set the following environment variable:
@@ -99,10 +125,10 @@ Worker tests are run from the `src` directory with the `worker` prefix, for exam
 python -m unittest src.worker.tests.test_worker
 ```
 
-# How to Contribute
-We love feedback from the community. If you have an idea of how to make this project better, we encourage you to open an issue. Please tag `dgarnitz` and `danmeier2`, and we can discuss how best to approach it.
+# Contributing
+We love feedback from the community. If you have an idea of how to make this project better, we encourage you to open an issue or join our Discord. Please tag `dgarnitz` and `danmeier2`.
 
-Our roadmap is outlined in the section below and we would love help in building it out. We recommend you open an issue with a proposed approach in mind before submitted a PR.
+Our roadmap is outlined in the section below and we would love help in building it out. We recommend you open an issue with a proposed approach in mind before submitting a PR.
 
 Please tag `dgarnitz` on all PRs. 
 
@@ -119,3 +145,8 @@ Please tag `dgarnitz` on all PRs.
 - [ ] Support for key & secret management
 - [ ] Langchain & Llama Index integrations
 - [ ] Support for object metadata store and application logic
+- [ ] 
+
+# Acknowledgements
+
+[//]: contributor-faces
