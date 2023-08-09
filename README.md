@@ -23,12 +23,44 @@
 
 
 # Introduction
-This current version is an MVP and should not be used in production yet.
-
 VectorFlow is an open source, high throughput, fault tolerant vector embedding pipeline. With a simple API request, you can send raw data that will be embedded and stored in any vector database or returned back to you. 
 
-## Request & Response Payload
-All requests require an HTTP Header with `VectorFlowKey` key which is the same as your `INTERNAL_API_KEY` env var that you define (see below). 
+This current version is an MVP and should not be used in production yet. Right now the system only supports uploading single TXT files at a time, up to 2GB.
+
+# Run it Locally
+## Docker-Compose 
+The best way to run VectorFlow is via `docker compose`. Do the following commands
+```
+mkdir env_scripts
+docker-compose build --no-cache
+docker-compose up -d
+```
+
+Inside `env_scripts` add a file calles `env_vars.env` with the environment variables mentioned below. 
+
+## Environment Variables
+The following must all be set. Replace placeholders with real values:
+```
+INTERNAL_API_KEY=your-choice
+OPEN_AI_KEY=put-your-key
+PINECONE_KEY=put-your-key
+POSTGRES_USERNAME=postgres
+POSTGRES_PASSWORD=your-choice
+POSTGRES_DB=your-choice
+POSTGRES_HOST=postgres
+RABBITMQ_USERNAME=guest
+RABBITMQ_PASSWORD=guest
+RABBITMQ_HOST=rabbitmq
+RABBITMQ_QUEUE=your-choice
+```
+
+Right now we are only supporting pinecone and openai but this will change shortly, so we will be adding more environment variables.
+
+## Using VectorFlow
+To use VectorFlow in a live system, make an HTTP request to your API's URL at port 8000 - for example, `localhost:8000` from your development machine, or `vectorflow_api:8000` from within another docker container. 
+
+### Request & Response Payload
+All requests require an HTTP Header with `VectorFlowKey` key which is the same as your `INTERNAL_API_KEY` env var that you defined before (see above). 
 
 To check the status of a `job`, make a `GET` request to this endpoint: `/jobs/<int:job_id>/status`. The response will be in the form:
 ```
@@ -62,98 +94,11 @@ You will get the following payload back:
     'JobID': job_id
 }
 ```
-# Getting Started
-## Run VectorFlow 
-The best way to run VectorFlow is via `docker compose`. Do the following commands
-```
-mkdir env_scripts
-docker-compose build --no-cache
-docker-compose up -d
-```
 
-Inside `env_scripts` add a file calles `env_vars.env` with the environment variables mentioned below. 
-
-## Environment Variables
-The following must all be set:
+### Sample Curl Request
+The following request will embed a TXT document with OpenAI's ADA model and upload the results to a Pinecone index called `Test`
 ```
-INTERNAL_API_KEY
-OPEN_AI_KEY
-PINECONE_KEY
-POSTGRES_USERNAME
-POSTGRES_PASSWORD
-POSTGRES_DB
-POSTGRES_HOST=postgres
-RABBITMQ_USERNAME
-RABBITMQ_PASSWORD
-RABBITMQ_HOST
-RABBITMQ_QUEUE
-```
-
-Right now we are only supporting pinecone and openai but this will change shortly, so we will be adding more environment variables. 
-
-## Run VectoFlow Locally for Developerment
-The api and the worker each have their own virtual environments which you must set up. Install the `requirements.txt` for each app into the venv. Run both from the `src` directory.
-
-The api can be run locally with `python api/app.py`. 
-
-The worker can be run with `python worker/worker.py`. 
-
-## Database 
-The database can also be run locally. We recommend using postgres but SQL Alchemy allows it to work with any flavor of SQL. 
-```
-docker pull postgres
-docker run --network=vectorflow --name postgres -e POSTGRES_PASSWORD=yourpassword -e POSTGRES_DB=vectorflow -p 5432:5432 -d postgres
-```
-
-Then run the `create_database.py` script to create the tables. 
-
-## Rabbit MQ
-This project uses RabbitMQ as its message broker. We recommend running it through Docker. Run the following to set up.
-
-```
-docker pull rabbitmq
-docker run -d --network vectorflow --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:management
-
-```
-
-You can check the RabbitMQ management console at `http://localhost:15672/`', which is useful for monitoring and debugging.
-
-## Docker
-You must have Docker installed locally. First create a `docker network` for the images to run on so the workers can communicate with the api. 
-```
-docker network create vectorflow
-```
-
-Then build the docker images with these commands:
-```
-docker build --file api/Dockerfile -t vectorflow_api:latest .
-docker build --file worker/Dockerfile -t vectorflow_worker:latest . 
-```
-Create an `.env` file with the environment variables - you will pass this file into the containers when they run. For example:
-```
-POSTGRES_DB=vectorflow
-```
-
-Run the containers locally with these commands:
-```
-docker run -d -p 8000:8000 --network vectorflow --name=vectorflow_api --env-file=path/to/.env vectorflow_api:latest 
-
-docker run --network=vectorflow --name=vectorflow_worker -d --env-file=path/to.env vectorflow_worker:latest
-```
-
-# How to Deploy
-We recommend deploying using the Docker images available in our [public repo.](https://hub.docker.com/repository/docker/dgarnitz/vectorflow/general). The api runs with `gunicorn` and needs a port open to accept active connections.  
-
-# How to Test
-Api tests are run from the `api` directory (`vectorflow/src/api`) and can be run with:
-```
-python -m unittest tests.test_app
-python -m unittest tests.test_app.TestApp.test_method_you_wish_to_test
-```
-
-Worker tests are run from the `src` directory with the `worker` prefix, for example:
-```
-python -m unittest src.worker.tests.test_worker
+curl -X POST -H 'Content-Type: multipart/form-data' -H "VectorFlowKey: INTERNAL_API_KEY" -F 'EmbeddingsMetadata={"embeddings_type": "open_ai", "chunk_size": 256, "chunk_overlap": 128}' -F 'SourceData=@./test_text.txt' -F 'VectorDBMetadata={"vector_db_type": "pinecone", "index_name": "test", "environment": "us-east-1-aws"}'  http://localhost:8000/embed
 ```
 
 # Contributing
@@ -164,20 +109,13 @@ Our roadmap is outlined in the section below and we would love help in building 
 Please tag `dgarnitz` on all PRs. 
 
 # Roadmap
-- [ ] Connectors to other vector databases such as Weaviate, Milvus, Chroma, Deeplake and Vespa
+- [ ] Connectors to other vector databases
 - [ ] Support for more files types such as `csv`, `word`, `xls`, etc
 - [ ] Support for multi-file, directory data ingestion from sources such as S3, Google docs, etc
-- [ ] SQL support with SQL Alchemy & Alembic for persistent storage of job & batch information
-- [ ] Turn shared objects in Api into package
-- [ ] Add stand alone Queue, like SQS or RabbitMQ, with interface to make it technology agnostic
+- [ ] Support open source embeddings models
+- [ ] Alembic for database migrations
 - [ ] Retry mechanism
 - [ ] DLQ mechanism
-- [ ] Cron job to detect failed and hanging jobs
-- [ ] Support for key & secret management
 - [ ] Langchain & Llama Index integrations
-- [ ] Support for object metadata store and application logic
-- [ ] 
+- [ ] Support callbacks for writing object metadata to a separate store 
 
-# Acknowledgements
-
-[//]: contributor-faces
