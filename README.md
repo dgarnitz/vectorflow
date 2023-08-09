@@ -144,8 +144,8 @@ Worker tests are run from the `src` directory with the `worker` prefix, for exam
 python -m unittest src.worker.tests.test_worker
 ```
 
-# How to Contribute
-We love feedback from the community. If you have an idea of how to make this project better, we encourage you to open an issue. Please tag `dgarnitz` and `danmeier2`, and we can discuss how best to approach it. Or you can email us directly at `dan@getvectorflow.com`.
+# Contributing
+We love feedback from the community. If you have an idea of how to make this project better, we encourage you to open an issue or join our Discord. Please tag `dgarnitz` and `danmeier2`.
 
 Our roadmap is outlined in the section below and we would love help in building it out. We recommend you open an issue with a proposed approach in mind before submitting a PR.
 
