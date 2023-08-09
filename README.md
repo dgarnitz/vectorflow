@@ -28,7 +28,7 @@ This current version is an MVP and should not be used in production yet.
 VectorFlow is an open source, high throughput, fault tolerant vector embedding pipeline. With a simple API request, you can send raw data that will be embedded and stored in any vector database or returned back to you. 
 
 ## Request & Response Payload
-All requests require an HTTP Header with `VectorFlowKey` key and a your `INTERNAL_API_KEY` env var as the value. 
+All requests require an HTTP Header with `VectorFlowKey` key which is the same as your `INTERNAL_API_KEY` env var that you define (see below). 
 
 To check the status of a `job`, make a `GET` request to this endpoint: `/jobs/<int:job_id>/status`. The response will be in the form:
 ```
@@ -63,12 +63,15 @@ You will get the following payload back:
 }
 ```
 # Getting Started
-## Run VectorFlow Locally
-The api and the worker each have their own virtual environments which you must set up - `python -m venv venv  `. Install the `requirements.txt` for each app into the venv. Run both from the `src` directory.
+## Run VectorFlow 
+The best way to run VectorFlow is via `docker compose`. Do the following commands
+```
+mkdir env_scripts
+docker-compose build --no-cache
+docker-compose up -d
+```
 
-The api can be run locally with `python api/app.py`. 
-
-The worker can be run with `python worker/worker.py`. 
+Inside `env_scripts` add a file calles `env_vars.env` with the environment variables mentioned below. 
 
 ## Environment Variables
 The following must all be set:
@@ -85,6 +88,15 @@ RABBITMQ_PASSWORD
 RABBITMQ_HOST
 RABBITMQ_QUEUE
 ```
+
+Right now we are only supporting pinecone and openai but this will change shortly, so we will be adding more environment variables. 
+
+## Run VectoFlow Locally for Developerment
+The api and the worker each have their own virtual environments which you must set up. Install the `requirements.txt` for each app into the venv. Run both from the `src` directory.
+
+The api can be run locally with `python api/app.py`. 
+
+The worker can be run with `python worker/worker.py`. 
 
 ## Database 
 The database can also be run locally. We recommend using postgres but SQL Alchemy allows it to work with any flavor of SQL. 
