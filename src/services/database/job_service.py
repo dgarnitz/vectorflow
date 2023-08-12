@@ -43,3 +43,12 @@ def update_job_total_batches(db: Session, job_id: int, total_batches: int):
         db.refresh(job)
         return job
     return None
+
+def update_job_status(db: Session, job_id: int, job_status: JobStatus):
+    job = db.query(Job).filter(Job.id == job_id).first()
+    if job:
+        job.job_status = job_status
+        db.commit()
+        db.refresh(job)
+        return job
+    return None

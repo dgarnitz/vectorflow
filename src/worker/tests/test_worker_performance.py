@@ -3,7 +3,7 @@ import openai
 import os
 import pinecone
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from src.worker.worker import chunk_data, create_openai_batches, create_source_chunk_dict
+from src.worker.worker import chunk_data, create_openai_batches, create_pinecone_source_chunk_dict
 
 def get_openai_embedding(chunk, attempts=5):
     for i in range(attempts):
@@ -140,7 +140,7 @@ def test_pinecone_concurrently_batch_upload():
         vector_db_metadata = {"index_name": "test", "environment": "us-east-1-aws"}
 
         # without concurrency
-        source_chunks = create_source_chunk_dict(text_embeddings_list, "test_batch_id", "test_job_id")
+        source_chunks = create_pinecone_source_chunk_dict(text_embeddings_list, "test_batch_id", "test_job_id")
         source_chunks = [source_chunks[:64], source_chunks[64:128]]
         start_time = time.time()
         write_embeddings_to_pinecone(source_chunks, vector_db_metadata)
@@ -150,7 +150,7 @@ def test_pinecone_concurrently_batch_upload():
         print(execution_time)
 
         # with concurrency
-        source_chunks = create_source_chunk_dict(text_embeddings_list, "test_batch_id", "test_job_id")
+        source_chunks = create_pinecone_source_chunk_dict(text_embeddings_list, "test_batch_id", "test_job_id")
         source_chunks = [source_chunks[:64], source_chunks[64:128]]
 
         start_time_concurrent = time.time()
