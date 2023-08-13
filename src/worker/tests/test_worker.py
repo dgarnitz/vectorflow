@@ -68,7 +68,7 @@ class TestWorker(unittest.TestCase):
         job_id = 1
 
         # act
-        upsert_list = worker.create_source_chunk_dict(text_embeddings_dict, batch_id, job_id)
+        upsert_list = worker.create_pinecone_source_chunk_dict(text_embeddings_dict, batch_id, job_id)
 
         # assert
         self.assertEqual(len(upsert_list), 3)

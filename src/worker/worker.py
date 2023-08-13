@@ -10,6 +10,7 @@ import json
 import openai
 import pinecone 
 import logging
+import uuid
 import worker.config as config
 import services.database.batch_service as batch_service
 import services.database.job_service as job_service
@@ -19,13 +20,19 @@ from shared.batch_status import BatchStatus
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from services.database.database import get_db
 from shared.job_status import JobStatus
+from qdrant_client import QdrantClient
+from qdrant_client.models import PointStruct
 
-logging.basicConfig(filename='./log.txt', level=config.LOG_LEVEL)
-base_request_url = os.getenv('API_REQUEST_URL') 
+logging.basicConfig(filename='./log.txt', level=logging.INFO)
+logging.basicConfig(filename='./error.txt', level=logging.ERROR)
 
 def process_batch(batch_id, source_data):
     with get_db() as db:
         batch = batch_service.get_batch(db, batch_id)
+        job = job_service.get_job(db, batch.job_id)
+
+        if job.job_status == JobStatus.NOT_STARTED:
+            job_service.update_job_status(db, job.id, JobStatus.IN_PROGRESS)
         
         if batch.batch_status == BatchStatus.NOT_STARTED:
             batch_service.update_batch_status(db, batch.id, BatchStatus.IN_PROGRESS)
@@ -98,12 +105,15 @@ def create_openai_batches(batches):
 
 def write_embeddings_to_vector_db(text_embeddings_list, vector_db_metadata, batch_id, job_id):
     if vector_db_metadata.vector_db_type == VectorDBType.PINECONE:
-        upsert_list = create_source_chunk_dict(text_embeddings_list, batch_id, job_id)
+        upsert_list = create_pinecone_source_chunk_dict(text_embeddings_list, batch_id, job_id)
         return write_embeddings_to_pinecone(upsert_list, vector_db_metadata)
+    elif vector_db_metadata.vector_db_type == VectorDBType.QDRANT:
+        upsert_list = create_qdrant_source_chunk_dict(text_embeddings_list, batch_id, job_id)
+        return write_embeddings_to_qdrant(upsert_list, vector_db_metadata)
     else:
         logging.error('Unsupported vector DB type:', vector_db_metadata.vector_db_type)
 
-def create_source_chunk_dict(text_embeddings_list, batch_id, job_id):
+def create_pinecone_source_chunk_dict(text_embeddings_list, batch_id, job_id):
     upsert_list = []
     for i, (source_text, embedding) in enumerate(text_embeddings_list):
         upsert_list.append(
@@ -135,8 +145,58 @@ def write_embeddings_to_pinecone(upsert_list, vector_db_metadata):
     
     logging.info(f"Successfully uploaded {vectors_uploaded} vectors to pinecone")
     return vectors_uploaded
+
+def generate_uuid_from_tuple(t, namespace_uuid='6ba7b810-9dad-11d1-80b4-00c04fd430c8'):
+    namespace = uuid.UUID(namespace_uuid)
+    name = "-".join(map(str, t))
+    unique_uuid = uuid.uuid5(namespace, name)
+
+    return str(unique_uuid)
+
+# TODO: Swap this for the async approach - https://github.com/qdrant/qdrant-client/blob/master/tests/test_async_qdrant_client.py
+def create_qdrant_source_chunk_dict(text_embeddings_list, batch_id, job_id):
+    upsert_list = []
+    for i, (source_text, embedding) in enumerate(text_embeddings_list):
+        upsert_list.append(
+            PointStruct(
+                id=generate_uuid_from_tuple((job_id, batch_id, i)),
+                vector=embedding,
+                payload={"source_text": source_text}
+            )
+        )
+    return upsert_list
+
+def write_embeddings_to_qdrant(upsert_list, vector_db_metadata):
+    qdrant_client = QdrantClient(
+        url=vector_db_metadata.environment, 
+        api_key=os.getenv('QDRANT_KEY'),
+        grpc_port=6334, 
+        prefer_grpc=True,
+        timeout=5
+    )
+
+    index = qdrant_client.get_collection(collection_name=vector_db_metadata.index_name)
+    if not index:
+        logging.error(f"Collection {vector_db_metadata.index_name} does not exist at cluster URL {vector_db_metadata.environment}")
+        return None
     
-# These implementations below mock the data service. Using these instead because DB not implement yet
+    logging.info(f"Starting qdrant upsert for {len(upsert_list)} vectors")
+
+    batch_size = config.PINECONE_BATCH_SIZE
+
+    for i in range(0, len(upsert_list), batch_size):
+        try:
+            qdrant_client.upsert(
+                collection_name=vector_db_metadata.index_name,
+                points=upsert_list[i:i+batch_size]
+            )
+        except Exception as e:
+            logging.error('Error writing embeddings to qdrant:', e)
+            return None
+    
+    logging.info(f"Successfully uploaded {len(upsert_list)} vectors to qdrant")
+    return len(upsert_list)
+    
 def update_batch_and_job_status(job_id, batch_status, batch_id):
     try:
         with get_db() as db:
