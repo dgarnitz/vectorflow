@@ -60,11 +60,20 @@ You can choose a variable for `INTERNAL_API_KEY`, `POSTGRES_PASSWORD`, `POSTGRES
 Log into your OpenAI and Pinecone account to get your personal `OPEN_AI_KEY` and `PINECONE_KEY`. We will add soon more models and vector databases.
 
 ### 2) Run Docker-Compose
+If you are running locally, make sure you pull Rabbit MQ and Postgres into your local docker repo:
+```
+docker pull rabbitmq
+docker pull postgres
+```
+
+Then run:
 
 ```
 docker-compose build --no-cache
 docker-compose up -d
 ```
+
+Note that that `db-init` container is running a script that sets up the database schema will stop after the script completes. 
 
 ## Using VectorFlow
 

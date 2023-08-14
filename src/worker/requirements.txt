@@ -4,8 +4,11 @@ annotated-types==0.5.0
 anyio==3.7.1
 async-timeout==4.0.2
 attrs==23.1.0
+Authlib==1.2.1
 certifi==2023.7.22
+cffi==1.15.1
 charset-normalizer==3.2.0
+cryptography==41.0.3
 dnspython==2.4.1
 exceptiongroup==1.1.2
 frozenlist==1.4.0
@@ -27,6 +30,7 @@ pinecone-client==2.2.2
 portalocker==2.7.0
 protobuf==4.24.0
 psycopg2-binary==2.9.6
+pycparser==2.21
 pydantic==2.1.1
 pydantic_core==2.4.0
 python-dateutil==2.8.2
@@ -39,4 +43,6 @@ SQLAlchemy==2.0.19
 tqdm==4.65.0
 typing_extensions==4.7.1
 urllib3==1.26.16
+validators==0.21.0
+weaviate-client==3.22.1
 yarl==1.9.2
