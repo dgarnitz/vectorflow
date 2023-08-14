@@ -11,6 +11,7 @@ import openai
 import pinecone 
 import logging
 import uuid
+import weaviate
 import worker.config as config
 import services.database.batch_service as batch_service
 import services.database.job_service as job_service
@@ -110,6 +111,8 @@ def write_embeddings_to_vector_db(text_embeddings_list, vector_db_metadata, batc
     elif vector_db_metadata.vector_db_type == VectorDBType.QDRANT:
         upsert_list = create_qdrant_source_chunk_dict(text_embeddings_list, batch_id, job_id)
         return write_embeddings_to_qdrant(upsert_list, vector_db_metadata)
+    elif vector_db_metadata.vector_db_type == VectorDBType.WEAVIATE:
+        return write_embeddings_to_weaviate(text_embeddings_list, vector_db_metadata, batch_id, job_id)
     else:
         logging.error('Unsupported vector DB type:', vector_db_metadata.vector_db_type)
 
@@ -117,7 +120,7 @@ def create_pinecone_source_chunk_dict(text_embeddings_list, batch_id, job_id):
     upsert_list = []
     for i, (source_text, embedding) in enumerate(text_embeddings_list):
         upsert_list.append(
-            {"id":f"{job_id}_{batch_id}_{i}", 
+            {"id": generate_uuid_from_tuple((job_id, batch_id, i)), 
             "values": embedding, 
             "metadata": {"source_text": source_text}})
     return upsert_list
@@ -154,6 +157,7 @@ def generate_uuid_from_tuple(t, namespace_uuid='6ba7b810-9dad-11d1-80b4-00c04fd4
     return str(unique_uuid)
 
 # TODO: Swap this for the async approach - https://github.com/qdrant/qdrant-client/blob/master/tests/test_async_qdrant_client.py
+# upload one at a time, not in batches, its faster
 def create_qdrant_source_chunk_dict(text_embeddings_list, batch_id, job_id):
     upsert_list = []
     for i, (source_text, embedding) in enumerate(text_embeddings_list):
@@ -197,6 +201,39 @@ def write_embeddings_to_qdrant(upsert_list, vector_db_metadata):
     logging.info(f"Successfully uploaded {len(upsert_list)} vectors to qdrant")
     return len(upsert_list)
     
+def write_embeddings_to_weaviate(text_embeddings_list, vector_db_metadata,  batch_id, job_id):
+    client = weaviate.Client(
+        url=vector_db_metadata.environment,
+        auth_client_secret=weaviate.AuthApiKey(api_key=os.getenv('WEAVIATE_KEY')),
+    )
+
+    index = client.schema.get()
+    class_list = [class_dict["class"] for class_dict in index["classes"]]
+    if not index or not vector_db_metadata.index_name in class_list:
+        logging.error(f"Collection {vector_db_metadata.index_name} does not exist at cluster URL {vector_db_metadata.environment}")
+        return None
+    
+    logging.info(f"Starting Weaviate upsert for {len(text_embeddings_list)} vectors")
+    try:
+        with client.batch(batch_size=config.PINECONE_BATCH_SIZE, dynamic=True, num_workers=2) as batch:
+            for i, (text, vector) in enumerate(text_embeddings_list):
+                properties = {
+                    "source_data": text,
+                    "vectoflow_id": generate_uuid_from_tuple((job_id, batch_id, i))
+                }
+
+                client.batch.add_data_object(
+                    properties,
+                    vector_db_metadata.index_name,
+                    vector=vector
+                )
+    except Exception as e:
+        logging.error('Error writing embeddings to weaviate:', e)
+        return None
+    
+    logging.info(f"Successfully uploaded {len(text_embeddings_list)} vectors to Weaviate")
+    return len(text_embeddings_list)
+
 def update_batch_and_job_status(job_id, batch_status, batch_id):
     try:
         with get_db() as db:
