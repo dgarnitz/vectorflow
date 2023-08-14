@@ -156,8 +156,6 @@ def generate_uuid_from_tuple(t, namespace_uuid='6ba7b810-9dad-11d1-80b4-00c04fd4
 
     return str(unique_uuid)
 
-# TODO: Swap this for the async approach - https://github.com/qdrant/qdrant-client/blob/master/tests/test_async_qdrant_client.py
-# upload one at a time, not in batches, its faster
 def create_qdrant_source_chunk_dict(text_embeddings_list, batch_id, job_id):
     upsert_list = []
     for i, (source_text, embedding) in enumerate(text_embeddings_list):

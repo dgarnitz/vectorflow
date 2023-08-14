@@ -5,6 +5,8 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
 import json
+import fitz
+from io import BytesIO
 import services.database.batch_service as batch_service
 import services.database.job_service as job_service
 from flask import Flask, request, jsonify
@@ -58,8 +60,15 @@ def embed():
         return jsonify({'message': 'No selected file'}), 400
     
     # Check if the file has a .txt extension
-    if file and file.filename.endswith('.txt'):
-        file_content = file.read().decode('utf-8')
+    if file and (file.filename.endswith('.txt') or file.filename.endswith('.pdf')):
+        if file.filename.endswith('.txt'):
+            file_content = file.read().decode('utf-8')
+        else:
+            pdf_data = BytesIO(file.read())
+            with fitz.open(stream=pdf_data, filetype='pdf') as doc:
+                file_content = ""
+                for page in doc:
+                    file_content += page.get_text()
 
         with get_db() as db:
             job = job_service.create_job(db, webhook_url)
