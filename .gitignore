@@ -3,3 +3,4 @@ __pycache__/
 env_scripts/
 TODOs.txt
 log.txt
+.DS_Store
