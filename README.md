@@ -22,7 +22,7 @@
 
 VectorFlow is an open source, high throughput, fault tolerant vector embedding pipeline. With a simple API request, you can send raw data that will be embedded and stored in any vector database or returned back to you.
 
-This current version is an MVP and should not be used in production yet. Right now the system only supports uploading single TXT files at a time, up to 2GB.
+This current version is an MVP and should not be used in production yet. Right now the system only supports uploading single TXT or PODF files at a time, up to 2GB.
 
 # Run it Locally
 
@@ -44,8 +44,6 @@ This creates a file called `env_vars.env` in the `env_scripts` folder to add all
 
 ```
 INTERNAL_API_KEY=your-choice
-OPEN_AI_KEY=put-your-key
-PINECONE_KEY=put-your-key
 POSTGRES_USERNAME=postgres
 POSTGRES_PASSWORD=your-choice
 POSTGRES_DB=your-choice
@@ -57,7 +55,6 @@ RABBITMQ_QUEUE=your-choice
 ```
 
 You can choose a variable for `INTERNAL_API_KEY`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, and `RABBITMQ_QUEUE` freely.
-Log into your OpenAI and Pinecone account to get your personal `OPEN_AI_KEY` and `PINECONE_KEY`. We will add soon more models and vector databases.
 
 ### 2) Run Docker-Compose
 If you are running locally, make sure you pull Rabbit MQ and Postgres into your local docker repo:
@@ -81,7 +78,9 @@ To use VectorFlow in a live system, make an HTTP request to your API's URL at po
 
 ### Request & Response Payload
 
-All requests require an HTTP Header with `VectorFlowKey` key which is the same as your `INTERNAL_API_KEY` env var that you defined before (see above).
+All requests require an HTTP Header with `Authorization` key which is the same as your `INTERNAL_API_KEY` env var that you defined before (see above). You must pass your vector database api key with the HTTP Header `X-VectorDB-Key` and the embedding api key with `X-EmbeddingAPI-Key`. 
+
+VectorFlow currently support OpenAI ADA embeddings and Pinecone, Qdrant, and Weaviate vector databases. 
 
 To check the status of a `job`, make a `GET` request to this endpoint: `/jobs/<int:job_id>/status`. The response will be in the form:
 
@@ -96,7 +95,7 @@ To submit a `job` for embedding, make a `POST` request to this endpoint: `/embed
 ```
 {
     'SourceData=path_to_txt_file'
-    'LinesPerChunk=4096'
+    'LinesPerBatch=4096'
     'EmbeddingsMetadata={
         "embeddings_type": "open_ai",
         "chunk_size": 512,
@@ -124,7 +123,7 @@ You will get the following payload back:
 The following request will embed a TXT document with OpenAI's ADA model and upload the results to a Pinecone index called `test`. Make sure that your Pinecone index is called `test`. If you run the curl command from the root directory the path to the test_text.txt is `./src/api/tests/fixtures/test_text.txt`, changes this if you want to use another TXT document to embed.
 
 ```
-curl -X POST -H 'Content-Type: multipart/form-data' -H "VectorFlowKey: INTERNAL_API_KEY" -F 'EmbeddingsMetadata={"embeddings_type": "open_ai", "chunk_size": 256, "chunk_overlap": 128}' -F 'SourceData=@./src/api/tests/fixtures/test_text.txt' -F 'VectorDBMetadata={"vector_db_type": "pinecone", "index_name": "test", "environment": "us-east-1-aws"}'  http://localhost:8000/embed
+curl -X POST -H 'Content-Type: multipart/form-data' -H "Authorization: INTERNAL_API_KEY" -H "X-EmbeddingAPI-Key: your-key-here" -H "X-VectorDB-Key: your-key-here" -F 'EmbeddingsMetadata={"embeddings_type": "open_ai", "chunk_size": 256, "chunk_overlap": 128}' -F 'SourceData=@./src/api/tests/fixtures/test_text.txt' -F 'VectorDBMetadata={"vector_db_type": "pinecone", "index_name": "test", "environment": "us-east-1-aws"}'  http://localhost:8000/embed
 ```
 
 # Contributing
@@ -143,6 +142,5 @@ Please tag `dgarnitz` on all PRs.
 - [ ] Support open source embeddings models
 - [ ] Alembic for database migrations
 - [ ] Retry mechanism
-- [ ] DLQ mechanism
 - [ ] Langchain & Llama Index integrations
 - [ ] Support callbacks for writing object metadata to a separate store

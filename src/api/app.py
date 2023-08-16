@@ -28,9 +28,12 @@ CORS(app)
 
 @app.route("/embed", methods=['POST'])
 def embed():
-    vectorflow_key = request.headers.get('VectorFlowKey')
+    vectorflow_key = request.headers.get('Authorization')
     if not vectorflow_key or not auth.validate_credentials(vectorflow_key):
         return jsonify({'error': 'Invalid credentials'}), 401
+    
+    vector_db_key = request.headers.get('X-VectorDB-Key')
+    embedding_api_key = request.headers.get('X-EmbeddingAPI-Key')
     
     webhook_url = request.form.get('WebhookURL')
     embeddings_metadata_dict = json.loads(request.form.get('EmbeddingsMetadata'))
@@ -45,7 +48,7 @@ def embed():
         index_name = vector_db_metadata_dict['index_name'], 
         environment = vector_db_metadata_dict['environment'])
     
-    lines_per_chunk = int(request.form.get('LinesPerChunk')) if request.form.get('LinesPerChunk') else 1000
+    lines_per_batch = int(request.form.get('LinesPerBatch')) if request.form.get('LinesPerBatch') else 1000
  
     if not embeddings_metadata or not vector_db_metadata:
         return jsonify({'error': 'Missing required fields'}), 400
@@ -72,7 +75,7 @@ def embed():
 
         with get_db() as db:
             job = job_service.create_job(db, webhook_url)
-        batch_count = create_batches(file_content, job.id, embeddings_metadata, vector_db_metadata, lines_per_chunk)
+        batch_count = create_batches(file_content, job.id, embeddings_metadata, vector_db_metadata, lines_per_batch, vector_db_key, embedding_api_key)
         return jsonify({'message': f"Successfully added {batch_count} batches to the queue", 'JobID': job.id}), 200
     else:
         return jsonify({'message': 'Uploaded file is not a TXT file'}), 400
@@ -111,7 +114,7 @@ def dequeue():
 
         return jsonify({'batch_id': batch_id, 'source_data': source_data}), 200
 
-def create_batches(file_content, job_id, embeddings_metadata, vector_db_metadata, lines_per_chunk):
+def create_batches(file_content, job_id, embeddings_metadata, vector_db_metadata, lines_per_chunk, vector_db_key, embedding_api_key):
     chunks = [chunk for chunk in split_file(file_content, lines_per_chunk)]
     
     with get_db() as db:
@@ -120,7 +123,7 @@ def create_batches(file_content, job_id, embeddings_metadata, vector_db_metadata
         job = job_service.update_job_total_batches(db, job_id, len(batches))
 
         for batch, chunk in zip(batches, chunks):
-            data = (batch.id, chunk)
+            data = (batch.id, chunk, vector_db_key, embedding_api_key)
             json_data = json.dumps(data)
 
             pipeline.connect()
