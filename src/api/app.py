@@ -97,12 +97,18 @@ def dequeue():
     vectorflow_key = request.headers.get('VectorFlowKey')
     if not vectorflow_key or not auth.validate_credentials(vectorflow_key):
         return jsonify({'error': 'Invalid credentials'}), 401
+    
+    pipeline.connect()
     if pipeline.get_queue_size() == 0:
+        pipeline.disconnect()
         return jsonify({'error': 'No jobs in queue'}), 404
     else:
         body = pipeline.get_from_queue()
+        pipeline.disconnect()
+
         data = json.loads(body)
         batch_id, source_data = data
+
         return jsonify({'batch_id': batch_id, 'source_data': source_data}), 200
 
 def create_batches(file_content, job_id, embeddings_metadata, vector_db_metadata, lines_per_chunk):
@@ -116,7 +122,11 @@ def create_batches(file_content, job_id, embeddings_metadata, vector_db_metadata
         for batch, chunk in zip(batches, chunks):
             data = (batch.id, chunk)
             json_data = json.dumps(data)
+
+            pipeline.connect()
             pipeline.add_to_queue(json_data)
+            pipeline.disconnect()
+
     return job.total_batches if job else None
     
 def split_file(file_content, lines_per_chunk=1000):
