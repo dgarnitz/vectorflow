@@ -1,5 +1,6 @@
 import pika
 import os
+import ssl
 
 class Pipeline:
     def __init__(self):
@@ -7,7 +8,13 @@ class Pipeline:
 
         connection_params = pika.ConnectionParameters(
             host=os.getenv('RABBITMQ_HOST'),
-            credentials=credentials
+            credentials=credentials,
+            port=os.getenv('RABBITMQ_PORT'),
+            ssl_options=pika.SSLOptions(ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)),
+            virtual_host="/"
+        ) if os.getenv('RABBITMQ_PORT') == "5671" else pika.ConnectionParameters(
+            host=os.getenv('RABBITMQ_HOST'),
+            credentials=credentials,
         )
 
         connection = pika.BlockingConnection(connection_params)

@@ -4,6 +4,7 @@ import os
 # this is needed to import classes from the API. it will be removed when the worker is refactored
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
+import ssl
 import time
 import pika
 import json
@@ -262,7 +263,13 @@ if __name__ == "__main__":
 
     connection_params = pika.ConnectionParameters(
         host=os.getenv('RABBITMQ_HOST'),
-        credentials=credentials
+        credentials=credentials,
+        port=os.getenv('RABBITMQ_PORT'),
+        ssl_options=pika.SSLOptions(ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)),
+        virtual_host="/"
+    ) if os.getenv('RABBITMQ_PORT') == "5671" else pika.ConnectionParameters(
+        host=os.getenv('RABBITMQ_HOST'),
+        credentials=credentials,
     )
 
     connection = pika.BlockingConnection(connection_params)
