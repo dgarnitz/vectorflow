@@ -258,27 +258,39 @@ def callback(ch, method, properties, body):
 
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
+def start_connection():
+    while True:
+        try:
+            credentials = pika.PlainCredentials(os.getenv('RABBITMQ_USERNAME'), os.getenv('RABBITMQ_PASSWORD'))
+
+            connection_params = pika.ConnectionParameters(
+                host=os.getenv('RABBITMQ_HOST'),
+                credentials=credentials,
+                port=os.getenv('RABBITMQ_PORT'),
+                heartbeat=600,
+                ssl_options=pika.SSLOptions(ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)),
+                virtual_host="/"
+            ) if os.getenv('RABBITMQ_PORT') == "5671" else pika.ConnectionParameters(
+                host=os.getenv('RABBITMQ_HOST'),
+                credentials=credentials,
+                heartbeat=600,
+            )
+
+            connection = pika.BlockingConnection(connection_params)
+            channel = connection.channel()
+
+            queue_name = os.getenv('RABBITMQ_QUEUE')
+            channel.queue_declare(queue=queue_name)
+
+            channel.basic_consume(queue=queue_name, on_message_callback=callback)
+
+            logging.info('Waiting for messages.')
+            channel.start_consuming()
+            
+        except Exception as e:
+            logging.error('ERROR connecting to RabbitMQ, retrying now. See exception:', e)
+            time.sleep(config.PIKA_RETRY_INTERVAL) # Wait before retrying
+
 if __name__ == "__main__":
-    credentials = pika.PlainCredentials(os.getenv('RABBITMQ_USERNAME'), os.getenv('RABBITMQ_PASSWORD'))
+    start_connection()
 
-    connection_params = pika.ConnectionParameters(
-        host=os.getenv('RABBITMQ_HOST'),
-        credentials=credentials,
-        port=os.getenv('RABBITMQ_PORT'),
-        ssl_options=pika.SSLOptions(ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)),
-        virtual_host="/"
-    ) if os.getenv('RABBITMQ_PORT') == "5671" else pika.ConnectionParameters(
-        host=os.getenv('RABBITMQ_HOST'),
-        credentials=credentials,
-    )
-
-    connection = pika.BlockingConnection(connection_params)
-    channel = connection.channel()
-
-    queue_name = os.getenv('RABBITMQ_QUEUE')
-    channel.queue_declare(queue=queue_name)
-
-    channel.basic_consume(queue=queue_name, on_message_callback=callback)
-
-    logging.info('Waiting for messages.')
-    channel.start_consuming()
