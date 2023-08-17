@@ -22,7 +22,7 @@
 
 VectorFlow is an open source, high throughput, fault tolerant vector embedding pipeline. With a simple API request, you can send raw data that will be embedded and stored in any vector database or returned back to you.
 
-This current version is an MVP and should not be used in production yet. Right now the system only supports uploading single TXT or PODF files at a time, up to 2GB.
+This current version is an MVP and should not be used in production yet. Right now the system only supports uploading single TXT or PDF files at a time, up to 2GB.
 
 # Run it Locally
 
@@ -32,7 +32,7 @@ The best way to run VectorFlow is via `docker compose`.
 
 ### 1) Set Environment Variables
 
-First create a folder in the root for all the environment variables:
+First, create a folder in the root for all the environment variables:
 
 ```
 mkdir env_scripts
@@ -70,7 +70,7 @@ docker-compose build --no-cache
 docker-compose up -d
 ```
 
-Note that that `db-init` container is running a script that sets up the database schema will stop after the script completes. 
+Note that the `db-init` container is running a script that sets up the database schema and will stop after the script completes. 
 
 ## Using VectorFlow
 
@@ -78,9 +78,9 @@ To use VectorFlow in a live system, make an HTTP request to your API's URL at po
 
 ### Request & Response Payload
 
-All requests require an HTTP Header with `Authorization` key which is the same as your `INTERNAL_API_KEY` env var that you defined before (see above). You must pass your vector database api key with the HTTP Header `X-VectorDB-Key` and the embedding api key with `X-EmbeddingAPI-Key`. 
+All requests require an HTTP Header with `Authorization` key which is the same as your `INTERNAL_API_KEY` env var that you defined before (see above). You must pass your vector database API key with the HTTP Header `X-VectorDB-Key` and the embedding API key with `X-EmbeddingAPI-Key`. 
 
-VectorFlow currently support OpenAI ADA embeddings and Pinecone, Qdrant, and Weaviate vector databases. 
+VectorFlow currently supports OpenAI ADA embeddings and Pinecone, Qdrant, and Weaviate vector databases. 
 
 To check the status of a `job`, make a `GET` request to this endpoint: `/jobs/<int:job_id>/status`. The response will be in the form:
 
@@ -120,7 +120,7 @@ You will get the following payload back:
 
 ### Sample Curl Request
 
-The following request will embed a TXT document with OpenAI's ADA model and upload the results to a Pinecone index called `test`. Make sure that your Pinecone index is called `test`. If you run the curl command from the root directory the path to the test_text.txt is `./src/api/tests/fixtures/test_text.txt`, changes this if you want to use another TXT document to embed.
+The following request will embed a TXT document with OpenAI's ADA model and upload the results to a Pinecone index called `test`. Make sure that your Pinecone index is called `test`. If you run the curl command from the root directory the path to the test_text.txt is `./src/api/tests/fixtures/test_text.txt`, change this if you want to use another TXT document to embed.
 
 ```
 curl -X POST -H 'Content-Type: multipart/form-data' -H "Authorization: INTERNAL_API_KEY" -H "X-EmbeddingAPI-Key: your-key-here" -H "X-VectorDB-Key: your-key-here" -F 'EmbeddingsMetadata={"embeddings_type": "open_ai", "chunk_size": 256, "chunk_overlap": 128}' -F 'SourceData=@./src/api/tests/fixtures/test_text.txt' -F 'VectorDBMetadata={"vector_db_type": "pinecone", "index_name": "test", "environment": "us-east-1-aws"}'  http://localhost:8000/embed
@@ -139,7 +139,7 @@ Please tag `dgarnitz` on all PRs.
 - [ ] Connectors to other vector databases
 - [ ] Support for more files types such as `csv`, `word`, `xls`, etc
 - [ ] Support for multi-file, directory data ingestion from sources such as S3, Google docs, etc
-- [ ] Support open source embeddings models
+- [ ] Support open-source embeddings models
 - [ ] Alembic for database migrations
 - [ ] Retry mechanism
 - [ ] Langchain & Llama Index integrations
