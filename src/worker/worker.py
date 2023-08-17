@@ -71,7 +71,7 @@ def get_openai_embedding(batch, attempts=5):
 
 def embed_openai_batch(batch, source_data):
     logging.info("Starting Open AI Embeddings")
-    openai.api_key = os.getenv('OPEN_AI_KEY')
+    openai.api_key = os.getenv('EMBEDDING_API_KEY')
 
     chunked_data = chunk_data(source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
     open_ai_batches = create_openai_batches(chunked_data)
@@ -127,7 +127,7 @@ def create_pinecone_source_chunk_dict(text_embeddings_list, batch_id, job_id):
     return upsert_list
 
 def write_embeddings_to_pinecone(upsert_list, vector_db_metadata):
-    pinecone_api_key = os.getenv('PINECONE_KEY')
+    pinecone_api_key = os.getenv('VECTOR_DB_KEY')
     pinecone.init(api_key=pinecone_api_key, environment=vector_db_metadata.environment)
     index = pinecone.Index(vector_db_metadata.index_name)
     if not index:
@@ -172,7 +172,7 @@ def create_qdrant_source_chunk_dict(text_embeddings_list, batch_id, job_id):
 def write_embeddings_to_qdrant(upsert_list, vector_db_metadata):
     qdrant_client = QdrantClient(
         url=vector_db_metadata.environment, 
-        api_key=os.getenv('QDRANT_KEY'),
+        api_key=os.getenv('VECTOR_DB_KEY'),
         grpc_port=6334, 
         prefer_grpc=True,
         timeout=5
@@ -203,7 +203,7 @@ def write_embeddings_to_qdrant(upsert_list, vector_db_metadata):
 def write_embeddings_to_weaviate(text_embeddings_list, vector_db_metadata,  batch_id, job_id):
     client = weaviate.Client(
         url=vector_db_metadata.environment,
-        auth_client_secret=weaviate.AuthApiKey(api_key=os.getenv('WEAVIATE_KEY')),
+        auth_client_secret=weaviate.AuthApiKey(api_key=os.getenv('VECTOR_DB_KEY')),
     )
 
     index = client.schema.get()
@@ -249,7 +249,10 @@ def update_batch_and_job_status(job_id, batch_status, batch_id):
 def callback(ch, method, properties, body):
     try:
         data = json.loads(body)
-        batch_id, source_data = data
+        batch_id, source_data, vector_db_key, embeddings_api_key = data
+        os.environ["VECTOR_DB_KEY"] = vector_db_key
+        os.environ["EMBEDDING_API_KEY"] = embeddings_api_key
+
         logging.info("Batch retrieved successfully")
         process_batch(batch_id, source_data)
         logging.info("Batch processed successfully")
