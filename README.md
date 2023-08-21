@@ -7,7 +7,7 @@
     <span>Simple API endpoint that ingests large volumes of raw data, processes, and stores or returns the vectors quickly and reliably</span>
 </div>
 <h4 align="center">
-  <a href="https://discord.gg/9VZ3ujWE">Join our Discord</a>  |
+  <a href="https://discord.gg/MEXuahMs2F">Join our Discord</a>  |
   <a href="https://www.getvectorflow.com/">Website</a>  |  
   <a href="mailto:dan@getvectorflow.com">Get in touch</a>
 </h4>
@@ -57,7 +57,9 @@ RABBITMQ_QUEUE=your-choice
 You can choose a variable for `INTERNAL_API_KEY`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, and `RABBITMQ_QUEUE` freely.
 
 ### 2) Run Docker-Compose
+
 If you are running locally, make sure you pull Rabbit MQ and Postgres into your local docker repo:
+
 ```
 docker pull rabbitmq
 docker pull postgres
@@ -70,7 +72,7 @@ docker-compose build --no-cache
 docker-compose up -d
 ```
 
-Note that that `db-init` container is running a script that sets up the database schema will stop after the script completes. 
+Note that that `db-init` container is running a script that sets up the database schema will stop after the script completes.
 
 ## Using VectorFlow
 
@@ -78,9 +80,9 @@ To use VectorFlow in a live system, make an HTTP request to your API's URL at po
 
 ### Request & Response Payload
 
-All requests require an HTTP Header with `Authorization` key which is the same as your `INTERNAL_API_KEY` env var that you defined before (see above). You must pass your vector database api key with the HTTP Header `X-VectorDB-Key` and the embedding api key with `X-EmbeddingAPI-Key`. 
+All requests require an HTTP Header with `Authorization` key which is the same as your `INTERNAL_API_KEY` env var that you defined before (see above). You must pass your vector database api key with the HTTP Header `X-VectorDB-Key` and the embedding api key with `X-EmbeddingAPI-Key`.
 
-VectorFlow currently support OpenAI ADA embeddings and Pinecone, Qdrant, and Weaviate vector databases. 
+VectorFlow currently support OpenAI ADA embeddings and Pinecone, Qdrant, and Weaviate vector databases.
 
 To check the status of a `job`, make a `GET` request to this endpoint: `/jobs/<int:job_id>/status`. The response will be in the form:
 
@@ -126,7 +128,8 @@ The following request will embed a TXT document with OpenAI's ADA model and uplo
 curl -X POST -H 'Content-Type: multipart/form-data' -H "Authorization: INTERNAL_API_KEY" -H "X-EmbeddingAPI-Key: your-key-here" -H "X-VectorDB-Key: your-key-here" -F 'EmbeddingsMetadata={"embeddings_type": "open_ai", "chunk_size": 256, "chunk_overlap": 128}' -F 'SourceData=@./src/api/tests/fixtures/test_text.txt' -F 'VectorDBMetadata={"vector_db_type": "pinecone", "index_name": "test", "environment": "us-east-1-aws"}'  http://localhost:8000/embed
 ```
 
-To check the status of the job, 
+To check the status of the job,
+
 ```
 curl -X GET -H "Authorization: INTERNAL_API_KEY" http://localhost:8000/jobs/<job_id>/status
 ```
