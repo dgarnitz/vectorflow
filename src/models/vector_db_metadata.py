@@ -1,3 +1,4 @@
+import json
 from services.database.database import Base
 from sqlalchemy import Column, Integer, String, Enum
 from shared.vector_db_type import VectorDBType
@@ -16,3 +17,12 @@ class VectorDBMetadata(Base):
             'index_name': self.index_name,
             'environment': self.environment,
         }
+    
+    @staticmethod
+    def _from_request(request):
+        vector_db_metadata_dict = json.loads(request.form.get('VectorDBMetadata'))
+        vector_db_metadata = VectorDBMetadata(
+            vector_db_type = VectorDBType(vector_db_metadata_dict['vector_db_type']), 
+            index_name = vector_db_metadata_dict['index_name'], 
+            environment = vector_db_metadata_dict['environment'])
+        return vector_db_metadata

@@ -1,3 +1,4 @@
+import json
 from sqlalchemy import Column, Integer, String, Enum
 from services.database.database import Base
 from shared.embeddings_type import EmbeddingsType
@@ -18,3 +19,12 @@ class EmbeddingsMetadata(Base):
             'chunk_overlap': self.chunk_overlap,
             'docker_image': self.docker_image,
         }
+    
+    @staticmethod
+    def _from_request(request):
+        embeddings_metadata_dict = json.loads(request.form.get('EmbeddingsMetadata'))
+        embeddings_metadata = EmbeddingsMetadata(
+            embeddings_type = EmbeddingsType(embeddings_metadata_dict['embeddings_type']), 
+            chunk_size = embeddings_metadata_dict['chunk_size'],
+            chunk_overlap = embeddings_metadata_dict['chunk_overlap'])
+        return embeddings_metadata
