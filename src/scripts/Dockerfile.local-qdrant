@@ -1,0 +1,11 @@
+FROM python:3.9.9-slim-buster
+
+COPY scripts/create_database.py /scripts/create_local_qdrant.py
+COPY worker/requirements.txt /app/worker/requirements.txt
+
+RUN pip install qdrant-client
+
+COPY scripts/wait-for-it.sh /scripts/wait-for-it.sh
+RUN chmod +x /scripts/wait-for-it.sh
+
+CMD ["/scripts/wait-for-it.sh", "qdrant:6333", "--", "python", "/scripts/create_local_qdrant.py"]

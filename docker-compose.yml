@@ -31,6 +31,25 @@ services:
       - "5672:5672"
       - "15672:15672"
 
+  qdrant:
+    image: qdrant/qdrant
+    container_name: qdrant
+    networks:
+      - vectorflow
+    ports:
+      - "5432:5432"
+
+  qdrant-init:
+    build:
+      context: ./src
+      dockerfile: scripts/Dockerfile.local-qdrant
+    env_file:
+      - ./env_scripts/env_vars.env
+    depends_on:
+      - qdrant
+    networks:
+      - vectorflow
+
   api:
     build:
       context: ./src
@@ -44,6 +63,7 @@ services:
       - postgres
       - db-init
       - rabbitmq
+      - qdrant-init
     ports:
       - "8000:8000"
     command: ["bash", "/wait-for-it.sh", "rabbitmq:5672", "--", "gunicorn", "-w", "1", "-b", "0.0.0.0:8000", "api.app:app"]
@@ -61,6 +81,7 @@ services:
       - postgres
       - db-init
       - rabbitmq
+      - qdrant-init
     command: ["bash", "/wait-for-it.sh", "rabbitmq:5672", "--", "python", "worker.py"]
 
 networks:
