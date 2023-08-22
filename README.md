@@ -82,7 +82,7 @@ To use VectorFlow in a live system, make an HTTP request to your API's URL at po
 
 All requests require an HTTP Header with `Authorization` key which is the same as your `INTERNAL_API_KEY` env var that you defined before (see above). You must pass your vector database api key with the HTTP Header `X-VectorDB-Key` and the embedding api key with `X-EmbeddingAPI-Key`.
 
-VectorFlow currently support OpenAI ADA embeddings and Pinecone, Qdrant, and Weaviate vector databases.
+VectorFlow currently support OpenAI ADA embeddings and Pinecone, Qdrant, Weaviate and Milvus vector databases. 
 
 To check the status of a `job`, make a `GET` request to this endpoint: `/jobs/<int:job_id>/status`. The response will be in the form:
 
@@ -134,6 +134,16 @@ To check the status of the job,
 curl -X GET -H "Authorization: INTERNAL_API_KEY" http://localhost:8000/jobs/<job_id>/status
 ```
 
+### Vector Database Schema Standard
+VectorFlow enforces a standardized schema for uploading data to a vector store:
+```
+id: int
+source_data: string
+embeddings: float array
+```
+
+The id can be used for deduplication and idempotency. Please note for Weaviate, the id is called `vectorflow_id`. We plan to support dynamically detect and/or configurable schemas down the road. 
+
 # Contributing
 
 We love feedback from the community. If you have an idea of how to make this project better, we encourage you to open an issue or join our Discord. Please tag `dgarnitz` and `danmeier2`.
@@ -146,9 +156,10 @@ Please tag `dgarnitz` on all PRs.
 
 - [ ] Connectors to other vector databases
 - [ ] Support for more files types such as `csv`, `word`, `xls`, etc
-- [ ] Support for multi-file, directory data ingestion from sources such as S3, Google docs, etc
+- [ ] Support for multi-file, directory data ingestion from sources such as Salesforce, Google Drive, etc
 - [ ] Support open source embeddings models
-- [ ] Alembic for database migrations
 - [ ] Retry mechanism
 - [ ] Langchain & Llama Index integrations
 - [ ] Support callbacks for writing object metadata to a separate store
+- [ ] Dynamically configurable vector DB schemas
+- [ ] Deduplication capabilities
