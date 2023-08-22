@@ -24,6 +24,7 @@ from services.database.database import get_db
 from shared.job_status import JobStatus
 from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct
+from pymilvus import Collection, connections
 
 logging.basicConfig(filename='./log.txt', level=logging.INFO)
 logging.basicConfig(filename='./error.txt', level=logging.ERROR)
@@ -114,6 +115,9 @@ def write_embeddings_to_vector_db(text_embeddings_list, vector_db_metadata, batc
         return write_embeddings_to_qdrant(upsert_list, vector_db_metadata)
     elif vector_db_metadata.vector_db_type == VectorDBType.WEAVIATE:
         return write_embeddings_to_weaviate(text_embeddings_list, vector_db_metadata, batch_id, job_id)
+    elif vector_db_metadata.vector_db_type == VectorDBType.MILVUS:
+        upsert_list = create_wilvus_source_chunk_dict(text_embeddings_list, batch_id, job_id)
+        return write_embeddings_to_milvus(upsert_list, vector_db_metadata)
     else:
         logging.error('Unsupported vector DB type:', vector_db_metadata.vector_db_type)
 
@@ -232,6 +236,42 @@ def write_embeddings_to_weaviate(text_embeddings_list, vector_db_metadata,  batc
     
     logging.info(f"Successfully uploaded {len(text_embeddings_list)} vectors to Weaviate")
     return len(text_embeddings_list)
+
+def create_wilvus_source_chunk_dict(text_embeddings_list, batch_id, job_id):
+    ids = []
+    source_texts = []
+    embeddings = []
+    for i, (source_text, embedding) in enumerate(text_embeddings_list):
+        ids.append(generate_uuid_from_tuple((job_id, batch_id, i)))
+        source_texts.append(source_text)
+        embeddings.append(embedding)
+    return [ids, source_texts, embeddings]
+
+def write_embeddings_to_milvus(upsert_list, vector_db_metadata):
+    connections.connect("default", 
+        uri = vector_db_metadata.environment,
+        token = os.getenv('VECTOR_DB_KEY')
+    )
+
+    collection = Collection(vector_db_metadata.index_name)
+    if not collection:
+        logging.error(f"Index {vector_db_metadata.index_name} does not exist in environment {vector_db_metadata.environment}")
+        return None
+    
+    logging.info(f"Starting Milvus insert for {len(upsert_list)} vectors")
+    batch_size = config.PINECONE_BATCH_SIZE
+    vectors_uploaded = 0
+
+    for i in range(0,len(upsert_list), batch_size):
+        try:
+            insert_response = collection.insert(upsert_list[i:i+batch_size])
+            vectors_uploaded += insert_response.insert_count
+        except Exception as e:
+            logging.error('Error writing embeddings to milvus:', e)
+            return None
+    
+    logging.info(f"Successfully uploaded {vectors_uploaded} vectors to milvus")
+    return vectors_uploaded
 
 def update_batch_and_job_status(job_id, batch_status, batch_id):
     try:
