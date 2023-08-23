@@ -1,15 +1,14 @@
 import unittest
 import json
-import auth
 from flask import Flask
 from flask.testing import FlaskClient
-from batch_status import BatchStatus
-from app import app, pipeline, auth
-from embeddings_metadata import EmbeddingsMetadata
-from embeddings_type import EmbeddingsType
-from vector_db_metadata import VectorDBMetadata
-from vector_db_type import VectorDBType
-from batch import Batch 
+from shared.batch_status import BatchStatus
+from api import app, pipeline, auth
+from models.embeddings_metadata import EmbeddingsMetadata
+from shared.embeddings_type import EmbeddingsType
+from models.vector_db_metadata import VectorDBMetadata
+from shared.vector_db_type import VectorDBType
+from models.batch import Batch 
 
 class TestApp(unittest.TestCase):
     def setUp(self):
@@ -17,7 +16,7 @@ class TestApp(unittest.TestCase):
         self.client = self.app.test_client()
         auth.set_internal_api_key('test_key')
         self.headers = {
-            "VectorFlowKey": auth.internal_api_key
+            "Authorization": auth.internal_api_key
         }
 
     def test_embed_endpoint(self):
