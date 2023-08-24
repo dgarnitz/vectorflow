@@ -2,6 +2,7 @@ import json
 from sqlalchemy import Column, Integer, String, Enum
 from services.database.database import Base
 from shared.embeddings_type import EmbeddingsType
+from shared.chunk_strategy import ChunkStrategy
 
 class EmbeddingsMetadata(Base):
     __tablename__ = 'embeddings_metadata'
@@ -10,6 +11,7 @@ class EmbeddingsMetadata(Base):
     embeddings_type = Column(Enum(EmbeddingsType))
     chunk_size = Column(Integer)
     chunk_overlap = Column(Integer)
+    chunk_strategy = Column(Enum(ChunkStrategy))
     docker_image = Column(String)
 
     def serialize(self):

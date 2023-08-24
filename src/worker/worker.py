@@ -4,6 +4,7 @@ import os
 # this is needed to import classes from the API. it will be removed when the worker is refactored
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
+import re
 import ssl
 import time
 import pika
@@ -16,6 +17,7 @@ import weaviate
 import worker.config as config
 import services.database.batch_service as batch_service
 import services.database.job_service as job_service
+from shared.chunk_strategy import ChunkStrategy
 from shared.embeddings_type import EmbeddingsType
 from shared.vector_db_type import VectorDBType
 from shared.batch_status import BatchStatus
@@ -74,7 +76,17 @@ def embed_openai_batch(batch, source_data):
     logging.info("Starting Open AI Embeddings")
     openai.api_key = os.getenv('EMBEDDING_API_KEY')
 
-    chunked_data = chunk_data(source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
+    chunk_strategy = batch.embeddings_metadata.chunk_strategy
+    
+    if chunk_strategy == ChunkStrategy.EXACT: 
+        chunked_data = chunk_data(source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
+    
+    if chunk_strategy == ChunkStrategy.PARAGRAPH:
+        chunked_data = chunk_data_by_paragraph(source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
+
+    if chunk_strategy == ChunkStrategy.SENTENCE:
+        chunked_data = chunk_by_sentence(source_data)
+
     open_ai_batches = create_openai_batches(chunked_data)
     text_embeddings_list = list()
 
@@ -99,6 +111,48 @@ def chunk_data(data_chunks, chunk_size, chunk_overlap):
     for i in range(0, len(data), chunk_size - chunk_overlap):
         chunks.append(data[i:i + chunk_size])
     return chunks
+
+def chunk_data_by_paragraph(data, chunk_size, over_lap, bound=0.75):
+    # data = "".join(data_chunks)
+
+    # Get total length of text
+    total_length = len(data)
+
+    # initialize chunks
+    chunks = []
+
+    # Ensure the paragraph character isn't searched outside of the bound
+    check_bound = int(bound * chunk_size)
+
+    # pick a start index
+    start_idx = 0
+
+    while start_idx < total_length:
+        # Set the end index to the minimum of start_idx + default_chunk_size or total_length
+        end_idx = min(start_idx + chunk_size, total_length)
+
+        # Find the next paragraph index within the current chunk and bound
+        next_paragraph_index = data.find('\n\n', start_idx + check_bound, end_idx)
+
+        # If a next paragraph index is found within the current chunk
+        if next_paragraph_index != -1:
+            # Update end_idx to include the paragraph delimiter
+            end_idx = next_paragraph_index + 2
+
+        chunks.append(data[start_idx:end_idx + over_lap])
+
+        # Update start_idx to be the current end_idx
+        start_idx = end_idx
+
+    return chunks
+
+def chunk_by_sentence(data_chunks):
+    # Split by periods, question marks, exclamation marks, and ellipses
+    data = "".join(data_chunks)
+
+    sentence_endings = r'(?<=[.!?…]) +'
+    sentences = re.split(sentence_endings, data)
+    return sentences
 
 def create_openai_batches(batches):
     # Maximum number of items allowed in a batch by OpenAIs embedding API. There is also an 8191 token per item limit

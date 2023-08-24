@@ -141,6 +141,36 @@ class TestWorker(unittest.TestCase):
         self.assertEqual(upsert_list[0]['metadata']['source_text'], chunks[0])
         self.assertEqual(upsert_list[0]['values'], [1.0, 2.0, 3.0, 4.0, 5.0])
 
+    def test_chunk_paragraph(self):
+        data = ["This is an example paragraph.\n\n"] * 4
+        
+        chunks = worker.chunk_data_by_paragraph(data, chunk_size=35, over_lap=0)
+
+        self.assertEqual(len(chunks), 4)
+
+    def test_chunk_paragraph_over_lap(self):
+        data = ["This is an example paragraph.\n\n"] * 2
+
+        chunks = worker.chunk_data_by_paragraph(data, chunk_size=35, over_lap=15)
+
+        expected_overlap = 'This is an exam'
+        self.assertEqual(chunks[0][:15], expected_overlap)
+
+    def test_chunk_paragraph_bound(self):
+        data = ["This is \n\n a very early paragraph."]
+
+        chunks = worker.chunk_data_by_paragraph(data, chunk_size=35, over_lap=0, bound=0.75)
+
+        self.assertEqual(len(chunks), 1)
+
+    def test_chunk_sentence(self):
+        data = ["I am a sentence. I am a sentence but with a question? I am still a sentence! Can I consider myself a sentence..."]
+        
+        chunks = worker.chunk_by_sentence(data)
+
+        self.assertEqual(len(chunks), 4)
+
+
     def test_create_openai_batches(self):
         # arrange
         batches = ["test"] * config.MAX_OPENAI_EMBEDDING_BATCH_SIZE * 4
