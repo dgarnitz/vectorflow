@@ -72,7 +72,7 @@ docker-compose build --no-cache
 docker-compose up -d
 ```
 
-Note that that `db-init` container is running a script that sets up the database schema will stop after the script completes.
+Note that the `db-init` container is running a script that sets up the database schema and will stop after the script completes.
 
 ## Using VectorFlow
 
@@ -82,7 +82,7 @@ To use VectorFlow in a live system, make an HTTP request to your API's URL at po
 
 All requests require an HTTP Header with `Authorization` key which is the same as your `INTERNAL_API_KEY` env var that you defined before (see above). You must pass your vector database api key with the HTTP Header `X-VectorDB-Key` and the embedding api key with `X-EmbeddingAPI-Key`.
 
-VectorFlow currently support OpenAI ADA embeddings and Pinecone, Qdrant, Weaviate and Milvus vector databases. 
+VectorFlow currently supports OpenAI ADA embeddings and Pinecone, Qdrant, Weaviate, and Milvus vector databases. 
 
 To check the status of a `job`, make a `GET` request to this endpoint: `/jobs/<int:job_id>/status`. The response will be in the form:
 
