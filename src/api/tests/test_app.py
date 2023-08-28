@@ -43,6 +43,55 @@ class TestApp(unittest.TestCase):
         self.assertEqual(response.json['message'], "Successfully added 2 batches to the queue")
         self.assertEqual(response.json['JobID'], 1)
 
+    def test_embed_endpoint_no_vectorflow_key(self):
+        test_embeddings_metadata = EmbeddingsMetadata(embeddings_type=EmbeddingsType.OPEN_AI)
+        test_vector_db_metadata = VectorDBMetadata(vector_db_type=VectorDBType.PINECONE, 
+                                                   index_name="test_index", 
+                                                   environment="test_environment")
+
+        headers = {}
+        with open('api/tests/fixtures/test_text.txt', 'rb') as data_file:
+            response = self.client.post('/embed', 
+                                        data={'SourceData': data_file, 
+                                            'EmbeddingsMetadata': json.dumps(test_embeddings_metadata.serialize()), 
+                                            'VectorDBMetadata': json.dumps(test_vector_db_metadata.serialize())},
+                                        headers=headers)
+        
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json['error'], "Invalid credentials")
+
+    def test_embed_endpoint_no_vectordb_key(self):
+        test_embeddings_metadata = EmbeddingsMetadata(embeddings_type=EmbeddingsType.OPEN_AI)
+        test_vector_db_metadata = VectorDBMetadata(vector_db_type=VectorDBType.PINECONE, 
+                                                   index_name="test_index", 
+                                                   environment="test_environment")
+
+        headers = {"Authorization": app.auth.internal_api_key}
+        with open('api/tests/fixtures/test_text.txt', 'rb') as data_file:
+            response = self.client.post('/embed', 
+                                        data={'SourceData': data_file, 
+                                            'EmbeddingsMetadata': json.dumps(test_embeddings_metadata.serialize()), 
+                                            'VectorDBMetadata': json.dumps(test_vector_db_metadata.serialize())},
+                                        headers=headers)
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['error'], "Missing required fields")
+
+    def test_embed_endpoint_no_file(self):
+        test_embeddings_metadata = EmbeddingsMetadata(embeddings_type=EmbeddingsType.OPEN_AI)
+        test_vector_db_metadata = VectorDBMetadata(vector_db_type=VectorDBType.PINECONE, 
+                                                   index_name="test_index", 
+                                                   environment="test_environment")
+        
+        response = self.client.post('/embed', 
+                                    data={ 
+                                        'EmbeddingsMetadata': json.dumps(test_embeddings_metadata.serialize()), 
+                                        'VectorDBMetadata': json.dumps(test_vector_db_metadata.serialize())},
+                                    headers=self.headers)
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['error'], "No file part in the request")
+
     @patch('services.database.database.get_db')
     @patch('services.database.job_service.get_job')
     def test_get_job_status_endpoint_no_job(self, mock_get_job, mock_get_db):
@@ -105,11 +154,6 @@ class TestApp(unittest.TestCase):
         self.assertEqual(batch_id, 1)
         source_data = response.json['source_data']
         self.assertEqual(source_data, "This is a test")
-        
-
-    #def test_s3_presigned_url_endpoint(self):
-
-    #def test_create_batches(self):
 
     def test_split_file(self):
         # arrange
