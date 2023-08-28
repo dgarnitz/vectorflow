@@ -22,7 +22,7 @@ class VectorDBMetadata(Base):
     def _from_request(request):
         vector_db_metadata_dict = json.loads(request.form.get('VectorDBMetadata'))
         vector_db_metadata = VectorDBMetadata(
-            vector_db_type = VectorDBType(vector_db_metadata_dict['vector_db_type']), 
+            vector_db_type = VectorDBType[vector_db_metadata_dict['vector_db_type']], 
             index_name = vector_db_metadata_dict['index_name'], 
             environment = vector_db_metadata_dict['environment'])
         return vector_db_metadata
