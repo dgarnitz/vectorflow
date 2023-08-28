@@ -2,21 +2,24 @@ import unittest
 import json
 from flask import Flask
 from flask.testing import FlaskClient
+from models.job import Job
 from shared.batch_status import BatchStatus
 from api import app, pipeline, auth
 from models.embeddings_metadata import EmbeddingsMetadata
 from shared.embeddings_type import EmbeddingsType
 from models.vector_db_metadata import VectorDBMetadata
+from shared.job_status import JobStatus
 from shared.vector_db_type import VectorDBType
 from models.batch import Batch 
+from unittest.mock import patch
 
 class TestApp(unittest.TestCase):
     def setUp(self):
-        self.app = app
+        self.app = app.app
         self.client = self.app.test_client()
-        auth.set_internal_api_key('test_key')
+        app.auth.set_internal_api_key('test_key')
         self.headers = {
-            "Authorization": auth.internal_api_key
+            "Authorization": app.auth.internal_api_key
         }
 
     def test_embed_endpoint(self):
@@ -44,17 +47,34 @@ class TestApp(unittest.TestCase):
         batch_status = BatchStatus(batch.batch_status.value)
         self.assertEqual(batch_status, BatchStatus.NOT_STARTED) 
 
-    def test_get_job_status_endpoint_no_job(self):
+    @patch('services.database.database.get_db')
+    @patch('services.database.job_service.get_job')
+    def test_get_job_status_endpoint_no_job(self, mock_get_job, mock_get_db):
+        # arrange
+        mock_get_job.return_value = None
+        mock_get_db.return_value = "test_db"
+
+        # act
         response = self.client.get('/jobs/1/status', headers=self.headers)
+        
+        # assert
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json['error'], 'Job not found')
     
-    def test_get_job_status_endpoint_job_exists(self):
-        job_id = pipeline.create_job('test_webhook_url')
+    @patch('services.database.database.get_db')
+    @patch('services.database.job_service.get_job')
+    def test_get_job_status_endpoint_job_exists(self, mock_get_job, mock_get_db):
+        # arrange
+        job = Job(id=1, job_status=JobStatus.NOT_STARTED)
+        mock_get_job.return_value = job
+        mock_get_db.return_value = "test_db"
 
-        response = self.client.get(f"/jobs/{job_id}/status", headers=self.headers)
+        # act
+        response = self.client.get(f"/jobs/{job.id}/status", headers=self.headers)
+
+        # assert
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['JobStatus'], 'NOT_STARTED')
+        self.assertEqual(response.json['JobStatus'], JobStatus.NOT_STARTED.value)
     
     def test_dequeue_endpoint_empty(self):
         response = self.client.get('/dequeue', headers=self.headers)
