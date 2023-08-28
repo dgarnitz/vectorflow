@@ -1,11 +1,12 @@
 import unittest
+import worker.worker as worker
+import worker.config as config
 from models.batch import Batch
 from models.embeddings_metadata import EmbeddingsMetadata
 from models.job import Job
 from shared.batch_status import BatchStatus
 from shared.embeddings_type import EmbeddingsType
 from shared.job_status import JobStatus
-import worker.worker as worker
 from unittest.mock import patch
 
 class TestWorker(unittest.TestCase):
@@ -84,7 +85,7 @@ class TestWorker(unittest.TestCase):
         self.assertEqual(len(chunks), 3)
         self.assertEqual(len(chunks[2]), 128)
 
-    def test_create_source_chunk_dict(self):
+    def test_create_pinecone_source_chunk_dict(self):
         # arrange
         data = "thisistest" * 38 + "test"
         chunks = worker.chunk_data(data, 256, 128)
@@ -99,6 +100,16 @@ class TestWorker(unittest.TestCase):
         self.assertEqual(len(upsert_list), 3)
         self.assertEqual(upsert_list[0]['metadata']['source_text'], chunks[0])
         self.assertEqual(upsert_list[0]['values'], [1.0, 2.0, 3.0, 4.0, 5.0])
+
+    def test_create_openai_batches(self):
+        # arrange
+        batches = ["test"] * config.MAX_OPENAI_EMBEDDING_BATCH_SIZE * 4
+
+        # act
+        openai_batches = worker.create_openai_batches(batches)
+
+        # assert
+        self.assertEqual(len(openai_batches), 4)
 
 if __name__ == '__main__':
     unittest.main()
