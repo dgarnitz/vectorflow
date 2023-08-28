@@ -24,7 +24,7 @@ class EmbeddingsMetadata(Base):
     def _from_request(request):
         embeddings_metadata_dict = json.loads(request.form.get('EmbeddingsMetadata'))
         embeddings_metadata = EmbeddingsMetadata(
-            embeddings_type = EmbeddingsType(embeddings_metadata_dict['embeddings_type']), 
+            embeddings_type = EmbeddingsType[embeddings_metadata_dict['embeddings_type']], 
             chunk_size = embeddings_metadata_dict['chunk_size'],
             chunk_overlap = embeddings_metadata_dict['chunk_overlap'])
         return embeddings_metadata

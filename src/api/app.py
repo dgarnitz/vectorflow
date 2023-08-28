@@ -34,7 +34,7 @@ def embed():
         return jsonify({'error': 'Missing required fields'}), 400
     
     if 'SourceData' not in request.files:
-        return jsonify({'message': 'No file part in the request'}), 400
+        return jsonify({'error': 'No file part in the request'}), 400
 
     file = request.files['SourceData']
     
@@ -46,7 +46,7 @@ def embed():
         batch_count, job_id = process_file(file, vectorflow_request)
         return jsonify({'message': f"Successfully added {batch_count} batches to the queue", 'JobID': job_id}), 200
     else:
-        return jsonify({'message': 'Uploaded file is not a TXT or PDF file'}), 400
+        return jsonify({'error': 'Uploaded file is not a TXT or PDF file'}), 400
 
 @app.route('/jobs/<int:job_id>/status', methods=['GET'])
 def get_job_status(job_id):
@@ -117,7 +117,7 @@ def s3_presigned_url():
             return jsonify({'message': f"Successfully added {batch_count} batches to the queue", 'JobID': job.id}), 200
         
         else:
-            return jsonify({'message': 'Uploaded file is not a TXT or PDF file'}), 400
+            return jsonify({'error': 'Uploaded file is not a TXT or PDF file'}), 400
     else:
         print('Failed to download file:', response.status_code, response.reason)
 
