@@ -44,33 +44,73 @@ class TestWorker(unittest.TestCase):
         mock_embed_openai_batch.assert_called_once_with(batch, source_data)
         mock_update_batch_and_job_status.assert_called_with(batch.job_id, BatchStatus.COMPLETED, batch.id)
 
+    @patch('sqlalchemy.orm.session.Session.refresh')
+    @patch('services.database.batch_service.update_batch_status')
+    @patch('services.database.job_service.update_job_status')
+    @patch('services.database.database.get_db')
+    @patch('services.database.job_service.get_job')
+    @patch('services.database.batch_service.get_batch')
     @patch('worker.worker.embed_openai_batch')
     @patch('worker.worker.update_batch_and_job_status')
-    def test_process_batch_failure_no_vectors(self, mock_update_job_status, mock_embed_openai_batch):
+    def test_process_batch_failure_no_vectors(
+        self, 
+        mock_update_batch_and_job_status, 
+        mock_embed_openai_batch, 
+        mock_get_batch, 
+        mock_get_job, 
+        mock_get_db,
+        mock_update_job_status,
+        mock_update_batch_status,
+        mock_db_refresh):
         # arrange
-        batch = {"embeddings_metadata": {"embeddings_type": "open_ai"}, "job_id": "test_job_id", "batch_id": "test_batch_id"}
+        source_data = "source_data"
+        job = Job(id=1, webhook_url="test_webhook_url", job_status=JobStatus.NOT_STARTED,)
+        batch = Batch(id=1, job_id=1, batch_status=BatchStatus.NOT_STARTED, embeddings_metadata=EmbeddingsMetadata(embeddings_type=EmbeddingsType.OPEN_AI))
         mock_embed_openai_batch.return_value = 0
+        mock_get_batch.return_value = batch
+        mock_get_job.return_value = job
+        mock_get_db.return_value = "test_db"
 
         # act
-        worker.process_batch(batch)
+        worker.process_batch(batch, source_data)
 
         # assert
-        mock_embed_openai_batch.assert_called_once_with(batch)
-        mock_update_job_status.assert_called_with(batch['job_id'], BatchStatus.FAILED, batch['batch_id'])
+        mock_embed_openai_batch.assert_called_once_with(batch, source_data)
+        mock_update_batch_and_job_status.assert_called_with(batch.job_id, BatchStatus.FAILED, batch.id)
 
+    @patch('sqlalchemy.orm.session.Session.refresh')
+    @patch('services.database.batch_service.update_batch_status')
+    @patch('services.database.job_service.update_job_status')
+    @patch('services.database.database.get_db')
+    @patch('services.database.job_service.get_job')
+    @patch('services.database.batch_service.get_batch')
     @patch('worker.worker.embed_openai_batch')
     @patch('worker.worker.update_batch_and_job_status')
-    def test_process_batch_failure_openai(self, mock_update_job_status, mock_embed_openai_batch):
+    def test_process_batch_failure_openai(
+        self, 
+        mock_update_batch_and_job_status, 
+        mock_embed_openai_batch, 
+        mock_get_batch, 
+        mock_get_job, 
+        mock_get_db,
+        mock_update_job_status,
+        mock_update_batch_status,
+        mock_db_refresh):
         # arrange
-        batch = {"embeddings_metadata": {"embeddings_type": "open_ai"}, "job_id": "test_job_id", "batch_id": "test_batch_id"}
-        mock_embed_openai_batch.side_effect = Exception("Simulated Exception")
+        source_data = "source_data"
+        job = Job(id=1, webhook_url="test_webhook_url", job_status=JobStatus.NOT_STARTED,)
+        batch = Batch(id=1, job_id=1, batch_status=BatchStatus.NOT_STARTED, embeddings_metadata=EmbeddingsMetadata(embeddings_type=EmbeddingsType.OPEN_AI))
+        mock_embed_openai_batch.return_value = 0
+        mock_get_batch.return_value = batch
+        mock_get_job.return_value = job
+        mock_get_db.return_value = "test_db"
 
         # act
-        worker.process_batch(batch)
+        worker.process_batch(batch, source_data)
 
         # assert
-        mock_embed_openai_batch.assert_called_once_with(batch)
-        mock_update_job_status.assert_called_with(batch['job_id'], BatchStatus.FAILED, batch['batch_id'])
+        mock_embed_openai_batch.assert_called_once_with(batch, source_data)
+        mock_update_batch_and_job_status.assert_called_with(batch.job_id, BatchStatus.FAILED, batch.id)
 
     def test_chunk_data(self):
         # arrange
