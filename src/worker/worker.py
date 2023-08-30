@@ -81,10 +81,10 @@ def embed_openai_batch(batch, source_data):
     if chunk_strategy == ChunkStrategy.EXACT:
         chunked_data = chunk_data(source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
 
-    if chunk_strategy == ChunkStrategy.PARAGRAPH:
+    elif chunk_strategy == ChunkStrategy.PARAGRAPH:
         chunked_data = chunk_data_by_paragraph(source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
 
-    if chunk_strategy == ChunkStrategy.SENTENCE:
+    elif chunk_strategy == ChunkStrategy.SENTENCE:
         chunked_data = chunk_by_sentence(source_data)
 
     open_ai_batches = create_openai_batches(chunked_data)
@@ -114,17 +114,9 @@ def chunk_data(data_chunks, chunk_size, chunk_overlap):
 
 def chunk_data_by_paragraph(data_chunks, chunk_size, overlap, bound=0.75):
     data = "".join(data_chunks)
-
-    # Get total length of text
     total_length = len(data)
-
-    # initialize chunks
     chunks = []
-
-    # Ensure the paragraph character isn't searched outside of the bound
     check_bound = int(bound * chunk_size)
-
-    # pick a start index
     start_idx = 0
 
     while start_idx < total_length:

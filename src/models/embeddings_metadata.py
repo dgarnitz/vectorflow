@@ -30,5 +30,5 @@ class EmbeddingsMetadata(Base):
             embeddings_type = EmbeddingsType[embeddings_metadata_dict['embeddings_type']], 
             chunk_size = embeddings_metadata_dict['chunk_size'],
             chunk_overlap = embeddings_metadata_dict['chunk_overlap'],
-            chunk_strategy = embeddings_metadata_dict['chunk_strategy'])
+            chunk_strategy = embeddings_metadata_dict['chunk_strategy'] if 'chunk_strategy' in embeddings_metadata_dict else ChunkStrategy.EXACT)
         return embeddings_metadata

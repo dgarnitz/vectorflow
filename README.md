@@ -101,7 +101,8 @@ To submit a `job` for embedding, make a `POST` request to this endpoint: `/embed
     'EmbeddingsMetadata={
         "embeddings_type": "open_ai",
         "chunk_size": 512,
-        "chunk_overlap": 128
+        "chunk_overlap": 128,
+        "chunk_strategy": "exact | paragraph | sentence"
     }'
     'VectorDBMetadata={
         "vector_db_type": "pinecone",
@@ -148,9 +149,22 @@ The id can be used for deduplication and idempotency. Please note for Weaviate, 
 
 We love feedback from the community. If you have an idea of how to make this project better, we encourage you to open an issue or join our Discord. Please tag `dgarnitz` and `danmeier2`.
 
-Our roadmap is outlined in the section below and we would love help in building it out. We recommend you open an issue with a proposed approach in mind before submitting a PR.
+Our roadmap is outlined in the section below and we would love help in building it out. Our open issues are a great place to start and can be viewed [here](https://github.com/dgarnitz/vectorflow/issues). If you want to work on something not listed there, we recommend you open an issue with a proposed approach in mind before submitting a PR.
 
-Please tag `dgarnitz` on all PRs.
+When submitting a PR, please add units tests to cover the functionality you have added. Please re-run existing tests to ensure there are no regressive bugs. Run from the `src` directory. To run an individual test use:
+
+```
+python -m unittest module.tests.test_file.TestClass.test_method
+```
+
+To run all the tests in the file use: 
+```
+python -m unittest module.tests.test_file
+``` 
+
+We also recommend you add verification evidence, such as screenshots, that show that your code works in an end to end flow. 
+
+Please tag `dgarnitz` on all PRs. 
 
 # Roadmap
 
