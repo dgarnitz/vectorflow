@@ -38,9 +38,18 @@ def embed():
 
     file = request.files['SourceData']
     
+    # TODO: Remove this once the application is reworked to support large files
+    # Get the file size - Go to the end of the file, get the current position, and reset the file to the beginning
+    file.seek(0, os.SEEK_END)
+    file_size = file.tell()
+    file.seek(0)
+
+    if file_size > 25 * 1024 * 1024:
+        return jsonify({'error': 'File is too large. VectorFlow currently only supports 25 MB files or less. Larger file support coming soon.'}), 413
+    
     # empty filename means no file was selected
     if file.filename == '':
-        return jsonify({'message': 'No selected file'}), 400
+        return jsonify({'error': 'No selected file'}), 400
     
     if file and (file.filename.endswith('.txt') or file.filename.endswith('.pdf')):
         batch_count, job_id = process_file(file, vectorflow_request)
