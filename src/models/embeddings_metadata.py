@@ -19,6 +19,7 @@ class EmbeddingsMetadata(Base):
             'embeddings_type': self.embeddings_type.name if self.embeddings_type else None,
             'chunk_size': self.chunk_size,
             'chunk_overlap': self.chunk_overlap,
+            'chunk_strategy': self.chunk_strategy,
             'docker_image': self.docker_image,
         }
     
@@ -28,5 +29,6 @@ class EmbeddingsMetadata(Base):
         embeddings_metadata = EmbeddingsMetadata(
             embeddings_type = EmbeddingsType[embeddings_metadata_dict['embeddings_type']], 
             chunk_size = embeddings_metadata_dict['chunk_size'],
-            chunk_overlap = embeddings_metadata_dict['chunk_overlap'])
+            chunk_overlap = embeddings_metadata_dict['chunk_overlap'],
+            chunk_strategy = embeddings_metadata_dict['chunk_strategy'])
         return embeddings_metadata

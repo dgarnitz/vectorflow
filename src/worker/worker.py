@@ -78,9 +78,9 @@ def embed_openai_batch(batch, source_data):
 
     chunk_strategy = batch.embeddings_metadata.chunk_strategy
     
-    if chunk_strategy == ChunkStrategy.EXACT: 
+    if chunk_strategy == ChunkStrategy.EXACT:
         chunked_data = chunk_data(source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
-    
+
     if chunk_strategy == ChunkStrategy.PARAGRAPH:
         chunked_data = chunk_data_by_paragraph(source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
 
@@ -112,8 +112,8 @@ def chunk_data(data_chunks, chunk_size, chunk_overlap):
         chunks.append(data[i:i + chunk_size])
     return chunks
 
-def chunk_data_by_paragraph(data, chunk_size, over_lap, bound=0.75):
-    # data = "".join(data_chunks)
+def chunk_data_by_paragraph(data_chunks, chunk_size, overlap, bound=0.75):
+    data = "".join(data_chunks)
 
     # Get total length of text
     total_length = len(data)
@@ -139,7 +139,7 @@ def chunk_data_by_paragraph(data, chunk_size, over_lap, bound=0.75):
             # Update end_idx to include the paragraph delimiter
             end_idx = next_paragraph_index + 2
 
-        chunks.append(data[start_idx:end_idx + over_lap])
+        chunks.append(data[start_idx:end_idx + overlap])
 
         # Update start_idx to be the current end_idx
         start_idx = end_idx
@@ -150,6 +150,7 @@ def chunk_by_sentence(data_chunks):
     # Split by periods, question marks, exclamation marks, and ellipses
     data = "".join(data_chunks)
 
+    # The regular expression is used to find series of charaters that end with one the following chaacters (. ! ? ...)
     sentence_endings = r'(?<=[.!?…]) +'
     sentences = re.split(sentence_endings, data)
     return sentences

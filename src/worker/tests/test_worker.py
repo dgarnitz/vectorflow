@@ -144,14 +144,14 @@ class TestWorker(unittest.TestCase):
     def test_chunk_paragraph(self):
         data = ["This is an example paragraph.\n\n"] * 4
         
-        chunks = worker.chunk_data_by_paragraph(data, chunk_size=35, over_lap=0)
+        chunks = worker.chunk_data_by_paragraph(data, chunk_size=35, overlap=0)
 
         self.assertEqual(len(chunks), 4)
 
-    def test_chunk_paragraph_over_lap(self):
+    def test_chunk_paragraph_overlap(self):
         data = ["This is an example paragraph.\n\n"] * 2
 
-        chunks = worker.chunk_data_by_paragraph(data, chunk_size=35, over_lap=15)
+        chunks = worker.chunk_data_by_paragraph(data, chunk_size=35, overlap=15)
 
         expected_overlap = 'This is an exam'
         self.assertEqual(chunks[0][:15], expected_overlap)
@@ -159,7 +159,7 @@ class TestWorker(unittest.TestCase):
     def test_chunk_paragraph_bound(self):
         data = ["This is \n\n a very early paragraph."]
 
-        chunks = worker.chunk_data_by_paragraph(data, chunk_size=35, over_lap=0, bound=0.75)
+        chunks = worker.chunk_data_by_paragraph(data, chunk_size=35, overlap=0, bound=0.75)
 
         self.assertEqual(len(chunks), 1)
 
