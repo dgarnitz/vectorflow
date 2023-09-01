@@ -102,10 +102,10 @@ To submit a `job` for embedding, make a `POST` request to this endpoint: `/embed
         "embeddings_type": "open_ai",
         "chunk_size": 512,
         "chunk_overlap": 128,
-        "chunk_strategy": "exact | paragraph | sentence"
+        "chunk_strategy": "EXACT | PARAGRAPH | SENTENCE"
     }'
     'VectorDBMetadata={
-        "vector_db_type": "pinecone",
+        "vector_db_type": "PINECONE | QDRANT | WEAVIATE | MILVUS",
         "index_name": "index_name",
         "environment": "env_name"
     }'
