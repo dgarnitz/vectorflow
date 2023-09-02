@@ -10,7 +10,8 @@ import time
 import pika
 import json
 import openai
-import pinecone 
+import pinecone
+import requests 
 import logging
 import uuid
 import weaviate
@@ -28,8 +29,8 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct
 from pymilvus import Collection, connections
 
-logging.basicConfig(filename='./log.txt', level=logging.INFO)
-logging.basicConfig(filename='./error.txt', level=logging.ERROR)
+logging.basicConfig(filename='./worker/log.txt', level=logging.INFO)
+logging.basicConfig(filename='./worker/error.txt', level=logging.ERROR)
 
 def process_batch(batch_id, source_data):
     with get_db() as db:
@@ -54,39 +55,37 @@ def process_batch(batch_id, source_data):
             except Exception as e:
                 logging.error('Error embedding batch:', e)
                 update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
+        if embeddings_type == EmbeddingsType.HUGGING_FACE:
+            try:
+                vectors_uploaded = embed_hugging_face_batch(batch, source_data)
+                update_batch_and_job_status(batch.job_id, BatchStatus.COMPLETED, batch.id) if vectors_uploaded else update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
+            except Exception as e:
+                logging.error('Error embedding batch:', e)
+                update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
         else:
             logging.error('Unsupported embeddings type:', embeddings_type)
             update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
 
-def get_openai_embedding(batch, attempts=5):
+# NOTE: this method will embed mulitple chunks (a list of strings) at once and return a list of lists of floats (a list of embeddings)
+def get_openai_embedding(batch_of_chunks, attempts=5):
     for i in range(attempts):
         try:
             response = openai.Embedding.create(
                 model= "text-embedding-ada-002",
-                input=batch
+                input=batch_of_chunks
             )
             if response["data"]:
-                return batch, response["data"]
+                return batch_of_chunks, response["data"]
         except Exception as e:
             logging.error('Open AI Embedding API call failed:', e)
             time.sleep(2**i)  # Exponential backoff: 1, 2, 4, 8, 16 seconds.
-    return batch, None
+    return batch_of_chunks, None
 
 def embed_openai_batch(batch, source_data):
     logging.info("Starting Open AI Embeddings")
     openai.api_key = os.getenv('EMBEDDING_API_KEY')
-
-    chunk_strategy = batch.embeddings_metadata.chunk_strategy
     
-    if chunk_strategy == ChunkStrategy.EXACT:
-        chunked_data = chunk_data(source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
-
-    elif chunk_strategy == ChunkStrategy.PARAGRAPH:
-        chunked_data = chunk_data_by_paragraph(source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
-
-    elif chunk_strategy == ChunkStrategy.SENTENCE:
-        chunked_data = chunk_by_sentence(source_data)
-
+    chunked_data = chunk_data(batch.embeddings_metadata.chunk_strategy, source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
     open_ai_batches = create_openai_batches(chunked_data)
     text_embeddings_list = list()
 
@@ -105,7 +104,63 @@ def embed_openai_batch(batch, source_data):
     logging.info("Open AI Embeddings completed successfully")
     return write_embeddings_to_vector_db(text_embeddings_list, batch.vector_db_metadata, batch.id, batch.job_id) 
 
-def chunk_data(data_chunks, chunk_size, chunk_overlap):
+# NOTE: this method will embed one string at a time, not a list of strings, and return a list of floats (a single embedding)
+def get_hugging_face_embedding(chunk, hugging_face_model_name, attempts=5):
+    for i in range(attempts):
+        try:
+            model_info_file = os.getenv('HUGGING_FACE_MODEL_FILE')
+            if not model_info_file:
+                raise Exception("HUGGING_FACE_MODEL_FILE environment variable not set")
+            
+            with open(model_info_file, 'r') as file:
+                model_endpoint_dict = json.load(file)
+                hugging_face_endpoint = model_endpoint_dict[hugging_face_model_name]
+                url = f"{hugging_face_endpoint}/embeddings"
+                response = requests.post(url, data={'batch': chunk})
+                json_data = response.json()
+                if json_data["data"]:
+                    return chunk, json_data["data"]
+        except Exception as e:
+            logging.error(f"Huggin Face Embedding API call failed for model {hugging_face_model_name}:", e)
+            time.sleep(2**i)  # Exponential backoff: 1, 2, 4, 8, 16 seconds.
+    if json_data["error"]:
+        logging.error(f"Error in Hugging Face Embedding API call for model {hugging_face_model_name}: {json_data['error']}")
+    return chunk, None
+
+def embed_hugging_face_batch(batch, source_data):
+    logging.info(f"Starting Hugging Face Embeddings with {batch.embeddings_metadata.hugging_face_model_name}")
+    
+    chunked_data = chunk_data(batch.embeddings_metadata.chunk_strategy, source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
+    text_embeddings_list = list()
+
+    with ThreadPoolExecutor(max_workers=config.HUGGING_FACE_MAX_THREADS) as executor:
+        futures = [executor.submit(get_hugging_face_embedding, chunk, batch.embeddings_metadata.hugging_face_model_name) for chunk in chunked_data]
+        for future in as_completed(futures):
+            chunk, embeddings = future.result()
+            if embeddings is not None:
+                text_embeddings_list.append((chunk, embeddings))
+            else:
+                logging.error(f"Failed to get embedding for chunk {chunk}. Adding batch to retry queue.")
+                update_batch_and_job_status(batch.job_id, BatchStatus.Failed, batch.id)
+                return
+    
+    logging.info("Hugging Face Embeddings completed successfully")
+    return write_embeddings_to_vector_db(text_embeddings_list, batch.vector_db_metadata, batch.id, batch.job_id)
+
+def chunk_data(chunk_strategy, source_data, chunk_size, chunk_overlap):
+    if chunk_strategy == ChunkStrategy.EXACT:
+        chunked_data = chunk_data_exact(source_data, chunk_size, chunk_overlap)
+
+    elif chunk_strategy == ChunkStrategy.PARAGRAPH:
+        chunked_data = chunk_data_by_paragraph(source_data,chunk_size, chunk_overlap)
+
+    # chunk_strategy == ChunkStrategy.SENTENCE:
+    else:
+        # TODO: Implement logic for if a sentence is greater than the requested character count
+        chunked_data = chunk_by_sentence(source_data)
+    return chunked_data
+
+def chunk_data_exact(data_chunks, chunk_size, chunk_overlap):
     data = "".join(data_chunks)
     chunks = []
     for i in range(0, len(data), chunk_size - chunk_overlap):
@@ -138,6 +193,7 @@ def chunk_data_by_paragraph(data_chunks, chunk_size, overlap, bound=0.75):
 
     return chunks
 
+# TODO: Implement logic for if a sentence is greater than the requested character count
 def chunk_by_sentence(data_chunks):
     # Split by periods, question marks, exclamation marks, and ellipses
     data = "".join(data_chunks)

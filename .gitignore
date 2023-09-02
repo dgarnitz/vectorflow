@@ -4,3 +4,4 @@ env_scripts/
 TODOs.txt
 log.txt
 .DS_Store
+local-models.json

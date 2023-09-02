@@ -112,14 +112,14 @@ class TestWorker(unittest.TestCase):
         mock_embed_openai_batch.assert_called_once_with(batch, source_data)
         mock_update_batch_and_job_status.assert_called_with(batch.job_id, BatchStatus.FAILED, batch.id)
 
-    def test_chunk_data(self):
+    def test_chunk_data_exact(self):
         # arrange
         # 384 characters, should be 3 chunks, since the last chunk will be partial
         data = ["thisistest"] * 38
         data.append("test") 
 
         # act
-        chunks = worker.chunk_data(data, 256, 128)
+        chunks = worker.chunk_data_exact(data, 256, 128)
 
         # assert
         self.assertEqual(len(chunks), 3)
@@ -128,7 +128,7 @@ class TestWorker(unittest.TestCase):
     def test_create_pinecone_source_chunk_dict(self):
         # arrange
         data = "thisistest" * 38 + "test"
-        chunks = worker.chunk_data(data, 256, 128)
+        chunks = worker.chunk_data_exact(data, 256, 128)
         text_embeddings_dict = [(chunk, [1.0, 2.0, 3.0, 4.0, 5.0]) for chunk in chunks]
         batch_id = 1
         job_id = 1

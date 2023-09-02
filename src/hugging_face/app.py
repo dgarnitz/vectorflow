@@ -9,8 +9,8 @@ model = None
 app = Flask(__name__)
 CORS(app)
 
-logging.basicConfig(filename='./log.txt', level=logging.INFO)
-logging.basicConfig(filename='./error.txt', level=logging.ERROR)
+logging.basicConfig(filename='./hugging_face/log.txt', level=logging.INFO)
+logging.basicConfig(filename='./hugging_face/error.txt', level=logging.ERROR)
 
 @app.route("/embeddings", methods=['POST'])
 def embeddings(): 
@@ -22,6 +22,7 @@ def embeddings():
         # TODO: determine optimal amount to send to the model
         logging.info(f"Starting embedding with model: {model_name}")
         embeddings = model.encode(batch, normalize_embeddings=True)
+        logging.info(f"Embedding complete with model: {model_name}")
         return jsonify({"data": embeddings.tolist()}), 200
     except Exception as e:
         logging.error('Error embedding batch:', e)
