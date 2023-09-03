@@ -92,6 +92,21 @@ class TestApp(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['error'], "No file part in the request")
 
+    def test_embed_endpoint_no_hugging_face_model_name(self):
+        test_embeddings_metadata = EmbeddingsMetadata(embeddings_type=EmbeddingsType.HUGGING_FACE)
+        test_vector_db_metadata = VectorDBMetadata(vector_db_type=VectorDBType.PINECONE, 
+                                                   index_name="test_index", 
+                                                   environment="test_environment")
+        
+        response = self.client.post('/embed', 
+                                    data={ 
+                                        'EmbeddingsMetadata': json.dumps(test_embeddings_metadata.serialize()), 
+                                        'VectorDBMetadata': json.dumps(test_vector_db_metadata.serialize())},
+                                    headers=self.headers)
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['error'], 'Hugging face embeddings models require a "hugging_face_model_name" in the "embeddings_metadata"')
+
     @patch('services.database.database.get_db')
     @patch('services.database.job_service.get_job')
     def test_get_job_status_endpoint_no_job(self, mock_get_job, mock_get_db):

@@ -5,6 +5,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
 import requests
+# magic requires lib magic to be installed on the system. If running on mac and an error occurs, run `brew install libmagic`
 import magic
 import json
 import fitz
@@ -18,6 +19,7 @@ from api.auth import Auth
 from api.pipeline import Pipeline
 from services.database.database import get_db
 from api.vectorflow_request import VectorflowRequest
+from shared.embeddings_type import EmbeddingsType
 
 auth = Auth()
 pipeline = Pipeline()
@@ -26,12 +28,16 @@ CORS(app)
 
 @app.route("/embed", methods=['POST'])
 def embed():
+    # TODO: add validator service
     vectorflow_request = VectorflowRequest(request)
     if not vectorflow_request.vectorflow_key or not auth.validate_credentials(vectorflow_request.vectorflow_key):
         return jsonify({'error': 'Invalid credentials'}), 401
  
     if not vectorflow_request.embeddings_metadata or not vectorflow_request.vector_db_metadata or not vectorflow_request.vector_db_key:
         return jsonify({'error': 'Missing required fields'}), 400
+    
+    if vectorflow_request.embeddings_metadata.embeddings_type == EmbeddingsType.HUGGING_FACE and not vectorflow_request.embeddings_metadata.hugging_face_model_name:
+        return jsonify({'error': 'Hugging face embeddings models require a "hugging_face_model_name" in the "embeddings_metadata"'}), 400
     
     if 'SourceData' not in request.files:
         return jsonify({'error': 'No file part in the request'}), 400
@@ -93,6 +99,7 @@ def dequeue():
     
 @app.route("/s3", methods=['POST'])
 def s3_presigned_url():
+    # TODO: add validator service
     vectorflow_request = VectorflowRequest(request)
     if not vectorflow_request.vectorflow_key or not auth.validate_credentials(vectorflow_request.vectorflow_key):
         return jsonify({'error': 'Invalid credentials'}), 401

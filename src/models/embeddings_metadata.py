@@ -13,6 +13,7 @@ class EmbeddingsMetadata(Base):
     chunk_overlap = Column(Integer)
     chunk_strategy = Column(Enum(ChunkStrategy))
     docker_image = Column(String)
+    hugging_face_model_name = Column(String)
 
     def serialize(self):
         return {
@@ -21,6 +22,7 @@ class EmbeddingsMetadata(Base):
             'chunk_overlap': self.chunk_overlap,
             'chunk_strategy': self.chunk_strategy,
             'docker_image': self.docker_image,
+            'hugging_face_model_name': self.hugging_face_model_name
         }
     
     @staticmethod
@@ -30,5 +32,7 @@ class EmbeddingsMetadata(Base):
             embeddings_type = EmbeddingsType[embeddings_metadata_dict['embeddings_type']], 
             chunk_size = embeddings_metadata_dict['chunk_size'],
             chunk_overlap = embeddings_metadata_dict['chunk_overlap'],
-            chunk_strategy = embeddings_metadata_dict['chunk_strategy'])
+            chunk_strategy = embeddings_metadata_dict['chunk_strategy'] if 'chunk_strategy' in embeddings_metadata_dict else ChunkStrategy.EXACT,
+            docker_image = embeddings_metadata_dict['docker_image'] if 'docker_image' in embeddings_metadata_dict else None,
+            hugging_face_model_name = embeddings_metadata_dict['hugging_face_model_name'] if 'hugging_face_model_name' in embeddings_metadata_dict else None)
         return embeddings_metadata
