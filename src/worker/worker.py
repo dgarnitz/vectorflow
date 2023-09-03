@@ -31,6 +31,7 @@ from pymilvus import Collection, connections
 
 logging.basicConfig(filename='./worker-log.txt', level=logging.INFO)
 logging.basicConfig(filename='./worker-errors.txt', level=logging.ERROR)
+publish_channel = None
 
 def process_batch(batch_id, source_data):
     with get_db() as db:
@@ -38,27 +39,39 @@ def process_batch(batch_id, source_data):
         job = job_service.get_job(db, batch.job_id)
 
         if job.job_status == JobStatus.NOT_STARTED:
-            job_service.update_job_status(db, job.id, JobStatus.IN_PROGRESS)
-        
+            job_service.update_job_status(db, job.id, JobStatus.PROCESSING_BATCHES)
         if batch.batch_status == BatchStatus.NOT_STARTED:
-            batch_service.update_batch_status(db, batch.id, BatchStatus.IN_PROGRESS)
+            batch_service.update_batch_status(db, batch.id, BatchStatus.EMBEDDING)
         else:
             batch_service.update_batch_retry_count(db, batch.id, batch.retries+1)
             logging.info(f"Retrying batch {batch.id}")
 
         db.refresh(batch)
+
         embeddings_type = batch.embeddings_metadata.embeddings_type
         if embeddings_type == EmbeddingsType.OPEN_AI:
             try:
-                vectors_uploaded = embed_openai_batch(batch, source_data)
-                update_batch_and_job_status(batch.job_id, BatchStatus.COMPLETED, batch.id) if vectors_uploaded else update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
+                text_embeddings_list = embed_openai_batch(batch, source_data)
+                if text_embeddings_list:
+                    upload_to_vector_db(batch_id, text_embeddings_list)
+                    update_batch_and_job_status(batch.job_id, BatchStatus.EMBEDDING, batch.id)
+                else:
+                    logging.error(f"Failed to get OPEN AI embeddings for batch {batch.id}. Adding batch to retry queue.")
+                    update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
+
             except Exception as e:
                 logging.error('Error embedding batch:', e)
                 update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
         elif embeddings_type == EmbeddingsType.HUGGING_FACE:
             try:
-                vectors_uploaded = embed_hugging_face_batch(batch, source_data)
-                update_batch_and_job_status(batch.job_id, BatchStatus.COMPLETED, batch.id) if vectors_uploaded else update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
+                text_embeddings_list = embed_hugging_face_batch(batch, source_data)
+                if text_embeddings_list:
+                    upload_to_vector_db(batch_id, text_embeddings_list)
+                    update_batch_and_job_status(batch.job_id, BatchStatus.EMBEDDING, batch.id)
+                else:
+                    logging.error(f"Failed to get Hugging Face embeddings for batch {batch.id} with {batch.embeddings_metadata.hugging_face_model_name}. Adding batch to retry queue.")
+                    update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
+
             except Exception as e:
                 logging.error('Error embedding batch:', e)
                 update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
@@ -104,7 +117,7 @@ def embed_openai_batch(batch, source_data):
                 return
     
     logging.info("Open AI Embeddings completed successfully")
-    return write_embeddings_to_vector_db(text_embeddings_list, batch.vector_db_metadata, batch.id, batch.job_id) 
+    return text_embeddings_list
 
 def get_hugging_face_embedding(batch_of_chunks, hugging_face_model_name, attempts=5):
     for i in range(attempts):
@@ -152,7 +165,7 @@ def embed_hugging_face_batch(batch, source_data):
                 return
     
     logging.info("Hugging Face Embeddings completed successfully")
-    return write_embeddings_to_vector_db(text_embeddings_list, batch.vector_db_metadata, batch.id, batch.job_id)
+    return text_embeddings_list
 
 def chunk_data(chunk_strategy, source_data, chunk_size, chunk_overlap):
     if chunk_strategy == ChunkStrategy.EXACT:
@@ -221,173 +234,6 @@ def create_upload_batches(batches, max_batch_size):
     open_ai_batches = [batches[i:i + max_batch_size] for i in range(0, len(batches), max_batch_size)]
     return open_ai_batches
 
-def write_embeddings_to_vector_db(text_embeddings_list, vector_db_metadata, batch_id, job_id):
-    if vector_db_metadata.vector_db_type == VectorDBType.PINECONE:
-        upsert_list = create_pinecone_source_chunk_dict(text_embeddings_list, batch_id, job_id)
-        return write_embeddings_to_pinecone(upsert_list, vector_db_metadata)
-    elif vector_db_metadata.vector_db_type == VectorDBType.QDRANT:
-        upsert_list = create_qdrant_source_chunk_dict(text_embeddings_list, batch_id, job_id)
-        return write_embeddings_to_qdrant(upsert_list, vector_db_metadata)
-    elif vector_db_metadata.vector_db_type == VectorDBType.WEAVIATE:
-        return write_embeddings_to_weaviate(text_embeddings_list, vector_db_metadata, batch_id, job_id)
-    elif vector_db_metadata.vector_db_type == VectorDBType.MILVUS:
-        upsert_list = create_milvus_source_chunk_dict(text_embeddings_list, batch_id, job_id)
-        return write_embeddings_to_milvus(upsert_list, vector_db_metadata)
-    else:
-        logging.error('Unsupported vector DB type:', vector_db_metadata.vector_db_type)
-
-def create_pinecone_source_chunk_dict(text_embeddings_list, batch_id, job_id):
-    upsert_list = []
-    for i, (source_text, embedding) in enumerate(text_embeddings_list):
-        upsert_list.append(
-            {"id": generate_uuid_from_tuple((job_id, batch_id, i)), 
-            "values": embedding, 
-            "metadata": {"source_text": source_text}})
-    return upsert_list
-
-def write_embeddings_to_pinecone(upsert_list, vector_db_metadata):
-    pinecone_api_key = os.getenv('VECTOR_DB_KEY')
-    pinecone.init(api_key=pinecone_api_key, environment=vector_db_metadata.environment)
-    index = pinecone.Index(vector_db_metadata.index_name)
-    if not index:
-        logging.error(f"Index {vector_db_metadata.index_name} does not exist in environment {vector_db_metadata.environment}")
-        return None
-    
-    logging.info(f"Starting pinecone upsert for {len(upsert_list)} vectors")
-
-    batch_size = config.PINECONE_BATCH_SIZE
-    vectors_uploaded = 0
-
-    for i in range(0,len(upsert_list), batch_size):
-        try:
-            upsert_response = index.upsert(vectors=upsert_list[i:i+batch_size])
-            vectors_uploaded += upsert_response["upserted_count"]
-        except Exception as e:
-            logging.error('Error writing embeddings to pinecone:', e)
-            return None
-    
-    logging.info(f"Successfully uploaded {vectors_uploaded} vectors to pinecone")
-    return vectors_uploaded
-
-def generate_uuid_from_tuple(t, namespace_uuid='6ba7b810-9dad-11d1-80b4-00c04fd430c8'):
-    namespace = uuid.UUID(namespace_uuid)
-    name = "-".join(map(str, t))
-    unique_uuid = uuid.uuid5(namespace, name)
-
-    return str(unique_uuid)
-
-def create_qdrant_source_chunk_dict(text_embeddings_list, batch_id, job_id):
-    upsert_list = []
-    for i, (source_text, embedding) in enumerate(text_embeddings_list):
-        upsert_list.append(
-            PointStruct(
-                id=generate_uuid_from_tuple((job_id, batch_id, i)),
-                vector=embedding,
-                payload={"source_text": source_text}
-            )
-        )
-    return upsert_list
-
-def write_embeddings_to_qdrant(upsert_list, vector_db_metadata):
-    qdrant_client = QdrantClient(
-        url=vector_db_metadata.environment, 
-        api_key=os.getenv('VECTOR_DB_KEY'),
-        grpc_port=6334, 
-        prefer_grpc=True,
-        timeout=5
-    ) if vector_db_metadata.environment != os.getenv('LOCAL_VECTOR_DB') else QdrantClient(os.getenv('LOCAL_VECTOR_DB'), port=6333)
-
-    index = qdrant_client.get_collection(collection_name=vector_db_metadata.index_name)
-    if not index:
-        logging.error(f"Collection {vector_db_metadata.index_name} does not exist at cluster URL {vector_db_metadata.environment}")
-        return None
-    
-    logging.info(f"Starting qdrant upsert for {len(upsert_list)} vectors")
-
-    batch_size = config.PINECONE_BATCH_SIZE
-
-    for i in range(0, len(upsert_list), batch_size):
-        try:
-            qdrant_client.upsert(
-                collection_name=vector_db_metadata.index_name,
-                points=upsert_list[i:i+batch_size]
-            )
-        except Exception as e:
-            logging.error('Error writing embeddings to qdrant:', e)
-            return None
-    
-    logging.info(f"Successfully uploaded {len(upsert_list)} vectors to qdrant")
-    return len(upsert_list)
-    
-def write_embeddings_to_weaviate(text_embeddings_list, vector_db_metadata,  batch_id, job_id):
-    client = weaviate.Client(
-        url=vector_db_metadata.environment,
-        auth_client_secret=weaviate.AuthApiKey(api_key=os.getenv('VECTOR_DB_KEY')),
-    )
-
-    index = client.schema.get()
-    class_list = [class_dict["class"] for class_dict in index["classes"]]
-    if not index or not vector_db_metadata.index_name in class_list:
-        logging.error(f"Collection {vector_db_metadata.index_name} does not exist at cluster URL {vector_db_metadata.environment}")
-        return None
-    
-    logging.info(f"Starting Weaviate upsert for {len(text_embeddings_list)} vectors")
-    try:
-        with client.batch(batch_size=config.PINECONE_BATCH_SIZE, dynamic=True, num_workers=2) as batch:
-            for i, (text, vector) in enumerate(text_embeddings_list):
-                properties = {
-                    "source_data": text,
-                    "vectoflow_id": generate_uuid_from_tuple((job_id, batch_id, i))
-                }
-
-                client.batch.add_data_object(
-                    properties,
-                    vector_db_metadata.index_name,
-                    vector=vector
-                )
-    except Exception as e:
-        logging.error('Error writing embeddings to weaviate:', e)
-        return None
-    
-    logging.info(f"Successfully uploaded {len(text_embeddings_list)} vectors to Weaviate")
-    return len(text_embeddings_list)
-
-def create_milvus_source_chunk_dict(text_embeddings_list, batch_id, job_id):
-    ids = []
-    source_texts = []
-    embeddings = []
-    for i, (source_text, embedding) in enumerate(text_embeddings_list):
-        ids.append(generate_uuid_from_tuple((job_id, batch_id, i)))
-        source_texts.append(source_text)
-        embeddings.append(embedding)
-    return [ids, source_texts, embeddings]
-
-def write_embeddings_to_milvus(upsert_list, vector_db_metadata):
-    connections.connect("default", 
-        uri = vector_db_metadata.environment,
-        token = os.getenv('VECTOR_DB_KEY')
-    )
-
-    collection = Collection(vector_db_metadata.index_name)
-    if not collection:
-        logging.error(f"Index {vector_db_metadata.index_name} does not exist in environment {vector_db_metadata.environment}")
-        return None
-    
-    logging.info(f"Starting Milvus insert for {len(upsert_list)} vectors")
-    batch_size = config.PINECONE_BATCH_SIZE
-    vectors_uploaded = 0
-
-    for i in range(0,len(upsert_list), batch_size):
-        try:
-            insert_response = collection.insert(upsert_list[i:i+batch_size])
-            vectors_uploaded += insert_response.insert_count
-        except Exception as e:
-            logging.error('Error writing embeddings to milvus:', e)
-            return None
-    
-    logging.info(f"Successfully uploaded {vectors_uploaded} vectors to milvus")
-    return vectors_uploaded
-
 def update_batch_and_job_status(job_id, batch_status, batch_id):
     try:
         with get_db() as db:
@@ -400,6 +246,16 @@ def update_batch_and_job_status(job_id, batch_status, batch_id):
                 
     except Exception as e:
         logging.error('Error updating job and batch status:', e)
+
+def upload_to_vector_db(batch_id, text_embeddings_list):
+    try:
+        serialized_data = json.dumps([batch_id, text_embeddings_list])
+        publish_channel.basic_publish(exchange='',
+                                      routing_key=os.getenv('VDB_UPLOAD_QUEUE'),
+                                      body=serialized_data)
+        logging.info("Message published successfully")
+    except Exception as e:
+        logging.error('Error publishing message to RabbitMQ:', e)
 
 def callback(ch, method, properties, body):
     try:
@@ -435,15 +291,19 @@ def start_connection():
             )
 
             connection = pika.BlockingConnection(connection_params)
-            channel = connection.channel()
+            consume_channel = connection.channel()
+            publish_channel = connection.channel() 
 
-            queue_name = os.getenv('RABBITMQ_QUEUE')
-            channel.queue_declare(queue=queue_name)
+            consume_queue_name = os.getenv('EMBEDDING_QUEUE')
+            publish_queue_name = os.getenv('VDB_UPLOAD_QUEUE')
 
-            channel.basic_consume(queue=queue_name, on_message_callback=callback)
+            consume_channel.queue_declare(queue=consume_queue_name)
+            publish_channel.queue_declare(queue=publish_queue_name, durable=True)
+
+            consume_channel.basic_consume(queue=consume_queue_name, on_message_callback=callback)
 
             logging.info('Waiting for messages.')
-            channel.start_consuming()
+            consume_channel.start_consuming()
             
         except Exception as e:
             logging.error('ERROR connecting to RabbitMQ, retrying now. See exception:', e)
