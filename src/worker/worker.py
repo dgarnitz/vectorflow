@@ -86,26 +86,27 @@ def embed_openai_batch(batch, source_data):
     openai.api_key = os.getenv('EMBEDDING_API_KEY')
     
     chunked_data = chunk_data(batch.embeddings_metadata.chunk_strategy, source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
-    open_ai_batches = create_openai_batches(chunked_data)
+    
+    # Maximum number of items allowed in a batch by OpenAIs embedding API. There is also an 8191 token per item limit
+    open_ai_batches = create_upload_batches(chunked_data, max_batch_size=config.MAX_OPENAI_EMBEDDING_BATCH_SIZE)
     text_embeddings_list = list()
 
     with ThreadPoolExecutor(max_workers=config.MAX_THREADS_OPENAI) as executor:
         futures = [executor.submit(get_openai_embedding, chunk) for chunk in open_ai_batches]
         for future in as_completed(futures):
-            chunk, embeddings = future.result()
+            chunks, embeddings = future.result()
             if embeddings is not None:
-                for text, embedding in zip(chunk, embeddings):
+                for text, embedding in zip(chunks, embeddings):
                     text_embeddings_list.append((text, embedding['embedding']))
             else:
-                logging.error(f"Failed to get embedding for chunk {chunk}. Adding batch to retry queue.")
+                logging.error(f"Failed to get embedding for chunk {chunks}. Adding batch to retry queue.")
                 update_batch_and_job_status(batch.job_id, BatchStatus.Failed, batch.id)
                 return
     
     logging.info("Open AI Embeddings completed successfully")
     return write_embeddings_to_vector_db(text_embeddings_list, batch.vector_db_metadata, batch.id, batch.job_id) 
 
-# NOTE: this method will embed one string at a time, not a list of strings, and return a list of floats (a single embedding)
-def get_hugging_face_embedding(chunk, hugging_face_model_name, attempts=5):
+def get_hugging_face_embedding(batch_of_chunks, hugging_face_model_name, attempts=5):
     for i in range(attempts):
         try:
             model_info_file = os.getenv('HUGGING_FACE_MODEL_FILE')
@@ -117,32 +118,36 @@ def get_hugging_face_embedding(chunk, hugging_face_model_name, attempts=5):
                 hugging_face_endpoint = model_endpoint_dict[hugging_face_model_name]
                 url = f"{hugging_face_endpoint}/embeddings"
                 
-                response = requests.post(url, data={'batch': chunk})
+                # this attempts to embed a list of strings
+                data={'batch': batch_of_chunks}
+                response = requests.post(url, data=json.dumps(data), headers = {"Content-Type": "application/json"})
                 json_data = response.json()
                 
                 if "error" in json_data:
                     logging.error(f"Error in Hugging Face Embedding API call for model {hugging_face_model_name}: {json_data['error']}")
                 if "data" in json_data:
-                    return chunk, json_data["data"]
+                    return batch_of_chunks, json_data["data"]
         except Exception as e:
             logging.error(f"Huggin Face Embedding API call failed for model {hugging_face_model_name}:", e)
             time.sleep(2**i)  # Exponential backoff: 1, 2, 4, 8, 16 seconds.
-    return chunk, None
+    return batch_of_chunks, None
 
 def embed_hugging_face_batch(batch, source_data):
     logging.info(f"Starting Hugging Face Embeddings with {batch.embeddings_metadata.hugging_face_model_name}")
     
     chunked_data = chunk_data(batch.embeddings_metadata.chunk_strategy, source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
+    hugging_face_batches = create_upload_batches(chunked_data, config.HUGGING_FACE_BATCH_SIZE)
     text_embeddings_list = list()
 
     with ThreadPoolExecutor(max_workers=config.HUGGING_FACE_MAX_THREADS) as executor:
-        futures = [executor.submit(get_hugging_face_embedding, chunk, batch.embeddings_metadata.hugging_face_model_name) for chunk in chunked_data]
+        futures = [executor.submit(get_hugging_face_embedding, chunk, batch.embeddings_metadata.hugging_face_model_name) for chunk in hugging_face_batches]
         for future in as_completed(futures):
-            chunk, embeddings = future.result()
+            chunks, embeddings = future.result()
             if embeddings is not None:
-                text_embeddings_list.append((chunk, embeddings))
+                for text, embedding in zip(chunks, embeddings):
+                    text_embeddings_list.append((text, embedding))
             else:
-                logging.error(f"Failed to get embedding for chunk {chunk}. Adding batch to retry queue.")
+                logging.error(f"Failed to get embedding for chunk {chunks}. Adding batch to retry queue.")
                 update_batch_and_job_status(batch.job_id, BatchStatus.Failed, batch.id)
                 return
     
@@ -212,9 +217,7 @@ def chunk_by_sentence(data_chunks, chunk_size, overlap):
             sentence_chunks.append(sentence)
     return sentence_chunks
 
-def create_openai_batches(batches):
-    # Maximum number of items allowed in a batch by OpenAIs embedding API. There is also an 8191 token per item limit
-    max_batch_size = config.MAX_OPENAI_EMBEDDING_BATCH_SIZE
+def create_upload_batches(batches, max_batch_size):
     open_ai_batches = [batches[i:i + max_batch_size] for i in range(0, len(batches), max_batch_size)]
     return open_ai_batches
 

@@ -14,8 +14,12 @@ logging.basicConfig(filename='./hf-errors.txt', level=logging.ERROR)
 
 @app.route("/embeddings", methods=['POST'])
 def embeddings(): 
-    batch = request.form.get('batch')
+    data = request.json
+    if not "batch" in data:
+        return jsonify({"error": "No batch provided"}), 400
 
+    batch = data['batch']
+    
     try:
         # does tokenization for you
         # also capable of taking in an array of strings to be embedding
