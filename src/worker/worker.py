@@ -29,8 +29,8 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct
 from pymilvus import Collection, connections
 
-logging.basicConfig(filename='./worker/log.txt', level=logging.INFO)
-logging.basicConfig(filename='./worker/error.txt', level=logging.ERROR)
+logging.basicConfig(filename='./worker-log.txt', level=logging.INFO)
+logging.basicConfig(filename='./worker-errors.txt', level=logging.ERROR)
 
 def process_batch(batch_id, source_data):
     with get_db() as db:
@@ -116,15 +116,17 @@ def get_hugging_face_embedding(chunk, hugging_face_model_name, attempts=5):
                 model_endpoint_dict = json.load(file)
                 hugging_face_endpoint = model_endpoint_dict[hugging_face_model_name]
                 url = f"{hugging_face_endpoint}/embeddings"
+                
                 response = requests.post(url, data={'batch': chunk})
                 json_data = response.json()
-                if json_data["data"]:
+                
+                if "error" in json_data:
+                    logging.error(f"Error in Hugging Face Embedding API call for model {hugging_face_model_name}: {json_data['error']}")
+                if "data" in json_data:
                     return chunk, json_data["data"]
         except Exception as e:
             logging.error(f"Huggin Face Embedding API call failed for model {hugging_face_model_name}:", e)
             time.sleep(2**i)  # Exponential backoff: 1, 2, 4, 8, 16 seconds.
-    if json_data["error"]:
-        logging.error(f"Error in Hugging Face Embedding API call for model {hugging_face_model_name}: {json_data['error']}")
     return chunk, None
 
 def embed_hugging_face_batch(batch, source_data):
@@ -283,7 +285,7 @@ def write_embeddings_to_qdrant(upsert_list, vector_db_metadata):
         grpc_port=6334, 
         prefer_grpc=True,
         timeout=5
-    )
+    ) if vector_db_metadata.environment != os.getenv('LOCAL_VECTOR_DB') else QdrantClient(os.getenv('LOCAL_VECTOR_DB'), port=6333)
 
     index = qdrant_client.get_collection(collection_name=vector_db_metadata.index_name)
     if not index:

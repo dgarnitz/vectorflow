@@ -18,4 +18,4 @@ RUN pip install --no-cache-dir -r /app/hugging_face/requirements.txt
 WORKDIR /app/hugging_face
 
 # Run worker.py when the container launches
-CMD ["python", "app.py"]
+ENTRYPOINT ["python", "app.py"]

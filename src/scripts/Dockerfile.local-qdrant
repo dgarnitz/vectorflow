@@ -1,6 +1,6 @@
 FROM python:3.9.9-slim-buster
 
-COPY scripts/create_database.py /scripts/create_local_qdrant.py
+COPY scripts/create_local_qdrant.py /scripts/create_local_qdrant.py
 COPY worker/requirements.txt /app/worker/requirements.txt
 
 RUN pip install qdrant-client

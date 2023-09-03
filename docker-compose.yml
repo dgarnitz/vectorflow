@@ -37,7 +37,7 @@ services:
     networks:
       - vectorflow
     ports:
-      - "5432:5432"
+      - "6333:6333"
 
   qdrant-init:
     build:

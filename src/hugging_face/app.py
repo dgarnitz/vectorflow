@@ -9,8 +9,8 @@ model = None
 app = Flask(__name__)
 CORS(app)
 
-logging.basicConfig(filename='./hugging_face/log.txt', level=logging.INFO)
-logging.basicConfig(filename='./hugging_face/error.txt', level=logging.ERROR)
+logging.basicConfig(filename='./hf-log.txt', level=logging.INFO)
+logging.basicConfig(filename='./hf-errors.txt', level=logging.ERROR)
 
 @app.route("/embeddings", methods=['POST'])
 def embeddings(): 
