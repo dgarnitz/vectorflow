@@ -55,7 +55,7 @@ def process_batch(batch_id, source_data):
             except Exception as e:
                 logging.error('Error embedding batch:', e)
                 update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
-        if embeddings_type == EmbeddingsType.HUGGING_FACE:
+        elif embeddings_type == EmbeddingsType.HUGGING_FACE:
             try:
                 vectors_uploaded = embed_hugging_face_batch(batch, source_data)
                 update_batch_and_job_status(batch.job_id, BatchStatus.COMPLETED, batch.id) if vectors_uploaded else update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
