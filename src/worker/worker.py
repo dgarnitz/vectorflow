@@ -156,10 +156,10 @@ def chunk_data(chunk_strategy, source_data, chunk_size, chunk_overlap):
     elif chunk_strategy == ChunkStrategy.PARAGRAPH:
         chunked_data = chunk_data_by_paragraph(source_data,chunk_size, chunk_overlap)
 
-    # chunk_strategy == ChunkStrategy.SENTENCE:
+    elif chunk_strategy == ChunkStrategy.SENTENCE:
+        chunked_data = chunk_by_sentence(source_data, chunk_size, chunk_overlap)
     else:
-        # TODO: Implement logic for if a sentence is greater than the requested character count
-        chunked_data = chunk_by_sentence(source_data)
+        chunked_data = chunk_data_exact(source_data, chunk_size, chunk_overlap)
     return chunked_data
 
 def chunk_data_exact(data_chunks, chunk_size, chunk_overlap):
@@ -195,15 +195,22 @@ def chunk_data_by_paragraph(data_chunks, chunk_size, overlap, bound=0.75):
 
     return chunks
 
-# TODO: Implement logic for if a sentence is greater than the requested character count
-def chunk_by_sentence(data_chunks):
+def chunk_by_sentence(data_chunks, chunk_size, overlap):
     # Split by periods, question marks, exclamation marks, and ellipses
     data = "".join(data_chunks)
 
     # The regular expression is used to find series of charaters that end with one the following chaacters (. ! ? ...)
     sentence_endings = r'(?<=[.!?…]) +'
     sentences = re.split(sentence_endings, data)
-    return sentences
+    
+    sentence_chunks = []
+    for sentence in sentences:
+        if len(sentence) > chunk_size:
+            chunks = chunk_data_exact([sentence], chunk_size, overlap)
+            sentence_chunks.extend(chunks)
+        else:
+            sentence_chunks.append(sentence)
+    return sentence_chunks
 
 def create_openai_batches(batches):
     # Maximum number of items allowed in a batch by OpenAIs embedding API. There is also an 8191 token per item limit
@@ -221,7 +228,7 @@ def write_embeddings_to_vector_db(text_embeddings_list, vector_db_metadata, batc
     elif vector_db_metadata.vector_db_type == VectorDBType.WEAVIATE:
         return write_embeddings_to_weaviate(text_embeddings_list, vector_db_metadata, batch_id, job_id)
     elif vector_db_metadata.vector_db_type == VectorDBType.MILVUS:
-        upsert_list = create_wilvus_source_chunk_dict(text_embeddings_list, batch_id, job_id)
+        upsert_list = create_milvus_source_chunk_dict(text_embeddings_list, batch_id, job_id)
         return write_embeddings_to_milvus(upsert_list, vector_db_metadata)
     else:
         logging.error('Unsupported vector DB type:', vector_db_metadata.vector_db_type)
@@ -342,7 +349,7 @@ def write_embeddings_to_weaviate(text_embeddings_list, vector_db_metadata,  batc
     logging.info(f"Successfully uploaded {len(text_embeddings_list)} vectors to Weaviate")
     return len(text_embeddings_list)
 
-def create_wilvus_source_chunk_dict(text_embeddings_list, batch_id, job_id):
+def create_milvus_source_chunk_dict(text_embeddings_list, batch_id, job_id):
     ids = []
     source_texts = []
     embeddings = []

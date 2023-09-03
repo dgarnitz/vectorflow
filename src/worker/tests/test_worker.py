@@ -30,7 +30,7 @@ class TestWorker(unittest.TestCase):
         mock_db_refresh):
         # arrange
         source_data = "source_data"
-        job = Job(id=1, webhook_url="test_webhook_url", job_status=JobStatus.NOT_STARTED,)
+        job = Job(id=1, webhook_url="test_webhook_url", job_status=JobStatus.NOT_STARTED)
         batch = Batch(id=1, job_id=1, batch_status=BatchStatus.NOT_STARTED, embeddings_metadata=EmbeddingsMetadata(embeddings_type=EmbeddingsType.OPEN_AI))
         mock_embed_openai_batch.return_value = 1
         mock_get_batch.return_value = batch
@@ -64,7 +64,7 @@ class TestWorker(unittest.TestCase):
         mock_db_refresh):
         # arrange
         source_data = "source_data"
-        job = Job(id=1, webhook_url="test_webhook_url", job_status=JobStatus.NOT_STARTED,)
+        job = Job(id=1, webhook_url="test_webhook_url", job_status=JobStatus.NOT_STARTED)
         batch = Batch(id=1, job_id=1, batch_status=BatchStatus.NOT_STARTED, embeddings_metadata=EmbeddingsMetadata(embeddings_type=EmbeddingsType.OPEN_AI))
         mock_embed_openai_batch.return_value = 0
         mock_get_batch.return_value = batch
@@ -98,7 +98,7 @@ class TestWorker(unittest.TestCase):
         mock_db_refresh):
         # arrange
         source_data = "source_data"
-        job = Job(id=1, webhook_url="test_webhook_url", job_status=JobStatus.NOT_STARTED,)
+        job = Job(id=1, webhook_url="test_webhook_url", job_status=JobStatus.NOT_STARTED)
         batch = Batch(id=1, job_id=1, batch_status=BatchStatus.NOT_STARTED, embeddings_metadata=EmbeddingsMetadata(embeddings_type=EmbeddingsType.OPEN_AI))
         mock_embed_openai_batch.return_value = 0
         mock_get_batch.return_value = batch
@@ -166,9 +166,16 @@ class TestWorker(unittest.TestCase):
     def test_chunk_sentence(self):
         data = ["I am a sentence. I am a sentence but with a question? I am still a sentence! Can I consider myself a sentence..."]
         
-        chunks = worker.chunk_by_sentence(data)
+        chunks = worker.chunk_by_sentence(data, chunk_size=50, overlap=0)
 
         self.assertEqual(len(chunks), 4)
+
+    def test_chunk_sentence_too_big(self):
+        data = ["I am a sentence. I am a sentence but with a question? I am still a sentence! Can I consider myself a sentence... Blahblah Blahblah Blahblah Blahblah Blahblah Blahblah ."]
+        
+        chunks = worker.chunk_by_sentence(data, chunk_size=50, overlap=0)
+
+        self.assertEqual(len(chunks), 6)
 
 
     def test_create_openai_batches(self):
