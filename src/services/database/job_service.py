@@ -28,8 +28,10 @@ def update_job_with_batch(db: Session, job_id: int, batch_status: str):
             job.job_status = JobStatus.PARTIALLY_COMPLETED
         else:
             job.job_status = JobStatus.FAILED
+    elif job.job_status == JobStatus.CREATING_BATCHES:
+        job.job_status = JobStatus.PROCESSING_BATCHES
     else:
-        job.job_status = JobStatus.IN_PROGRESS
+        job.job_status = JobStatus.CREATING_BATCHES
 
     db.commit()
     db.refresh(job)

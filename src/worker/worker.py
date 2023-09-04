@@ -38,7 +38,7 @@ def process_batch(batch_id, source_data):
         batch = batch_service.get_batch(db, batch_id)
         job = job_service.get_job(db, batch.job_id)
 
-        if job.job_status == JobStatus.NOT_STARTED:
+        if job.job_status == JobStatus.NOT_STARTED or job.job_status == JobStatus.CREATING_BATCHES:
             job_service.update_job_status(db, job.id, JobStatus.PROCESSING_BATCHES)
         if batch.batch_status == BatchStatus.NOT_STARTED:
             batch_service.update_batch_status(db, batch.id, BatchStatus.EMBEDDING)
@@ -238,14 +238,9 @@ def update_batch_and_job_status(job_id, batch_status, batch_id):
     try:
         with get_db() as db:
             updated_batch_status = batch_service.update_batch_status(db, batch_id, batch_status)
-            job = job_service.update_job_with_batch(db, job_id, updated_batch_status)
-            if job.job_status == JobStatus.COMPLETED:
-                logging.info(f"Job {job_id} completed successfully")
-            elif job.job_status == JobStatus.PARTIALLY_COMPLETED:
-                logging.info(f"Job {job_id} partially completed. {job.batches_succeeded} out of {job.total_batches} batches succeeded")
-                
+            logging.info(f"Batch {batch_id} for job {job_id} status updated to {updated_batch_status.batch_status}")      
     except Exception as e:
-        logging.error('Error updating job and batch status:', e)
+        logging.error('Error updating batch status:', e)
 
 def upload_to_vector_db(batch_id, text_embeddings_list):
     try:

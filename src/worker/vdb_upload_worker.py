@@ -41,7 +41,7 @@ def upload_batch(batch_id, text_embeddings_list):
 
         db.refresh(batch)
 
-        vectors_uploaded = write_embeddings_to_vector_db(text_embeddings_list, batch.embeddings_metadata.vector_db_metadata, batch.id, batch.job_id)
+        vectors_uploaded = write_embeddings_to_vector_db(text_embeddings_list, batch.vector_db_metadata, batch.id, batch.job_id)
     
     if vectors_uploaded:
         update_batch_and_job_status(batch.job_id, BatchStatus.COMPLETED, batch.id)
