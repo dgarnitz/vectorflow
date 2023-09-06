@@ -9,3 +9,5 @@ hf-log.txt
 hf-errors.txt
 worker-log.txt
 worker-errors.txt
+vdb-upload-log.txt
+vdb-upload-errors.txt

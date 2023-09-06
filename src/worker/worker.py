@@ -238,13 +238,13 @@ def update_batch_and_job_status(job_id, batch_status, batch_id):
     try:
         with get_db() as db:
             updated_batch_status = batch_service.update_batch_status(db, batch_id, batch_status)
-            logging.info(f"Batch {batch_id} for job {job_id} status updated to {updated_batch_status.batch_status}")      
+            logging.info(f"Batch {batch_id} for job {job_id} status updated to {updated_batch_status}")      
     except Exception as e:
         logging.error('Error updating batch status:', e)
 
 def upload_to_vector_db(batch_id, text_embeddings_list):
     try:
-        serialized_data = json.dumps([batch_id, text_embeddings_list])
+        serialized_data = json.dumps((batch_id, text_embeddings_list, os.getenv('VECTOR_DB_KEY')))
         publish_channel.basic_publish(exchange='',
                                       routing_key=os.getenv('VDB_UPLOAD_QUEUE'),
                                       body=serialized_data)
@@ -268,6 +268,8 @@ def callback(ch, method, properties, body):
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
 def start_connection():
+    global publish_channel
+    
     while True:
         try:
             credentials = pika.PlainCredentials(os.getenv('RABBITMQ_USERNAME'), os.getenv('RABBITMQ_PASSWORD'))
@@ -293,7 +295,7 @@ def start_connection():
             publish_queue_name = os.getenv('VDB_UPLOAD_QUEUE')
 
             consume_channel.queue_declare(queue=consume_queue_name)
-            publish_channel.queue_declare(queue=publish_queue_name, durable=True)
+            publish_channel.queue_declare(queue=publish_queue_name)
 
             consume_channel.basic_consume(queue=consume_queue_name, on_message_callback=callback)
 
@@ -306,4 +308,3 @@ def start_connection():
 
 if __name__ == "__main__":
     start_connection()
-

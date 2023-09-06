@@ -5,7 +5,7 @@ import ssl
 class Pipeline:
     def __init__(self):
         self.credentials = pika.PlainCredentials(os.getenv('RABBITMQ_USERNAME'), os.getenv('RABBITMQ_PASSWORD'))
-        self.queue_name = os.getenv('RABBITMQ_QUEUE')
+        self.queue_name = os.getenv('EMBEDDING_QUEUE')
         self.channel = None
 
     def connect(self):
