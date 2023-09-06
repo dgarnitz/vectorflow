@@ -92,7 +92,7 @@ This is done so the system can run multiple models at once.
 Next, you must run `app.py --model_name your-sentence-transformer-model` or build and run the docker image in `src/hugging_face` with:
 
 ```
-docker run --network=vectorflow --name=vectorflow_hf -d -env-file=../env_scripts/env_vars.env vectorflow_hf:latest "your_model_name_here"
+docker run -p 5050:5050 --network=vectorflow --name=vectorflow_hf -d -env-file=../env_scripts/env_vars.env vectorflow_hf:latest "your_model_name_here"
 
 ```
 
