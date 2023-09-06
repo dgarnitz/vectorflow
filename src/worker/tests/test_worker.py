@@ -10,6 +10,7 @@ from shared.job_status import JobStatus
 from unittest.mock import patch
 
 class TestWorker(unittest.TestCase):
+    @patch('worker.worker.upload_to_vector_db')
     @patch('sqlalchemy.orm.session.Session.refresh')
     @patch('services.database.batch_service.update_batch_status')
     @patch('services.database.job_service.update_job_status')
@@ -27,7 +28,8 @@ class TestWorker(unittest.TestCase):
         mock_get_db,
         mock_update_job_status,
         mock_update_batch_status,
-        mock_db_refresh):
+        mock_db_refresh,
+        mock_upload_to_vector_db):
         # arrange
         source_data = "source_data"
         job = Job(id=1, webhook_url="test_webhook_url", job_status=JobStatus.NOT_STARTED)
@@ -42,8 +44,9 @@ class TestWorker(unittest.TestCase):
 
         # assert
         mock_embed_openai_batch.assert_called_once_with(batch, source_data)
-        mock_update_batch_and_job_status.assert_called_with(batch.job_id, BatchStatus.COMPLETED, batch.id)
+        mock_update_batch_and_job_status.assert_called_with(batch.job_id, BatchStatus.EMBEDDING, batch.id)
 
+    @patch('worker.worker.upload_to_vector_db')
     @patch('sqlalchemy.orm.session.Session.refresh')
     @patch('services.database.batch_service.update_batch_status')
     @patch('services.database.job_service.update_job_status')
@@ -61,7 +64,8 @@ class TestWorker(unittest.TestCase):
         mock_get_db,
         mock_update_job_status,
         mock_update_batch_status,
-        mock_db_refresh):
+        mock_db_refresh,
+        mock_upload_to_vector_db):
         # arrange
         source_data = "source_data"
         job = Job(id=1, webhook_url="test_webhook_url", job_status=JobStatus.NOT_STARTED)
@@ -78,6 +82,7 @@ class TestWorker(unittest.TestCase):
         mock_embed_openai_batch.assert_called_once_with(batch, source_data)
         mock_update_batch_and_job_status.assert_called_with(batch.job_id, BatchStatus.FAILED, batch.id)
 
+    @patch('worker.worker.upload_to_vector_db')
     @patch('sqlalchemy.orm.session.Session.refresh')
     @patch('services.database.batch_service.update_batch_status')
     @patch('services.database.job_service.update_job_status')
@@ -95,7 +100,8 @@ class TestWorker(unittest.TestCase):
         mock_get_db,
         mock_update_job_status,
         mock_update_batch_status,
-        mock_db_refresh):
+        mock_db_refresh,
+        mock_upload_to_vector_db):
         # arrange
         source_data = "source_data"
         job = Job(id=1, webhook_url="test_webhook_url", job_status=JobStatus.NOT_STARTED)
@@ -124,22 +130,6 @@ class TestWorker(unittest.TestCase):
         # assert
         self.assertEqual(len(chunks), 3)
         self.assertEqual(len(chunks[2]), 128)
-
-    def test_create_pinecone_source_chunk_dict(self):
-        # arrange
-        data = "thisistest" * 38 + "test"
-        chunks = worker.chunk_data_exact(data, 256, 128)
-        text_embeddings_dict = [(chunk, [1.0, 2.0, 3.0, 4.0, 5.0]) for chunk in chunks]
-        batch_id = 1
-        job_id = 1
-
-        # act
-        upsert_list = worker.create_pinecone_source_chunk_dict(text_embeddings_dict, batch_id, job_id)
-
-        # assert
-        self.assertEqual(len(upsert_list), 3)
-        self.assertEqual(upsert_list[0]['metadata']['source_text'], chunks[0])
-        self.assertEqual(upsert_list[0]['values'], [1.0, 2.0, 3.0, 4.0, 5.0])
 
     def test_chunk_paragraph(self):
         data = ["This is an example paragraph.\n\n"] * 4

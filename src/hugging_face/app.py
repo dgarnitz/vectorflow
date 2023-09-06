@@ -22,8 +22,6 @@ def embeddings():
     
     try:
         # does tokenization for you
-        # also capable of taking in an array of strings to be embedding
-        # TODO: determine optimal amount to send to the model
         logging.info(f"Starting embedding with model: {model_name}")
         embeddings = model.encode(batch, normalize_embeddings=True)
         logging.info(f"Embedding complete with model: {model_name}")

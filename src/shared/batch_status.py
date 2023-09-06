@@ -2,6 +2,7 @@ from enum import Enum
 
 class BatchStatus(Enum):
     NOT_STARTED = 'NOT_STARTED'
-    IN_PROGRESS = 'IN_PROGRESS'
+    EMBEDDING = 'EMBEDDING'
+    VDB_UPLOAD = 'VDB_UPLOAD'
     COMPLETED = 'COMPLETED'
     FAILED = 'FAILED'

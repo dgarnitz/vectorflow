@@ -1,0 +1,104 @@
+import unittest
+import worker.vdb_upload_worker as vdb_upload_worker
+import worker.worker as worker
+from unittest.mock import patch
+from models.batch import Batch
+from models.job import Job
+from models.vector_db_metadata import VectorDBMetadata
+from shared.batch_status import BatchStatus
+from shared.job_status import JobStatus
+
+class TestVDBUploadWorker(unittest.TestCase):
+    @patch('worker.worker.upload_to_vector_db')
+    @patch('sqlalchemy.orm.session.Session.refresh')
+    @patch('services.database.batch_service.update_batch_status')
+    @patch('services.database.job_service.update_job_status')
+    @patch('services.database.database.get_db')
+    @patch('services.database.job_service.get_job')
+    @patch('services.database.batch_service.get_batch')
+    @patch('worker.vdb_upload_worker.write_embeddings_to_vector_db')
+    @patch('worker.vdb_upload_worker.update_batch_and_job_status')
+    def test_process_upload_batch_success(
+        self, 
+        mock_update_batch_and_job_status, 
+        mock_write_embeddings_to_vector_db, 
+        mock_get_batch, 
+        mock_get_job, 
+        mock_get_db,
+        mock_update_job_status,
+        mock_update_batch_status,
+        mock_db_refresh,
+        mock_upload_to_vector_db):
+        # arrange
+        text_embedding_list = [("this is a test", [1.0, 2.0, 3.0, 4.0, 5.0])]
+        job = Job(id=1, webhook_url="test_webhook_url", job_status=JobStatus.NOT_STARTED)
+        batch = Batch(id=1, 
+                      job_id=1, 
+                      batch_status=BatchStatus.EMBEDDING, 
+                      vector_db_metadata=VectorDBMetadata())
+        mock_write_embeddings_to_vector_db.return_value = 1
+        mock_get_batch.return_value = batch
+        mock_get_job.return_value = job
+        mock_get_db.return_value = "test_db"
+
+        # act
+        vdb_upload_worker.upload_batch(batch, text_embedding_list)
+
+        # assert
+        mock_write_embeddings_to_vector_db.assert_called_once_with(text_embedding_list, batch.vector_db_metadata, batch.id, batch.job_id)
+        mock_update_batch_and_job_status.assert_called_with(batch.job_id, BatchStatus.COMPLETED, batch.id)
+
+    @patch('worker.worker.upload_to_vector_db')
+    @patch('sqlalchemy.orm.session.Session.refresh')
+    @patch('services.database.batch_service.update_batch_status')
+    @patch('services.database.job_service.update_job_status')
+    @patch('services.database.database.get_db')
+    @patch('services.database.job_service.get_job')
+    @patch('services.database.batch_service.get_batch')
+    @patch('worker.vdb_upload_worker.write_embeddings_to_vector_db')
+    @patch('worker.vdb_upload_worker.update_batch_and_job_status')
+    def test_process_upload_batch_failure(
+        self, 
+        mock_update_batch_and_job_status, 
+        mock_write_embeddings_to_vector_db, 
+        mock_get_batch, 
+        mock_get_job, 
+        mock_get_db,
+        mock_update_job_status,
+        mock_update_batch_status,
+        mock_db_refresh,
+        mock_upload_to_vector_db):
+        # arrange
+        text_embedding_list = [("this is a test", [1.0, 2.0, 3.0, 4.0, 5.0])]
+        job = Job(id=1, webhook_url="test_webhook_url", job_status=JobStatus.NOT_STARTED)
+        batch = Batch(id=1, 
+                      job_id=1, 
+                      batch_status=BatchStatus.EMBEDDING, 
+                      vector_db_metadata=VectorDBMetadata())
+        mock_write_embeddings_to_vector_db.return_value = 0
+        mock_get_batch.return_value = batch
+        mock_get_job.return_value = job
+        mock_get_db.return_value = "test_db"
+
+        # act
+        vdb_upload_worker.upload_batch(batch, text_embedding_list)
+
+        # assert
+        mock_write_embeddings_to_vector_db.assert_called_once_with(text_embedding_list, batch.vector_db_metadata, batch.id, batch.job_id)
+        mock_update_batch_and_job_status.assert_called_with(batch.job_id, BatchStatus.FAILED, batch.id)
+    
+    def test_create_pinecone_source_chunk_dict(self):
+            # arrange
+            data = "thisistest" * 38 + "test"
+            chunks = worker.chunk_data_exact(data, 256, 128)
+            text_embeddings_dict = [(chunk, [1.0, 2.0, 3.0, 4.0, 5.0]) for chunk in chunks]
+            batch_id = 1
+            job_id = 1
+
+            # act
+            upsert_list = vdb_upload_worker.create_pinecone_source_chunk_dict(text_embeddings_dict, batch_id, job_id)
+
+            # assert
+            self.assertEqual(len(upsert_list), 3)
+            self.assertEqual(upsert_list[0]['metadata']['source_text'], chunks[0])
+            self.assertEqual(upsert_list[0]['values'], [1.0, 2.0, 3.0, 4.0, 5.0])

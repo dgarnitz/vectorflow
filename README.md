@@ -46,23 +46,27 @@ This creates a file called `env_vars.env` in the `env_scripts` folder to add all
 INTERNAL_API_KEY=your-choice
 POSTGRES_USERNAME=postgres
 POSTGRES_PASSWORD=your-choice
-POSTGRES_DB=your-choice
+POSTGRES_DB=vectorflow
 POSTGRES_HOST=postgres
 RABBITMQ_USERNAME=guest
 RABBITMQ_PASSWORD=guest
 RABBITMQ_HOST=rabbitmq
-RABBITMQ_QUEUE=your-choice
+EMBEDDING_QUEUE=embeddings
+VDB_UPLOAD_QUEUE=vdb-upload
+LOCAL_VECTOR_DB=qdrant | milvus | weaviate
+HUGGING_FACE_MODEL_FILE=./docker-models.json
 ```
 
-You can choose a variable for `INTERNAL_API_KEY`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, and `RABBITMQ_QUEUE` freely.
+You can choose a variable for `INTERNAL_API_KEY`,and `POSTGRES_DB`, but they must be set. If you are running a Hugging Face Sentence Transformer model locally, must be set the `HUGGING_FACE_MODEL_FILE` which contains the path to a JSON file containing the endpoint (see item 3 below).
 
 ### 2) Run Docker-Compose
 
-If you are running locally, make sure you pull Rabbit MQ and Postgres into your local docker repo:
+Make sure you pull Rabbit MQ and Postgres into your local docker repo. We also recommend running a vector DB in locally, so make sure to pull the image of the one you are using:
 
 ```
 docker pull rabbitmq
 docker pull postgres
+docker pull qdrant | milvus | weaviate
 ```
 
 Then run:
@@ -73,6 +77,26 @@ docker-compose up -d
 ```
 
 Note that the `db-init` container is running a script that sets up the database schema and will stop after the script completes.
+
+### 3) (optional) Configure Sentence Transformer open face models. 
+VectorFlow can run any Sentence Transformer model but the `docker-compose` file will not spin it up automatically. First, you must create a JSON file containing a mapping of the model name to the endpoint it runs on, for example:
+
+```
+{
+    "BAAI/bge-small-en": "http://host.docker.internal:5050"
+}
+```
+
+This is done so the system can run multiple models at once. 
+
+Next, you must run `app.py --model_name your-sentence-transformer-model` or build and run the docker image in `src/hugging_face` with:
+
+```
+docker run -p 5050:5050 --network=vectorflow --name=vectorflow_hf -d -env-file=../env_scripts/env_vars.env vectorflow_hf:latest "your_model_name_here"
+
+```
+
+Note that the Sentence Transformer models can be large and take several minutes to download from Hugging Face. 
 
 ## Using VectorFlow
 
@@ -99,10 +123,11 @@ To submit a `job` for embedding, make a `POST` request to this endpoint: `/embed
     'SourceData=path_to_txt_file'
     'LinesPerBatch=4096'
     'EmbeddingsMetadata={
-        "embeddings_type": "open_ai",
+        "embeddings_type": "OPEN_AI | HUGGING_FACE",
         "chunk_size": 512,
         "chunk_overlap": 128,
-        "chunk_strategy": "EXACT | PARAGRAPH | SENTENCE"
+        "chunk_strategy": "EXACT | PARAGRAPH | SENTENCE",
+        "hugging_face_model_name": "model-name-here"
     }'
     'VectorDBMetadata={
         "vector_db_type": "PINECONE | QDRANT | WEAVIATE | MILVUS",
@@ -144,6 +169,9 @@ embeddings: float array
 ```
 
 The id can be used for deduplication and idempotency. Please note for Weaviate, the id is called `vectorflow_id`. We plan to support dynamically detect and/or configurable schemas down the road. 
+
+### S3 Endpoint
+VectorFlow is integrated with AWS s3. You can pass a pre-signed s3 URL in the body of the HTTP instead of a file. Use the form field `PreSignedURL` and hit the endpoint `/s3`. This endpoint has the same configuration and restrictions as the `/embed` endpoint. 
 
 # Contributing
 
