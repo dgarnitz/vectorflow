@@ -1,13 +1,7 @@
 venv/
 __pycache__/
 env_scripts/
-log.txt
+*log.txt
+*errors.txt
 .DS_Store
-local-models.json
-docker-models.json
-hf-log.txt
-hf-errors.txt
-worker-log.txt
-worker-errors.txt
-vdb-upload-log.txt
-vdb-upload-errors.txt
+hf_config/
