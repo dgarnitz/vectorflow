@@ -18,7 +18,7 @@ class TestWorker(unittest.TestCase):
     @patch('services.database.job_service.get_job')
     @patch('services.database.batch_service.get_batch')
     @patch('worker.worker.embed_openai_batch')
-    @patch('worker.worker.update_batch_and_job_status')
+    @patch('worker.worker.update_batch_status')
     def test_process_batch_success(
         self, 
         mock_update_batch_and_job_status, 
@@ -44,7 +44,7 @@ class TestWorker(unittest.TestCase):
 
         # assert
         mock_embed_openai_batch.assert_called_once_with(batch, source_data)
-        mock_update_batch_and_job_status.assert_called_with(batch.job_id, BatchStatus.EMBEDDING, batch.id)
+        mock_update_batch_and_job_status.assert_called_with(batch.job_id, BatchStatus.EMBEDDING_COMPLETE, batch.id)
 
     @patch('worker.worker.upload_to_vector_db')
     @patch('sqlalchemy.orm.session.Session.refresh')
@@ -54,7 +54,7 @@ class TestWorker(unittest.TestCase):
     @patch('services.database.job_service.get_job')
     @patch('services.database.batch_service.get_batch')
     @patch('worker.worker.embed_openai_batch')
-    @patch('worker.worker.update_batch_and_job_status')
+    @patch('worker.worker.update_batch_status')
     def test_process_batch_failure_no_vectors(
         self, 
         mock_update_batch_and_job_status, 
@@ -90,7 +90,7 @@ class TestWorker(unittest.TestCase):
     @patch('services.database.job_service.get_job')
     @patch('services.database.batch_service.get_batch')
     @patch('worker.worker.embed_openai_batch')
-    @patch('worker.worker.update_batch_and_job_status')
+    @patch('worker.worker.update_batch_status')
     def test_process_batch_failure_openai(
         self, 
         mock_update_batch_and_job_status, 

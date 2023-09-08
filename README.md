@@ -54,10 +54,9 @@ RABBITMQ_HOST=rabbitmq
 EMBEDDING_QUEUE=embeddings
 VDB_UPLOAD_QUEUE=vdb-upload
 LOCAL_VECTOR_DB=qdrant | milvus | weaviate
-HUGGING_FACE_MODEL_FILE=./docker-models.json
 ```
 
-You can choose a variable for `INTERNAL_API_KEY`,and `POSTGRES_DB`, but they must be set. If you are running a Hugging Face Sentence Transformer model locally, must be set the `HUGGING_FACE_MODEL_FILE` which contains the path to a JSON file containing the endpoint (see item 3 below).
+You can choose a variable for `INTERNAL_API_KEY`, `POSTGRES_PASSWORD`, and `POSTGRES_DB`, but they must be set.
 
 ### 2) Run Docker-Compose
 
@@ -79,24 +78,14 @@ docker-compose up -d
 Note that the `db-init` container is running a script that sets up the database schema and will stop after the script completes.
 
 ### 3) (optional) Configure Sentence Transformer open face models. 
-VectorFlow can run any Sentence Transformer model but the `docker-compose` file will not spin it up automatically. First, you must create a JSON file containing a mapping of the model name to the endpoint it runs on, for example:
+VectorFlow can run any Sentence Transformer model but the `docker-compose` file will not spin it up automatically. Either run `app.py --model_name your-sentence-transformer-model`, or build and run the docker image in `src/hugging_face` with:
 
 ```
-{
-    "BAAI/bge-small-en": "http://host.docker.internal:5050"
-}
+docker build --file hugging_face/Dockerfile -t vectorflow_hf:latest .
+docker run --network=vectorflow --name=vectorflow_hf -d --env-file=/path/to/.env vectorflow_hf:latest --model_name "your_model_name_here"
 ```
 
-This is done so the system can run multiple models at once. 
-
-Next, you must run `app.py --model_name your-sentence-transformer-model` or build and run the docker image in `src/hugging_face` with:
-
-```
-docker run -p 5050:5050 --network=vectorflow --name=vectorflow_hf -d -env-file=../env_scripts/env_vars.env vectorflow_hf:latest "your_model_name_here"
-
-```
-
-Note that the Sentence Transformer models can be large and take several minutes to download from Hugging Face. 
+Note that the Sentence Transformer models can be large and take several minutes to download from Hugging Face. VectorFlow does not provision hardware, so you must ensure your hardware has enough RAM/VRAM for the model. By default, VectorFlow will run models on GPU with CUDA if available. 
 
 ## Using VectorFlow
 
@@ -199,7 +188,6 @@ Please tag `dgarnitz` on all PRs.
 - [ ] Connectors to other vector databases
 - [ ] Support for more files types such as `csv`, `word`, `xls`, etc
 - [ ] Support for multi-file, directory data ingestion from sources such as Salesforce, Google Drive, etc
-- [ ] Support open source embeddings models
 - [ ] Retry mechanism
 - [ ] Langchain & Llama Index integrations
 - [ ] Support callbacks for writing object metadata to a separate store
