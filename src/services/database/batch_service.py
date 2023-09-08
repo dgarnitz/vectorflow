@@ -1,5 +1,9 @@
 from sqlalchemy.orm import Session
 from models.batch import Batch
+
+#this is required for Batch's foreign relation to work, otherwise Job won't laod and it throws an error
+from models.job import Job
+ 
 from shared.batch_status import BatchStatus
 from sqlalchemy.orm import joinedload
 

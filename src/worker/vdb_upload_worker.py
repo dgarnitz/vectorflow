@@ -33,7 +33,7 @@ def upload_batch(batch_id, text_embeddings_list):
     with get_db() as db:
         batch = batch_service.get_batch(db, batch_id)
         
-        if batch.batch_status == BatchStatus.EMBEDDING:
+        if batch.batch_status == BatchStatus.EMBEDDING_COMPLETE:
             batch_service.update_batch_status(db, batch.id, BatchStatus.VDB_UPLOAD)
         else:
             batch_service.update_batch_retry_count(db, batch.id, batch.retries+1)

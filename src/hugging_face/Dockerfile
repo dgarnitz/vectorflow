@@ -10,15 +10,15 @@ WORKDIR /app
 
 # Copy Hugging Face contents into the container at /app
 COPY hugging_face /app/hugging_face
+COPY shared /app/shared
+COPY models /app/models
+COPY services /app/services
 
 # install requirements
 RUN pip install --no-cache-dir -r /app/hugging_face/requirements.txt
 
 # Set the working directory to /app/worker, as 'worker.py' is here
 WORKDIR /app/hugging_face
-
-# TODO: swap for gunicorn
-EXPOSE 5050
 
 # Run worker.py when the container launches
 ENTRYPOINT ["python", "app.py"]

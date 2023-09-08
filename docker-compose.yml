@@ -84,7 +84,7 @@ services:
       - qdrant-init
     command: ["bash", "/wait-for-it.sh", "rabbitmq:5672", "--", "python", "worker.py"]
 
-  vdb--upload-worker:
+  vdb-upload-worker:
     build:
       context: ./src
       dockerfile: worker/Dockerfile.vdb-upload-worker

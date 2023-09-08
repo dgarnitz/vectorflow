@@ -1,10 +1,9 @@
+alembic==1.11.3
 blinker==1.6.2
 certifi==2023.7.22
 charset-normalizer==3.2.0
 click==8.1.7
 filelock==3.12.3
-Flask==2.3.3
-Flask-Cors==4.0.0
 fsspec==2023.6.0
 huggingface-hub==0.16.4
 idna==3.4
@@ -12,13 +11,17 @@ importlib-metadata==6.8.0
 itsdangerous==2.1.2
 Jinja2==3.1.2
 joblib==1.3.2
+Mako==1.2.4
 MarkupSafe==2.1.3
+marshmallow==3.20.1
 mpmath==1.3.0
 networkx==3.1
 nltk==3.8.1
 numpy==1.25.2
 packaging==23.1
+pika==1.3.2
 Pillow==10.0.0
+psycopg2-binary==2.9.6
 PyYAML==6.0.1
 regex==2023.8.8
 requests==2.31.0
@@ -27,6 +30,7 @@ scikit-learn==1.3.0
 scipy==1.11.2
 sentence-transformers==2.2.2
 sentencepiece==0.1.99
+SQLAlchemy==2.0.19
 sympy==1.12
 threadpoolctl==3.2.0
 tokenizers==0.13.3

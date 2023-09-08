@@ -1,7 +1,7 @@
 import sys
 import os
 
-# this is needed to import classes from the API. it will be removed when the worker is refactored
+# this is needed to import classes from other directories
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
 import re
@@ -10,28 +10,22 @@ import time
 import pika
 import json
 import openai
-import pinecone
 import requests 
 import logging
-import uuid
-import weaviate
 import worker.config as config
 import services.database.batch_service as batch_service
 import services.database.job_service as job_service
 from shared.chunk_strategy import ChunkStrategy
 from shared.embeddings_type import EmbeddingsType
-from shared.vector_db_type import VectorDBType
 from shared.batch_status import BatchStatus
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from services.database.database import get_db
 from shared.job_status import JobStatus
-from qdrant_client import QdrantClient
-from qdrant_client.models import PointStruct
-from pymilvus import Collection, connections
 
 logging.basicConfig(filename='./worker-log.txt', level=logging.INFO)
 logging.basicConfig(filename='./worker-errors.txt', level=logging.ERROR)
 publish_channel = None
+connection = None
 
 def process_batch(batch_id, source_data):
     with get_db() as db:
@@ -41,7 +35,7 @@ def process_batch(batch_id, source_data):
         if job.job_status == JobStatus.NOT_STARTED or job.job_status == JobStatus.CREATING_BATCHES:
             job_service.update_job_status(db, job.id, JobStatus.PROCESSING_BATCHES)
         if batch.batch_status == BatchStatus.NOT_STARTED:
-            batch_service.update_batch_status(db, batch.id, BatchStatus.EMBEDDING)
+            batch_service.update_batch_status(db, batch.id, BatchStatus.CALCULATING_EMBEDDINGS)
         else:
             batch_service.update_batch_retry_count(db, batch.id, batch.retries+1)
             logging.info(f"Retrying batch {batch.id}")
@@ -54,30 +48,23 @@ def process_batch(batch_id, source_data):
                 text_embeddings_list = embed_openai_batch(batch, source_data)
                 if text_embeddings_list:
                     upload_to_vector_db(batch_id, text_embeddings_list)
-                    update_batch_and_job_status(batch.job_id, BatchStatus.EMBEDDING, batch.id)
+                    update_batch_status(batch.job_id, BatchStatus.EMBEDDING_COMPLETE, batch.id)
                 else:
                     logging.error(f"Failed to get OPEN AI embeddings for batch {batch.id}. Adding batch to retry queue.")
-                    update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
+                    update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
 
             except Exception as e:
                 logging.error('Error embedding batch:', e)
-                update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
+                update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
         elif embeddings_type == EmbeddingsType.HUGGING_FACE:
             try:
-                text_embeddings_list = embed_hugging_face_batch(batch, source_data)
-                if text_embeddings_list:
-                    upload_to_vector_db(batch_id, text_embeddings_list)
-                    update_batch_and_job_status(batch.job_id, BatchStatus.EMBEDDING, batch.id)
-                else:
-                    logging.error(f"Failed to get Hugging Face embeddings for batch {batch.id} with {batch.embeddings_metadata.hugging_face_model_name}. Adding batch to retry queue.")
-                    update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
-
+                embed_hugging_face_batch(batch, source_data)
             except Exception as e:
                 logging.error('Error embedding batch:', e)
-                update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
+                update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
         else:
             logging.error('Unsupported embeddings type:', embeddings_type)
-            update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
+            update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
 
 # NOTE: this method will embed mulitple chunks (a list of strings) at once and return a list of lists of floats (a list of embeddings)
 def get_openai_embedding(batch_of_chunks, attempts=5):
@@ -113,59 +100,40 @@ def embed_openai_batch(batch, source_data):
                     text_embeddings_list.append((text, embedding['embedding']))
             else:
                 logging.error(f"Failed to get embedding for chunk {chunks}. Adding batch to retry queue.")
-                update_batch_and_job_status(batch.job_id, BatchStatus.Failed, batch.id)
+                update_batch_status(batch.job_id, BatchStatus.Failed, batch.id)
                 return
     
     logging.info("Open AI Embeddings completed successfully")
     return text_embeddings_list
 
-def get_hugging_face_embedding(batch_of_chunks, hugging_face_model_name, attempts=5):
-    for i in range(attempts):
+def publish_to_embedding_queue(batch_id, batch_of_chunks, model_name, attempts=5):
+    for _ in range(attempts):
         try:
-            model_info_file = os.getenv('HUGGING_FACE_MODEL_FILE')
-            if not model_info_file:
-                raise Exception("HUGGING_FACE_MODEL_FILE environment variable not set")
-            
-            with open(model_info_file, 'r') as file:
-                model_endpoint_dict = json.load(file)
-                hugging_face_endpoint = model_endpoint_dict[hugging_face_model_name]
-                url = f"{hugging_face_endpoint}/embeddings"
-                
-                # this attempts to embed a list of strings
-                data={'batch': batch_of_chunks}
-                response = requests.post(url, data=json.dumps(data), headers = {"Content-Type": "application/json"})
-                json_data = response.json()
-                
-                if "error" in json_data:
-                    logging.error(f"Error in Hugging Face Embedding API call for model {hugging_face_model_name}: {json_data['error']}")
-                if "data" in json_data:
-                    return batch_of_chunks, json_data["data"]
+            embedding_channel = connection.channel() 
+            embedding_channel.queue_declare(queue=model_name)
+            serialized_data = json.dumps((batch_id, batch_of_chunks, os.getenv('VECTOR_DB_KEY')))
+            embedding_channel.basic_publish(exchange='',
+                                        routing_key=model_name,
+                                        body=serialized_data)
+            logging.info(f"Message published to open source queue {model_name} successfully")
+            return
         except Exception as e:
-            logging.error(f"Huggin Face Embedding API call failed for model {hugging_face_model_name}:", e)
-            time.sleep(2**i)  # Exponential backoff: 1, 2, 4, 8, 16 seconds.
-    return batch_of_chunks, None
+            logging.error('ERROR connecting to RabbitMQ, retrying now. See exception:', e)
+            time.sleep(config.PIKA_RETRY_INTERVAL)
+    
+    # TODO: implement logic to handle partial failures & retries
+    with get_db() as db:
+        batch_service.update_batch_status(db, batch_id, BatchStatus.FAILED)
+        logging.error(f"Failed to publish batch {batch_id} to open source queue {model_name} after {attempts} attempts.")
 
 def embed_hugging_face_batch(batch, source_data):
     logging.info(f"Starting Hugging Face Embeddings with {batch.embeddings_metadata.hugging_face_model_name}")
     
     chunked_data = chunk_data(batch.embeddings_metadata.chunk_strategy, source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
     hugging_face_batches = create_upload_batches(chunked_data, config.HUGGING_FACE_BATCH_SIZE)
-    text_embeddings_list = list()
-
-    with ThreadPoolExecutor(max_workers=config.HUGGING_FACE_MAX_THREADS) as executor:
-        futures = [executor.submit(get_hugging_face_embedding, chunk, batch.embeddings_metadata.hugging_face_model_name) for chunk in hugging_face_batches]
-        for future in as_completed(futures):
-            chunks, embeddings = future.result()
-            if embeddings is not None:
-                for text, embedding in zip(chunks, embeddings):
-                    text_embeddings_list.append((text, embedding))
-            else:
-                logging.error(f"Failed to get embedding for chunk {chunks}. Adding batch to retry queue.")
-                update_batch_and_job_status(batch.job_id, BatchStatus.Failed, batch.id)
-                return
     
-    logging.info("Hugging Face Embeddings completed successfully")
-    return text_embeddings_list
+    for batch_of_chunks in hugging_face_batches:
+        publish_to_embedding_queue(batch.id, batch_of_chunks, batch.embeddings_metadata.hugging_face_model_name)
 
 def chunk_data(chunk_strategy, source_data, chunk_size, chunk_overlap):
     if chunk_strategy == ChunkStrategy.EXACT:
@@ -234,7 +202,7 @@ def create_upload_batches(batches, max_batch_size):
     open_ai_batches = [batches[i:i + max_batch_size] for i in range(0, len(batches), max_batch_size)]
     return open_ai_batches
 
-def update_batch_and_job_status(job_id, batch_status, batch_id):
+def update_batch_status(job_id, batch_status, batch_id):
     try:
         with get_db() as db:
             updated_batch_status = batch_service.update_batch_status(db, batch_id, batch_status)
@@ -269,6 +237,7 @@ def callback(ch, method, properties, body):
 
 def start_connection():
     global publish_channel
+    global connection
     
     while True:
         try:
