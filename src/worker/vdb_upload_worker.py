@@ -23,6 +23,7 @@ from shared.batch_status import BatchStatus
 from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct
 from pymilvus import Collection, connections
+from deeplake.core.vectorstore import VectorStore
 from shared.embeddings_type import EmbeddingsType
 from shared.vector_db_type import VectorDBType
 
@@ -60,6 +61,8 @@ def write_embeddings_to_vector_db(text_embeddings_list, vector_db_metadata, batc
     elif vector_db_metadata.vector_db_type == VectorDBType.MILVUS:
         upsert_list = create_milvus_source_chunk_dict(text_embeddings_list, batch_id, job_id)
         return write_embeddings_to_milvus(upsert_list, vector_db_metadata)
+    elif vector_db_metadata.vector_db_type == VectorDBType.DEEPLAKE:
+        return write_embeddings_to_deeplake(text_embeddings_list, vector_db_metadata, batch_id, job_id)
     else:
         logging.error('Unsupported vector DB type:', vector_db_metadata.vector_db_type)
 
@@ -145,7 +148,7 @@ def write_embeddings_to_qdrant(upsert_list, vector_db_metadata):
     
     logging.info(f"Successfully uploaded {len(upsert_list)} vectors to qdrant")
     return len(upsert_list)
-    
+
 def write_embeddings_to_weaviate(text_embeddings_list, vector_db_metadata,  batch_id, job_id):
     client = weaviate.Client(
         url=vector_db_metadata.environment,
@@ -177,6 +180,33 @@ def write_embeddings_to_weaviate(text_embeddings_list, vector_db_metadata,  batc
         return None
     
     logging.info(f"Successfully uploaded {len(text_embeddings_list)} vectors to Weaviate")
+    return len(text_embeddings_list)
+
+def write_embeddings_to_deeplake(text_embeddings_list, vector_db_metadata, batch_id, job_id):
+    ids = []
+    source_texts = []
+    embeddings = []
+    for i, (source_text, embedding) in enumerate(text_embeddings_list):
+        ids.append(generate_uuid_from_tuple((job_id, batch_id, i)))
+        source_texts.append(source_text)
+        embeddings.append(embedding)
+
+    # Token key for deeplake hub
+    activeloop_token = os.getenv('VECTOR_DB_KEY')
+
+    # Creates vectorflow dataset if it doesn't exist
+    vector_store = VectorStore(path = vector_db_metadata.index_name, verbose=False, token = activeloop_token)
+
+    logging.info(f"Starting Deeplake insert for {len(text_embeddings_list)} vectors")
+    
+    # Directly upload embeddings
+    vector_store.add(
+        text = source_texts,
+        embedding = text_embeddings_list,
+        metadata  = ids,
+    )
+
+    logging.info(f"Successfully uploaded {len(text_embeddings_list)} vectors to deeplake")
     return len(text_embeddings_list)
 
 def create_milvus_source_chunk_dict(text_embeddings_list, batch_id, job_id):
