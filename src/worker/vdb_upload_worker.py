@@ -33,20 +33,20 @@ def upload_batch(batch_id, text_embeddings_list):
     with get_db() as db:
         batch = batch_service.get_batch(db, batch_id)
         
-        if batch.batch_status == BatchStatus.EMBEDDING_COMPLETE:
-            batch_service.update_batch_status(db, batch.id, BatchStatus.VDB_UPLOAD)
-        else:
+        if batch.batch_status == BatchStatus.FAILED:
             batch_service.update_batch_retry_count(db, batch.id, batch.retries+1)
             logging.info(f"Retrying vector db upload of batch {batch.id}")
 
         db.refresh(batch)
-
         vectors_uploaded = write_embeddings_to_vector_db(text_embeddings_list, batch.vector_db_metadata, batch.id, batch.job_id)
+        print(f"vectors uploaded: {vectors_uploaded}")
     
-    if vectors_uploaded:
-        update_batch_and_job_status(batch.job_id, BatchStatus.COMPLETED, batch.id)
-    else:
-        update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
+        if vectors_uploaded:
+            with get_db() as db:
+                status = batch_service.update_batch_status_with_successful_minibatch(db, batch.id)
+                update_batch_and_job_status(batch.job_id, status, batch.id)
+        else:
+            update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
 
 def write_embeddings_to_vector_db(text_embeddings_list, vector_db_metadata, batch_id, job_id):
     if vector_db_metadata.vector_db_type == VectorDBType.PINECONE:
@@ -218,6 +218,8 @@ def write_embeddings_to_milvus(upsert_list, vector_db_metadata):
 def update_batch_and_job_status(job_id, batch_status, batch_id):
     try:
         with get_db() as db:
+            if not job_id and batch_id:
+                job_id = batch_service.get_batch(db, batch_id).job_id
             updated_batch_status = batch_service.update_batch_status(db, batch_id, batch_status)
             job = job_service.update_job_with_batch(db, job_id, updated_batch_status)
             if job.job_status == JobStatus.COMPLETED:
@@ -227,6 +229,8 @@ def update_batch_and_job_status(job_id, batch_status, batch_id):
                 
     except Exception as e:
         logging.error('Error updating job and batch status:', e)
+        with get_db() as db:
+            job_service.update_job_status(db, job_id, JobStatus.FAILED)
 
 def callback(ch, method, properties, body):
     try:
@@ -239,6 +243,7 @@ def callback(ch, method, properties, body):
         logging.info("Batch processed successfully")
     except Exception as e:
         logging.error('Error processing batch:', e)
+        update_batch_and_job_status(None, batch_id, BatchStatus.FAILED)
 
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
