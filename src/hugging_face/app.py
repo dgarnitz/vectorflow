@@ -42,6 +42,10 @@ def embed(batch_id, batch_of_chunks_to_embed, vector_db_key):
         
         embeddings_list = embeddings.tolist()
         text_embeddings_list = list(zip(batch_of_chunks_to_embed, embeddings_list))
+
+        with get_db() as db:
+            batch_service.augment_minibatches_embedded(db, batch_id)
+        
         upload_to_vector_db(batch_id, text_embeddings_list, vector_db_key)
     except Exception as e:
         logging.error('Error embedding batch:', e)
@@ -56,10 +60,9 @@ def upload_to_vector_db(batch_id, text_embeddings_list, vector_db_key):
                                       routing_key=os.getenv('VDB_UPLOAD_QUEUE'),
                                       body=serialized_data)
         logging.info(f"Text embeddings for {batch_id} published to {os.getenv('VDB_UPLOAD_QUEUE')} queue")
-
-        update_batch_status(BatchStatus.EMBEDDING_COMPLETE, batch_id)
     except Exception as e:
         logging.error('Error publishing message to RabbitMQ:', e)
+        update_batch_status(BatchStatus.FAILED, batch_id)
 
 def update_batch_status(batch_status, batch_id):
     try:

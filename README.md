@@ -65,7 +65,7 @@ Make sure you pull Rabbit MQ and Postgres into your local docker repo. We also r
 ```
 docker pull rabbitmq
 docker pull postgres
-docker pull qdrant | milvus | weaviate
+docker pull qdrant/qdrant | docker pull milvusdb/milvus | docker pull semitechnologies/weaviate
 ```
 
 Then run:
@@ -168,6 +168,10 @@ We love feedback from the community. If you have an idea of how to make this pro
 
 Our roadmap is outlined in the section below and we would love help in building it out. Our open issues are a great place to start and can be viewed [here](https://github.com/dgarnitz/vectorflow/issues). If you want to work on something not listed there, we recommend you open an issue with a proposed approach in mind before submitting a PR.
 
+Please tag `dgarnitz` on all PRs.
+
+### Testing
+
 When submitting a PR, please add units tests to cover the functionality you have added. Please re-run existing tests to ensure there are no regressive bugs. Run from the `src` directory. To run an individual test use:
 
 ```
@@ -177,11 +181,15 @@ python -m unittest module.tests.test_file.TestClass.test_method
 To run all the tests in the file use: 
 ```
 python -m unittest module.tests.test_file
-``` 
+```
+
+For end-to-end testing, it is recommend to build and run using the docker-compose, but take down the container you are altering and run it locally on your development machine. This will avoid the need to constantly rebuild the images and re-run the containers. Make sure to change the environment variables in your development machine terminal to the correct values (i.e. `localhost` instead of `rabbitmq` or `postgres`) so that the docker containers can communicate with your development machine. Once it works locally you can perform a final test with everything in docker-compose.
+
+### Verifying
+Please verify that all changes work with docker-compose before opening a PR. 
 
 We also recommend you add verification evidence, such as screenshots, that show that your code works in an end to end flow. 
 
-Please tag `dgarnitz` on all PRs. 
 
 # Roadmap
 

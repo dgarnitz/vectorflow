@@ -32,10 +32,12 @@ def process_batch(batch_id, source_data):
         batch = batch_service.get_batch(db, batch_id)
         job = job_service.get_job(db, batch.job_id)
 
+        # TODO: update this logic once the batch creation logic is moved out of the API
         if job.job_status == JobStatus.NOT_STARTED or job.job_status == JobStatus.CREATING_BATCHES:
             job_service.update_job_status(db, job.id, JobStatus.PROCESSING_BATCHES)
+        
         if batch.batch_status == BatchStatus.NOT_STARTED:
-            batch_service.update_batch_status(db, batch.id, BatchStatus.CALCULATING_EMBEDDINGS)
+            batch_service.update_batch_status(db, batch.id, BatchStatus.PROCESSING)
         else:
             batch_service.update_batch_retry_count(db, batch.id, batch.retries+1)
             logging.info(f"Retrying batch {batch.id}")
@@ -48,7 +50,6 @@ def process_batch(batch_id, source_data):
                 text_embeddings_list = embed_openai_batch(batch, source_data)
                 if text_embeddings_list:
                     upload_to_vector_db(batch_id, text_embeddings_list)
-                    update_batch_status(batch.job_id, BatchStatus.EMBEDDING_COMPLETE, batch.id)
                 else:
                     logging.error(f"Failed to get OPEN AI embeddings for batch {batch.id}. Adding batch to retry queue.")
                     update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
@@ -131,6 +132,9 @@ def embed_hugging_face_batch(batch, source_data):
     
     chunked_data = chunk_data(batch.embeddings_metadata.chunk_strategy, source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
     hugging_face_batches = create_upload_batches(chunked_data, config.HUGGING_FACE_BATCH_SIZE)
+    
+    with get_db() as db:
+        batch_service.update_batch_minibatch_count(db, batch.id, len(hugging_face_batches))
     
     for batch_of_chunks in hugging_face_batches:
         publish_to_embedding_queue(batch.id, batch_of_chunks, batch.embeddings_metadata.hugging_face_model_name)

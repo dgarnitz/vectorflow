@@ -44,7 +44,7 @@ class TestWorker(unittest.TestCase):
 
         # assert
         mock_embed_openai_batch.assert_called_once_with(batch, source_data)
-        mock_update_batch_and_job_status.assert_called_with(batch.job_id, BatchStatus.EMBEDDING_COMPLETE, batch.id)
+        mock_update_batch_and_job_status.assert_called_with(batch.job_id, BatchStatus.PROCESSING, batch.id)
 
     @patch('worker.worker.upload_to_vector_db')
     @patch('sqlalchemy.orm.session.Session.refresh')

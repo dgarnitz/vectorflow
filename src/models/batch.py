@@ -14,6 +14,9 @@ class Batch(Base):
     batch_status = Column(Enum(BatchStatus), default=BatchStatus.NOT_STARTED)
     start_time = Column(DateTime(timezone=True), server_default=func.now())
     retries = Column(Integer, default=0)
+    minibatch_count = Column(Integer)
+    minibatches_embedded = Column(Integer)
+    minibatches_uploaded = Column(Integer)
 
     embeddings_metadata_id = Column(Integer, ForeignKey('embeddings_metadata.id'))
     embeddings_metadata = relationship(EmbeddingsMetadata)
