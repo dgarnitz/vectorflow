@@ -41,13 +41,12 @@ def upload_batch(batch_id, text_embeddings_list):
         vectors_uploaded = write_embeddings_to_vector_db(text_embeddings_list, batch.vector_db_metadata, batch.id, batch.job_id)
         print(f"vectors uploaded: {vectors_uploaded}")
     
-    if vectors_uploaded:
-        with get_db() as db:
-            status = batch_service.update_batch_status_with_successful_minibatch(db, batch.id)
-            print(f"status: {status}")
-            update_batch_and_job_status(batch.job_id, status, batch.id)
-    else:
-        update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
+        if vectors_uploaded:
+            with get_db() as db:
+                status = batch_service.update_batch_status_with_successful_minibatch(db, batch.id)
+                update_batch_and_job_status(batch.job_id, status, batch.id)
+        else:
+            update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
 
 def write_embeddings_to_vector_db(text_embeddings_list, vector_db_metadata, batch_id, job_id):
     if vector_db_metadata.vector_db_type == VectorDBType.PINECONE:

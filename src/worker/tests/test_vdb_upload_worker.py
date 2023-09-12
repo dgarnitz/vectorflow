@@ -34,7 +34,7 @@ class TestVDBUploadWorker(unittest.TestCase):
         job = Job(id=1, webhook_url="test_webhook_url", job_status=JobStatus.NOT_STARTED)
         batch = Batch(id=1, 
                       job_id=1, 
-                      batch_status=BatchStatus.EMBEDDING_COMPLETE, 
+                      batch_status=BatchStatus.PROCESSING, 
                       vector_db_metadata=VectorDBMetadata())
         mock_write_embeddings_to_vector_db.return_value = 1
         mock_get_batch.return_value = batch
@@ -73,7 +73,7 @@ class TestVDBUploadWorker(unittest.TestCase):
         job = Job(id=1, webhook_url="test_webhook_url", job_status=JobStatus.NOT_STARTED)
         batch = Batch(id=1, 
                       job_id=1, 
-                      batch_status=BatchStatus.EMBEDDING_COMPLETE, 
+                      batch_status=BatchStatus.PROCESSING, 
                       vector_db_metadata=VectorDBMetadata())
         mock_write_embeddings_to_vector_db.return_value = 0
         mock_get_batch.return_value = batch
