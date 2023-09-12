@@ -243,10 +243,6 @@ def callback(ch, method, properties, body):
         logging.info("Batch processed successfully")
     except Exception as e:
         logging.error('Error processing batch:', e)
-        
-        # TODO: need to update job status. Need a way to know if the job has fully failed
-        # probably have to track which sub-batch belongs to which batch
-        # and have logic to determine if the parts add up to the whole
         update_batch_and_job_status(None, batch_id, BatchStatus.FAILED)
 
     ch.basic_ack(delivery_tag=method.delivery_tag)
