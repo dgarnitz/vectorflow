@@ -186,6 +186,7 @@ def write_embeddings_to_deeplake(text_embeddings_list, vector_db_metadata, batch
     ids = []
     source_texts = []
     embeddings = []
+
     for i, (source_text, embedding) in enumerate(text_embeddings_list):
         ids.append(generate_uuid_from_tuple((job_id, batch_id, i)))
         source_texts.append(source_text)
@@ -193,21 +194,32 @@ def write_embeddings_to_deeplake(text_embeddings_list, vector_db_metadata, batch
 
     # Token key for deeplake hub
     activeloop_token = os.getenv('VECTOR_DB_KEY')
-
+    
     # Creates vectorflow dataset if it doesn't exist
     vector_store = VectorStore(path = vector_db_metadata.index_name, verbose=False, token = activeloop_token)
 
     logging.info(f"Starting Deeplake insert for {len(text_embeddings_list)} vectors")
     
-    # Directly upload embeddings
-    vector_store.add(
-        text = source_texts,
-        embedding = text_embeddings_list,
-        metadata  = ids,
-    )
+    batch_size = config.PINECONE_BATCH_SIZE
+    vectors_uploaded = 0
 
-    logging.info(f"Successfully uploaded {len(text_embeddings_list)} vectors to deeplake")
-    return len(text_embeddings_list)
+    for i in range(0,len(embeddings), batch_size):
+        try:   
+            # Directly upload embeddings
+            add_response = vector_store.add(
+                text = source_texts[i:i+batch_size],
+                embedding = embeddings[i:i+batch_size],
+                metadata  = ids[i:i+batch_size],
+                return_ids = True
+            )
+            vectors_uploaded += len(add_response)
+
+        except Exception as e:
+            logging.error('Error writing embeddings to deeplake:', e)
+            return None    
+
+    logging.info(f"Successfully uploaded {vectors_uploaded} vectors to deeplake")
+    return vectors_uploaded
 
 def create_milvus_source_chunk_dict(text_embeddings_list, batch_id, job_id):
     ids = []
