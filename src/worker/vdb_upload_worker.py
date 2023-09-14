@@ -75,7 +75,7 @@ def create_pinecone_source_chunk_dict(text_embeddings_list, batch_id, job_id):
 def write_embeddings_to_pinecone(upsert_list, vector_db_metadata):
     pinecone_api_key = os.getenv('VECTOR_DB_KEY')
     pinecone.init(api_key=pinecone_api_key, environment=vector_db_metadata.environment)
-    index = pinecone.Index(vector_db_metadata.index_name)
+    index = pinecone.GRPCIndex(vector_db_metadata.index_name)
     if not index:
         logging.error(f"Index {vector_db_metadata.index_name} does not exist in environment {vector_db_metadata.environment}")
         return None
@@ -88,7 +88,7 @@ def write_embeddings_to_pinecone(upsert_list, vector_db_metadata):
     for i in range(0,len(upsert_list), batch_size):
         try:
             upsert_response = index.upsert(vectors=upsert_list[i:i+batch_size])
-            vectors_uploaded += upsert_response["upserted_count"]
+            vectors_uploaded += upsert_response.upserted_count
         except Exception as e:
             logging.error('Error writing embeddings to pinecone:', e)
             return None
