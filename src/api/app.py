@@ -20,6 +20,7 @@ from api.pipeline import Pipeline
 from services.database.database import get_db
 from api.vectorflow_request import VectorflowRequest
 from shared.embeddings_type import EmbeddingsType
+from docx import Document
 
 auth = Auth()
 pipeline = Pipeline()
@@ -57,11 +58,11 @@ def embed():
     if file.filename == '':
         return jsonify({'error': 'No selected file'}), 400
     
-    if file and (file.filename.endswith('.txt') or file.filename.endswith('.pdf')):
+    if file and (file.filename.endswith('.txt') or file.filename.endswith('.pdf') or file.filename.endswith('.docx')):
         batch_count, job_id = process_file(file, vectorflow_request)
         return jsonify({'message': f"Successfully added {batch_count} batches to the queue", 'JobID': job_id}), 200
     else:
-        return jsonify({'error': 'Uploaded file is not a TXT or PDF file'}), 400
+        return jsonify({'error': 'Uploaded file is not a TXT, PDF or DOCX file'}), 400
 
 @app.route('/jobs/<int:job_id>/status', methods=['GET'])
 def get_job_status(job_id):
@@ -140,6 +141,11 @@ def s3_presigned_url():
 def process_file(file, vectorflow_request):
     if file.filename.endswith('.txt'):
         file_content = file.read().decode('utf-8')
+    
+    elif file.filename.endswith('.docx'):
+        doc = Document(file)
+        file_content = "\n".join([paragraph.text for paragraph in doc.paragraphs])
+
     else:
         pdf_data = BytesIO(file.read())
         with fitz.open(stream=pdf_data, filetype='pdf') as doc:
