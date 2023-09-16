@@ -89,6 +89,8 @@ services:
       context: ./src
       dockerfile: worker/Dockerfile.vdb-upload-worker
     container_name: vectorflow_vdb_upload_worker
+    volumes:
+      - ./src/:/app
     env_file:
       - ./env_scripts/env_vars.env
     networks:
