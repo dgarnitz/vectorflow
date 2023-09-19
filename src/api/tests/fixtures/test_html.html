@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<!-- saved from url=(0082)https://unstructured-io.github.io/unstructured/installation/full_installation.html -->
+<html class="" lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/">
+<link rel="index" title="Index" href="https://unstructured-io.github.io/unstructured/genindex.html"><link rel="search" title="Search" href="https://unstructured-io.github.io/unstructured/search.html"><link rel="next" title="Docker Installation" href="https://unstructured-io.github.io/unstructured/installation/docker.html"><link rel="prev" title="Installation" href="https://unstructured-io.github.io/unstructured/installing.html">
+
+  <link rel="shortcut icon" href="https://unstructured-io.github.io/unstructured/_static/unstructured_small.png"><meta name="generator" content="sphinx-6.2.1, furo 2023.07.26">
+  <title>Full Installation - Unstructured 0.10.14 documentation</title>
+  <link rel="stylesheet" type="text/css" href="./test-html_files/pygments.css">
+  <link rel="stylesheet" type="text/css" href="./test-html_files/furo.css">
+  <link rel="stylesheet" type="text/css" href="./test-html_files/tabs.css">
+  <link rel="stylesheet" type="text/css" href="./test-html_files/furo-extensions.css">
+  <link rel="stylesheet" type="text/css" href="./test-html_files/unstructured.css">
+  
+  
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  --color-sidebar-background: #FFFFFF;
+  --color-sidebar-background-border: #e9eaed;
+  --color-sidebar-caption-text: #484848;
+  --color-sidebar-link-text: #484848;
+  --color-sidebar-link-text--top-level: #484848;
+  --color-sidebar-item-background--current: transparent;
+  --color-sidebar-item-background--hover: transparent;
+  --color-sidebar-item-expander-background: transparent;
+  --color-sidebar-item-expander-background--hover: transparent;
+  --color-sidebar-search-text: #484848;
+  --color-sidebar-search-background: #FFFFFF;
+  --color-sidebar-search-background--focus: #FFFFFF;
+  --color-sidebar-search-border: #b9b9b9;
+  --color-sidebar-search-border-focus: #484848;
+  --color-sidebar-current-text: #ff675f;
+  --color-content-foreground: #484848;
+  --color-toc-title: #212529;
+  --color-toc-item-text--hover: #484848;
+  --color-toc-item-text--active: #484848;
+  --color-table-header: #FDDACA;
+  --color-table-bg: #FFE5D9;
+  --color-table-row: #FEEDE6;
+  --color-link: #ff675f;
+  --color-link--hover: #ff675f;
+  --content-padding: 5em;
+  --content-padding--small: 2em;
+  --color-search-icon: #484848;
+  --color-search-placeholder: #484848;
+  --color-literal: #FF675F;
+  --toc-spacing-vertical: 3em;
+  --color-page-info: #646776;
+  --toc-item-spacing-vertical: 1em;
+  --color-img-background: #ffffff;
+  --sidebar-tree-space-above: 0;
+  --sidebar-caption-space-above: 0;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  --color-sidebar-background: #131416;
+  --color-sidebar-background-border: #303335;
+  --color-sidebar-caption-text: #FFFFFF;
+  --color-sidebar-link-text: #FFFFFF;
+  --color-sidebar-link-text--top-level: #FFFFFF;
+  --color-sidebar-item-background--current: none;
+  --color-sidebar-item-background--hover: none;
+  --color-sidebar-item-expander-background: transparent;
+  --color-sidebar-item-expander-background--hover: transparent;
+  --color-sidebar-search-text: #FFFFFF;
+  --color-sidebar-search-background: #131416;
+  --color-sidebar-search-background--focus: transparent;
+  --color-sidebar-search-border: #FFFFFF;
+  --color-sidebar-search-border-focus: #FFFFFF;
+  --color-sidebar-search-foreground: #FFFFFF;
+  --color-sidebar-current-text: #FFC2BF;
+  --color-content-foreground: #FFFFFF;
+  --color-toc-title: #FFFFFF;
+  --color-toc-item-text--hover: #FFFFFF;
+  --color-toc-item-text--active: #FFFFFF;
+  --color-table-header: #131416;
+  --color-table-bg: #232427;
+  --color-table-row: #444444;
+  --color-link: #FFC2BF;
+  --color-link--hover: #FFC2BF;
+  --color-search-icon: #FFFFFF;
+  --color-search-placeholder: #FFFFFF;
+  --color-literal: #F8C0A7;
+  --color-page-info: #FFFFFF;
+  --color-img-background: #131416;
+  --sidebar-tree-space-above: 0;
+  --sidebar-caption-space-above: 0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  --color-sidebar-background: #131416;
+  --color-sidebar-background-border: #303335;
+  --color-sidebar-caption-text: #FFFFFF;
+  --color-sidebar-link-text: #FFFFFF;
+  --color-sidebar-link-text--top-level: #FFFFFF;
+  --color-sidebar-item-background--current: none;
+  --color-sidebar-item-background--hover: none;
+  --color-sidebar-item-expander-background: transparent;
+  --color-sidebar-item-expander-background--hover: transparent;
+  --color-sidebar-search-text: #FFFFFF;
+  --color-sidebar-search-background: #131416;
+  --color-sidebar-search-background--focus: transparent;
+  --color-sidebar-search-border: #FFFFFF;
+  --color-sidebar-search-border-focus: #FFFFFF;
+  --color-sidebar-search-foreground: #FFFFFF;
+  --color-sidebar-current-text: #FFC2BF;
+  --color-content-foreground: #FFFFFF;
+  --color-toc-title: #FFFFFF;
+  --color-toc-item-text--hover: #FFFFFF;
+  --color-toc-item-text--active: #FFFFFF;
+  --color-table-header: #131416;
+  --color-table-bg: #232427;
+  --color-table-row: #444444;
+  --color-link: #FFC2BF;
+  --color-link--hover: #FFC2BF;
+  --color-search-icon: #FFFFFF;
+  --color-search-placeholder: #FFFFFF;
+  --color-literal: #F8C0A7;
+  --color-page-info: #FFFFFF;
+  --color-img-background: #131416;
+  --sidebar-tree-space-above: 0;
+  --sidebar-caption-space-above: 0;
+  
+      }
+    }
+  }
+</style><script src="./test-html_files/jquery.js"></script>
+  <script src="./test-html_files/_sphinx_javascript_frameworks_compat.js"></script>
+  <script data-url_root="../" id="documentation_options" src="./test-html_files/documentation_options.js"></script>
+  <script src="./test-html_files/doctools.js"></script>
+  <script src="./test-html_files/sphinx_highlight.js"></script>
+  <script src="./test-html_files/furo.js"></script>
+  <script src="./test-html_files/githubStargazers.js"></script>
+  <script src="./test-html_files/sidebarScrollPosition.js"></script>
+  </head>
+
+<body data-theme="auto">
+  
+  <script>
+    document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+  </script>
+  
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"></path>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z"></path>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+      <circle cx="12" cy="12" r="9"></circle>
+      <path d="M13 12h5"></path>
+      <path d="M13 15h4"></path>
+      <path d="M13 18h1"></path>
+      <path d="M13 9h4"></path>
+      <path d="M13 6h1"></path>
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<input type="checkbox" class="sidebar-toggle" name="__search" id="__search">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+<label class="overlay search-overlay" for="__search">
+  <div class="visually-hidden">Hide search</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header scrolled">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg>
+            <use href="#svg-menu"></use>
+          </svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="https://unstructured-io.github.io/unstructured/index.html">
+        <div class="brand">
+					<img class="header-logo only-light" src="./test-html_files/logo-light-mode.svg" alt="Light Logo">
+					<img class="header-logo only-dark" src="./test-html_files/logo-dark-mode.svg" alt="Dark Logo">
+        </div>
+      </a>
+    </div>
+
+    <div class="header-right">
+      <label class="search-icon" for="__search">
+        <div class="visually-hidden">Toggle search</div>
+      </label>
+      <!-- <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label> -->
+    </div>
+  </header>
+  <div class="header__search">
+    <form class="header__search__container" method="get" action="https://unstructured-io.github.io/unstructured/search.html" role="search">
+      <input class="header__search__input" placeholder="Search" name="q" aria-label=" Search">
+      <input type="hidden" name="check_keywords" value="yes">
+      <input type="hidden" name="area" value="default">
+      <label class="close-icon" for="__search">
+        <div class="visually-hidden">Hide search</div>
+      </label>
+    </form>
+    <div id="searchbox"></div>
+  </div>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="theme-toggle-container theme-toggle-header sidebar__theme-toggle">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto">
+            <use href="#svg-sun-half"></use>
+          </svg>
+          <svg class="theme-icon-when-dark">
+            <use href="#svg-moon"></use>
+          </svg>
+          <svg class="theme-icon-when-light">
+            <use href="#svg-sun"></use>
+          </svg>
+        </button>
+      </div>
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="https://unstructured-io.github.io/unstructured/index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="./test-html_files/logo-light-mode.svg" alt="Light Logo">
+    <img class="sidebar-logo only-dark" src="./test-html_files/logo-dark-mode.svg" alt="Dark Logo">
+  </div>
+  
+  
+</a>
+<div class="social social--sidebar" style="margin-top: 1em; display: flex; justify-content: right; gap: 8px">
+  <a href="https://join.slack.com/t/unstructuredw-kbe4326/shared_invite/zt-1x7cgo0pg-PTptXWylzPQF9xZolzCnwQ" class="button--primary" target="_blank">Join <span aria-label="slack" class="slack-icon"></span></a>
+    <div class="github-stars github-stars--sidebar"><a class="--left" target="_blank" href="https://github.com/Unstructured-IO/unstructured"><svg width="19" height="19" viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M8.43359 0.0678272C4.05472 0.5578 0.532587 4.1836 0.0566223 8.59336C-0.419342 13.1991 2.15086 17.3149 6.05377 18.8828C6.33935 18.9808 6.62493 18.7848 6.62493 18.3928V16.8249C6.62493 16.8249 6.24416 16.9229 5.76819 16.9229C4.43549 16.9229 3.86434 15.747 3.76914 15.061C3.67395 14.669 3.48357 14.375 3.19799 14.081C2.91241 13.9831 2.81721 13.9831 2.81721 13.8851C2.81721 13.6891 3.10279 13.6891 3.19799 13.6891C3.76914 13.6891 4.24511 14.375 4.43549 14.669C4.91146 15.453 5.48261 15.649 5.76819 15.649C6.14896 15.649 6.43454 15.551 6.62493 15.453C6.72012 14.767 7.0057 14.081 7.57686 13.6891C5.38742 13.1991 3.76914 11.9252 3.76914 9.76929C3.76914 8.69135 4.24511 7.61341 4.91146 6.82945C4.81626 6.63346 4.72107 6.14349 4.72107 5.45753C4.72107 5.06555 4.72107 4.47758 5.00665 3.88962C5.00665 3.88962 6.33935 3.88962 7.67205 5.16355C8.14802 4.96756 8.81437 4.86956 9.48071 4.86956C10.1471 4.86956 10.8134 4.96756 11.3846 5.16355C12.6221 3.88962 14.05 3.88962 14.05 3.88962C14.2404 4.47758 14.2404 5.06555 14.2404 5.45753C14.2404 6.24149 14.1452 6.63346 14.05 6.82945C14.7163 7.61341 15.1923 8.59335 15.1923 9.76929C15.1923 11.9252 13.574 13.1991 11.3846 13.6891C11.9557 14.179 12.3365 15.061 12.3365 15.9429V18.4908C12.3365 18.7848 12.6221 19.0788 13.0029 18.9808C16.525 17.5109 19 13.9831 19 9.86728C19 3.98761 14.1452 -0.618135 8.43359 0.0678272Z" fill="white"></path>
+</svg> Star</a><a class="--right" target="_blank" href="https://github.com/Unstructured-IO/unstructured/stargazers">2,667</a></div>
+</div><form class="sidebar-search-container" method="get" action="https://unstructured-io.github.io/unstructured/search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1 has-children"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/introduction.html">Introduction</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Introduction</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/introduction/overview.html">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/introduction/key_concepts.html">Key Concepts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/introduction/getting_started.html">Getting Started</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/installing.html">Installation</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Installation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="https://unstructured-io.github.io/unstructured/installation/full_installation.html#">Full Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/installation/docker.html">Docker Installation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/api.html">Unstructured API</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/bricks.html">Bricks</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Bricks</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/bricks/partition.html">Partitioning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/bricks/cleaning.html">Cleaning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/bricks/extracting.html">Extracting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/bricks/staging.html">Staging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/bricks/chunking.html">Chunking</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/upstream_connectors.html">Upstream Connectors</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of Upstream Connectors</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/upstream_connectors/airtable.html">Airtable</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/upstream_connectors/azure.html">Azure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/upstream_connectors/biomed.html">Biomed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/upstream_connectors/box.html">Box</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/upstream_connectors/confluence.html">Confluence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/upstream_connectors/delta_table.html">Delta Table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/upstream_connectors/discord.html">Discord</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/upstream_connectors/dropbox.html">Dropbox</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/upstream_connectors/github.html">Github</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/upstream_connectors/gitlab.html">Gitlab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/upstream_connectors/google_cloud_storage.html">Google Cloud Storage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/upstream_connectors/google_drive.html">Google Drive</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/upstream_connectors/jira.html">Jira</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/upstream_connectors/local_connector.html">Local</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/upstream_connectors/notion.html">Notion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/upstream_connectors/onedrive.html">One Drive</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/upstream_connectors/outlook.html">Outlook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/upstream_connectors/reddit.html">Reddit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/upstream_connectors/s3.html">S3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/upstream_connectors/salesforce.html">Salesforce</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/upstream_connectors/sharepoint.html">Sharepoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/upstream_connectors/slack.html">Slack</a></li>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/upstream_connectors/wikipedia.html">Wikipedia</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/metadata.html">Metadata</a></li>
+<li class="toctree-l1"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/integrations.html">Integrations</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/best_practices.html">Best Practices</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of Best Practices</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="https://unstructured-io.github.io/unstructured/best_practices/strategies.html">Strategies</a></li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="https://unstructured-io.github.io/unstructured/installation/full_installation.html#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto">
+                <use href="#svg-sun-half"></use>
+              </svg>
+              <svg class="theme-icon-when-dark">
+                <use href="#svg-moon"></use>
+              </svg>
+              <svg class="theme-icon-when-light">
+                <use href="#svg-sun"></use>
+              </svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg>
+                <use href="#svg-toc"></use>
+              </svg></i>
+          </label>
+        </div>
+        <div class="header-center">
+          <a href="https://unstructured-io.github.io/unstructured/index.html">
+            <div class="brand">
+            </div>
+          </a>
+        </div>
+        <article role="main">
+          <div class="social social--main" style="margin-top: 1em; display: flex; justify-content: right; gap: 8px">
+            <a href="https://join.slack.com/t/unstructuredw-kbe4326/shared_invite/zt-1x7cgo0pg-PTptXWylzPQF9xZolzCnwQ" class="button--primary" target="_blank">Join <span aria-label="slack" class="slack-icon"></span></a>
+            <div class="github-stars github-stars--top-page"><a class="--left" target="_blank" href="https://github.com/Unstructured-IO/unstructured"><svg width="19" height="19" viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M8.43359 0.0678272C4.05472 0.5578 0.532587 4.1836 0.0566223 8.59336C-0.419342 13.1991 2.15086 17.3149 6.05377 18.8828C6.33935 18.9808 6.62493 18.7848 6.62493 18.3928V16.8249C6.62493 16.8249 6.24416 16.9229 5.76819 16.9229C4.43549 16.9229 3.86434 15.747 3.76914 15.061C3.67395 14.669 3.48357 14.375 3.19799 14.081C2.91241 13.9831 2.81721 13.9831 2.81721 13.8851C2.81721 13.6891 3.10279 13.6891 3.19799 13.6891C3.76914 13.6891 4.24511 14.375 4.43549 14.669C4.91146 15.453 5.48261 15.649 5.76819 15.649C6.14896 15.649 6.43454 15.551 6.62493 15.453C6.72012 14.767 7.0057 14.081 7.57686 13.6891C5.38742 13.1991 3.76914 11.9252 3.76914 9.76929C3.76914 8.69135 4.24511 7.61341 4.91146 6.82945C4.81626 6.63346 4.72107 6.14349 4.72107 5.45753C4.72107 5.06555 4.72107 4.47758 5.00665 3.88962C5.00665 3.88962 6.33935 3.88962 7.67205 5.16355C8.14802 4.96756 8.81437 4.86956 9.48071 4.86956C10.1471 4.86956 10.8134 4.96756 11.3846 5.16355C12.6221 3.88962 14.05 3.88962 14.05 3.88962C14.2404 4.47758 14.2404 5.06555 14.2404 5.45753C14.2404 6.24149 14.1452 6.63346 14.05 6.82945C14.7163 7.61341 15.1923 8.59335 15.1923 9.76929C15.1923 11.9252 13.574 13.1991 11.3846 13.6891C11.9557 14.179 12.3365 15.061 12.3365 15.9429V18.4908C12.3365 18.7848 12.6221 19.0788 13.0029 18.9808C16.525 17.5109 19 13.9831 19 9.86728C19 3.98761 14.1452 -0.618135 8.43359 0.0678272Z" fill="white"></path>
+</svg> Star</a><a class="--right" target="_blank" href="https://github.com/Unstructured-IO/unstructured/stargazers">2,667</a></div>
+            <!-- Calendly badge widget begin -->
+          </div>
+          <section id="full-installation">
+<h1>Full Installation<a class="headerlink" href="https://unstructured-io.github.io/unstructured/installation/full_installation.html#full-installation" title="Permalink to this heading"></a></h1>
+<ol class="arabic">
+<li><p><strong>Installing Extras for Specific Document Types</strong>:
+If you’re processing document types beyond the basics, you can install the necessary extras:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"unstructured[docx,pptx]"</span>
+</pre></div>
+</div>
+<p>For a complete set of extras catering to every document type, use:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"unstructured[all-docs]"</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Note on Older Versions</strong>:
+For versions earlier than <cite>unstructured&lt;0.9.0</cite>, the following installation pattern was recommended:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"unstructured[local-inference]"</span>
+</pre></div>
+</div>
+<p>While “local-inference” remains supported in newer versions for backward compatibility, it might be deprecated in future releases. It’s advisable to transition to the “all-docs” extra for comprehensive support.</p>
+</li>
+</ol>
+<section id="installation-with-conda-on-windows" class="">
+<h2>Installation with <code class="docutils literal notranslate"><span class="pre">conda</span></code> on Windows<a class="headerlink" href="https://unstructured-io.github.io/unstructured/installation/full_installation.html#installation-with-conda-on-windows" title="Permalink to this heading"></a></h2>
+<p>You can install and run <code class="docutils literal notranslate"><span class="pre">unstructured</span></code> on Windows with <code class="docutils literal notranslate"><span class="pre">conda</span></code>, but the process
+involves a few extra steps. This section will help you get up and running.</p>
+<ul class="simple">
+<li><p>Install <a class="reference external" href="https://docs.conda.io/projects/conda/en/latest/user-guide/install/windows.html">Anaconda</a> on your Windows machine.</p></li>
+<li><p>Install Microsoft C++ Build Tools using the instructions in <a class="reference external" href="https://stackoverflow.com/questions/64261546/how-to-solve-error-microsoft-visual-c-14-0-or-greater-is-required-when-inst">this Stackoverflow post</a>. C++ build tools are required for the <code class="docutils literal notranslate"><span class="pre">pycocotools</span></code> dependency.</p></li>
+<li><p>Run <code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">env</span> <span class="pre">create</span> <span class="pre">-f</span> <span class="pre">environment.yml</span></code> using the <code class="docutils literal notranslate"><span class="pre">environment.yml</span></code> file in the <code class="docutils literal notranslate"><span class="pre">unstructured</span></code> repo to create a virtual environment. The environment will be named <code class="docutils literal notranslate"><span class="pre">unstructured</span></code>.</p></li>
+<li><p>Run <code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">activate</span> <span class="pre">unstructured</span></code> to activate the virtualenvironment.</p></li>
+<li><p>Run <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">unstructured</span></code> to install the <code class="docutils literal notranslate"><span class="pre">unstructured</span></code> library.</p></li>
+</ul>
+<section id="setting-up-unstructured-for-local-inference" class="">
+<h3>Setting up <code class="docutils literal notranslate"><span class="pre">unstructured</span></code> for local inference<a class="headerlink" href="https://unstructured-io.github.io/unstructured/installation/full_installation.html#setting-up-unstructured-for-local-inference" title="Permalink to this heading"></a></h3>
+<p>If you need to run model inferences locally, there are a few additional steps you need to
+take. The main challenge is installing <code class="docutils literal notranslate"><span class="pre">detectron2</span></code> for PDF layout parsing. <code class="docutils literal notranslate"><span class="pre">detectron2</span></code>
+does not officially support Windows, but it is possible to get it to install on Windows.
+The installation instructions are based on the instructions LayoutParser provides
+<a class="reference external" href="https://layout-parser.github.io/tutorials/installation#for-windows-users">here</a>.</p>
+<ul class="simple">
+<li><p>Run <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">pycocotools-windows</span></code> to install a Windows compatible version of <code class="docutils literal notranslate"><span class="pre">pycocotools</span></code>. Alternatively, you can run <code class="docutils literal notranslate"><span class="pre">pip3</span> <span class="pre">install</span> <span class="pre">"git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&amp;subdirectory=PythonAPI"</span></code> as outlined in <a class="reference external" href="https://github.com/cocodataset/cocoapi/issues/169#issuecomment-462528628">this GitHub issue</a>.</p></li>
+<li><p>Run <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">https://github.com/ivanpp/detectron2.git</span></code>, then <code class="docutils literal notranslate"><span class="pre">cd</span> <span class="pre">detectron2</span></code>, then <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-e</span> <span class="pre">.</span></code> to install a Windows compatible version of the <code class="docutils literal notranslate"><span class="pre">detectron2</span></code> library.</p></li>
+<li><p>Install the a Windows compatible version of <code class="docutils literal notranslate"><span class="pre">iopath</span></code> using the instructions outlined in <a class="reference external" href="https://github.com/Layout-Parser/layout-parser/issues/15#issuecomment-819546751">this GitHub issue</a>. First, run <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">https://github.com/facebookresearch/iopath</span> <span class="pre">--single-branch</span> <span class="pre">--branch</span> <span class="pre">v0.1.8</span></code>. Then on line 753 in <code class="docutils literal notranslate"><span class="pre">iopath/iopath/common/file_io.py</span></code> change <code class="docutils literal notranslate"><span class="pre">filename</span> <span class="pre">=</span> <span class="pre">path.split("/")[-1]</span></code> to <code class="docutils literal notranslate"><span class="pre">filename</span> <span class="pre">=</span> <span class="pre">parsed_url.path.split("/")[-1]</span></code>. After that, navigate to the <code class="docutils literal notranslate"><span class="pre">iopath</span></code> directory and run <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-e</span> <span class="pre">.</span></code>.</p></li>
+<li><p>Run <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">unstructured[local-inference]</span></code>. This will install the <code class="docutils literal notranslate"><span class="pre">unstructured_inference</span></code> dependency.</p></li>
+</ul>
+<p>At this point, you can verify the installation by running the following from the root directory of the <code class="docutils literal notranslate"><span class="pre">unstructured</span></code> <a class="reference external" href="https://github.com/Unstructured-IO/unstructured">repo</a>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">unstructured.partition.pdf</span> <span class="kn">import</span> <span class="n">partition_pdf</span>
+
+<span class="n">partition_pdf</span><span class="p">(</span><span class="s2">"example-docs/layout-parser-paper-fast.pdf"</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="installing-paddleocr" class="">
+<h3>Installing PaddleOCR<a class="headerlink" href="https://unstructured-io.github.io/unstructured/installation/full_installation.html#installing-paddleocr" title="Permalink to this heading"></a></h3>
+<p>PaddleOCR is another package that is helpful to use in conjunction with <code class="docutils literal notranslate"><span class="pre">unstructured</span></code>.
+You can use the following steps to install <code class="docutils literal notranslate"><span class="pre">paddleocr</span></code> in your <code class="docutils literal notranslate"><span class="pre">unstructured</span></code> <code class="docutils literal notranslate"><span class="pre">conda</span></code>
+environment.</p>
+<ul class="simple">
+<li><p>Run <code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">install</span> <span class="pre">-c</span> <span class="pre">esri</span> <span class="pre">paddleocr</span></code></p></li>
+<li><p>If you have the Windows version of <code class="docutils literal notranslate"><span class="pre">detectron2</span></code> cloned and installed locally, change the name of <code class="docutils literal notranslate"><span class="pre">detectron2/tools</span></code> to <code class="docutils literal notranslate"><span class="pre">detectron2/detectron2_tools</span></code>. Otherwise, you will hit the module name conflict error described in <a class="reference external" href="https://github.com/PaddlePaddle/PaddleOCR/issues/1024">this issue</a>.</p></li>
+<li><p>Set the environment variable <code class="docutils literal notranslate"><span class="pre">KMP_DUPLICATE_LIB_OK</span></code> to <code class="docutils literal notranslate"><span class="pre">"TRUE"</span></code>. This prevents the <code class="docutils literal notranslate"><span class="pre">libiomp5md.dll</span></code> linking issue described <a class="reference external" href="https://github.com/PaddlePaddle/PaddleOCR/issues/4613">in this issue on GitHub</a>.</p></li>
+</ul>
+<p>At this point, you can verify the installation using the following commands. Choose a
+<code class="docutils literal notranslate"><span class="pre">.jpg</span></code> image that contains text.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span>
+<span class="kn">from</span> <span class="nn">paddleocr</span> <span class="kn">import</span> <span class="n">PaddleOCR</span>
+
+<span class="n">filename</span> <span class="o">=</span> <span class="s2">"path/to/my/image.jpg"</span>
+<span class="n">img</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filename</span><span class="p">))</span>
+<span class="n">ocr</span> <span class="o">=</span> <span class="n">PaddleOCR</span><span class="p">(</span><span class="n">lang</span><span class="o">=</span><span class="s2">"en"</span><span class="p">,</span> <span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">show_log</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">ocr</span><span class="o">.</span><span class="n">ocr</span><span class="p">(</span><span class="n">img</span><span class="o">=</span><span class="n">img</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="logging" class="">
+<h2>Logging<a class="headerlink" href="https://unstructured-io.github.io/unstructured/installation/full_installation.html#logging" title="Permalink to this heading"></a></h2>
+<p>You can set the logging level for the package with the <code class="docutils literal notranslate"><span class="pre">LOG_LEVEL</span></code> environment variable.
+By default, the log level is set to <code class="docutils literal notranslate"><span class="pre">WARNING</span></code>. For debugging, consider setting the log
+level to <code class="docutils literal notranslate"><span class="pre">INFO</span></code> or <code class="docutils literal notranslate"><span class="pre">DEBUG</span></code>.</p>
+</section>
+<section id="extra-dependencies" class="">
+<h2>Extra Dependencies<a class="headerlink" href="https://unstructured-io.github.io/unstructured/installation/full_installation.html#extra-dependencies" title="Permalink to this heading"></a></h2>
+<section id="filetype-detection" class="">
+<h3>Filetype Detection<a class="headerlink" href="https://unstructured-io.github.io/unstructured/installation/full_installation.html#filetype-detection" title="Permalink to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">filetype</span></code> module in <code class="docutils literal notranslate"><span class="pre">unstructured</span></code> uses <code class="docutils literal notranslate"><span class="pre">libmagic</span></code> to detect MIME types. For
+this to work, you’ll need <code class="docutils literal notranslate"><span class="pre">libmagic</span></code> installed on your computer. On a Mac, you can run:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>brew<span class="w"> </span>install<span class="w"> </span>libmagic
+</pre></div>
+</div>
+<p>One Debian, run:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>libmagic-dev
+</pre></div>
+</div>
+<p>If you are on Windows using <code class="docutils literal notranslate"><span class="pre">conda</span></code>, run:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>conda<span class="w"> </span>install<span class="w"> </span>-c<span class="w"> </span>conda-forge<span class="w"> </span>libmagic
+</pre></div>
+</div>
+</section>
+<section id="xml-html-dependencies">
+<h3>XML/HTML Dependencies<a class="headerlink" href="https://unstructured-io.github.io/unstructured/installation/full_installation.html#xml-html-dependencies" title="Permalink to this heading"></a></h3>
+<p>For XML and HTML parsing, you’ll need <code class="docutils literal notranslate"><span class="pre">libxml2</span></code> and <code class="docutils literal notranslate"><span class="pre">libxlst</span></code> installed. On a Mac, you can do
+that with:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>brew<span class="w"> </span>install<span class="w"> </span>libxml2
+<span class="gp">$ </span>brew<span class="w"> </span>install<span class="w"> </span>libxslt
+</pre></div>
+</div>
+</section>
+<section id="huggingface-dependencies" class="">
+<h3>Huggingface Dependencies<a class="headerlink" href="https://unstructured-io.github.io/unstructured/installation/full_installation.html#huggingface-dependencies" title="Permalink to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">transformers</span></code> requires the Rust compiler to be present on your system in
+order to properly <code class="docutils literal notranslate"><span class="pre">pip</span></code> install. If a Rust compiler is not available on your system,
+you can run the following command to install it:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>curl<span class="w"> </span>--proto<span class="w"> </span><span class="s1">'=https'</span><span class="w"> </span>--tlsv1.2<span class="w"> </span>-sSf<span class="w"> </span>https://sh.rustup.rs<span class="w"> </span><span class="p">|</span><span class="w"> </span>sh
+</pre></div>
+</div>
+<p>Additionally, some tokenizers in the <code class="docutils literal notranslate"><span class="pre">transformers</span></code> library required the <code class="docutils literal notranslate"><span class="pre">sentencepiece</span></code>
+library. This is not included as an <code class="docutils literal notranslate"><span class="pre">unstructured</span></code> dependency because it only applies
+to some tokenizers. See the
+<a class="reference external" href="https://github.com/google/sentencepiece#installation">sentencepiece install instructions</a> for
+information on how to install <code class="docutils literal notranslate"><span class="pre">sentencepiece</span></code> if your tokenizer requires it.</p>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="https://unstructured-io.github.io/unstructured/installation/docker.html">
+            <div class="page-info">
+              <div class="context">
+                <span>Next</span>
+              </div>
+              <div class="title">Docker Installation</div>
+            </div>
+          </a>
+          <a class="prev-page" href="https://unstructured-io.github.io/unstructured/installing.html">
+            <div class="page-info">
+              <div class="context">
+                <span>Previous</span>
+              </div>
+              
+              <div class="title">Installation</div>
+              
+            </div>
+          </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+              Copyright © 2022-2023, Unstructured Technologies
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me/">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            Contents
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="https://unstructured-io.github.io/unstructured/installation/full_installation.html#">Full Installation</a><ul>
+<li class=""><a class="reference internal" href="https://unstructured-io.github.io/unstructured/installation/full_installation.html#installation-with-conda-on-windows">Installation with <code class="docutils literal notranslate"><span class="pre">conda</span></code> on Windows</a><ul>
+<li class=""><a class="reference internal" href="https://unstructured-io.github.io/unstructured/installation/full_installation.html#setting-up-unstructured-for-local-inference">Setting up <code class="docutils literal notranslate"><span class="pre">unstructured</span></code> for local inference</a></li>
+<li class=""><a class="reference internal" href="https://unstructured-io.github.io/unstructured/installation/full_installation.html#installing-paddleocr">Installing PaddleOCR</a></li>
+</ul>
+</li>
+<li class=""><a class="reference internal" href="https://unstructured-io.github.io/unstructured/installation/full_installation.html#logging">Logging</a></li>
+<li class=""><a class="reference internal" href="https://unstructured-io.github.io/unstructured/installation/full_installation.html#extra-dependencies">Extra Dependencies</a><ul>
+<li class=""><a class="reference internal" href="https://unstructured-io.github.io/unstructured/installation/full_installation.html#filetype-detection">Filetype Detection</a></li>
+<li><a class="reference internal" href="https://unstructured-io.github.io/unstructured/installation/full_installation.html#xml-html-dependencies">XML/HTML Dependencies</a></li>
+<li class=""><a class="reference internal" href="https://unstructured-io.github.io/unstructured/installation/full_installation.html#huggingface-dependencies">Huggingface Dependencies</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div>
+
+</body></html>

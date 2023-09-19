@@ -1,0 +1,3026 @@
+{
+  "#comment": [
+    "",
+    ""
+  ],
+  "html": {
+    "@class": "",
+    "@lang": "en",
+    "head": {
+      "meta": [
+        {
+          "@http-equiv": "Content-Type",
+          "@content": "text/html; charset=UTF-8"
+        },
+        {
+          "@name": "viewport",
+          "@content": "width=device-width,initial-scale=1"
+        },
+        {
+          "@name": "color-scheme",
+          "@content": "light dark"
+        },
+        {
+          "@name": "generator",
+          "@content": "Docutils 0.18.1: http://docutils.sourceforge.net/"
+        },
+        {
+          "@name": "generator",
+          "@content": "sphinx-6.2.1, furo 2023.07.26"
+        }
+      ],
+      "link": [
+        {
+          "@rel": "index",
+          "@title": "Index",
+          "@href": "https://unstructured-io.github.io/unstructured/genindex.html"
+        },
+        {
+          "@rel": "search",
+          "@title": "Search",
+          "@href": "https://unstructured-io.github.io/unstructured/search.html"
+        },
+        {
+          "@rel": "next",
+          "@title": "Docker Installation",
+          "@href": "https://unstructured-io.github.io/unstructured/installation/docker.html"
+        },
+        {
+          "@rel": "prev",
+          "@title": "Installation",
+          "@href": "https://unstructured-io.github.io/unstructured/installing.html"
+        },
+        {
+          "@rel": "shortcut icon",
+          "@href": "https://unstructured-io.github.io/unstructured/_static/unstructured_small.png"
+        },
+        {
+          "@rel": "stylesheet",
+          "@type": "text/css",
+          "@href": "./test-html_files/pygments.css"
+        },
+        {
+          "@rel": "stylesheet",
+          "@type": "text/css",
+          "@href": "./test-html_files/furo.css"
+        },
+        {
+          "@rel": "stylesheet",
+          "@type": "text/css",
+          "@href": "./test-html_files/tabs.css"
+        },
+        {
+          "@rel": "stylesheet",
+          "@type": "text/css",
+          "@href": "./test-html_files/furo-extensions.css"
+        },
+        {
+          "@rel": "stylesheet",
+          "@type": "text/css",
+          "@href": "./test-html_files/unstructured.css"
+        }
+      ],
+      "title": "Full Installation - Unstructured 0.10.14 documentation",
+      "style": "body {\n    --color-code-background: #f8f8f8;\n  --color-code-foreground: black;\n  --color-sidebar-background: #FFFFFF;\n  --color-sidebar-background-border: #e9eaed;\n  --color-sidebar-caption-text: #484848;\n  --color-sidebar-link-text: #484848;\n  --color-sidebar-link-text--top-level: #484848;\n  --color-sidebar-item-background--current: transparent;\n  --color-sidebar-item-background--hover: transparent;\n  --color-sidebar-item-expander-background: transparent;\n  --color-sidebar-item-expander-background--hover: transparent;\n  --color-sidebar-search-text: #484848;\n  --color-sidebar-search-background: #FFFFFF;\n  --color-sidebar-search-background--focus: #FFFFFF;\n  --color-sidebar-search-border: #b9b9b9;\n  --color-sidebar-search-border-focus: #484848;\n  --color-sidebar-current-text: #ff675f;\n  --color-content-foreground: #484848;\n  --color-toc-title: #212529;\n  --color-toc-item-text--hover: #484848;\n  --color-toc-item-text--active: #484848;\n  --color-table-header: #FDDACA;\n  --color-table-bg: #FFE5D9;\n  --color-table-row: #FEEDE6;\n  --color-link: #ff675f;\n  --color-link--hover: #ff675f;\n  --content-padding: 5em;\n  --content-padding--small: 2em;\n  --color-search-icon: #484848;\n  --color-search-placeholder: #484848;\n  --color-literal: #FF675F;\n  --toc-spacing-vertical: 3em;\n  --color-page-info: #646776;\n  --toc-item-spacing-vertical: 1em;\n  --color-img-background: #ffffff;\n  --sidebar-tree-space-above: 0;\n  --sidebar-caption-space-above: 0;\n  \n  }\n  @media not print {\n    body[data-theme=\"dark\"] {\n      --color-code-background: #202020;\n  --color-code-foreground: #d0d0d0;\n  --color-sidebar-background: #131416;\n  --color-sidebar-background-border: #303335;\n  --color-sidebar-caption-text: #FFFFFF;\n  --color-sidebar-link-text: #FFFFFF;\n  --color-sidebar-link-text--top-level: #FFFFFF;\n  --color-sidebar-item-background--current: none;\n  --color-sidebar-item-background--hover: none;\n  --color-sidebar-item-expander-background: transparent;\n  --color-sidebar-item-expander-background--hover: transparent;\n  --color-sidebar-search-text: #FFFFFF;\n  --color-sidebar-search-background: #131416;\n  --color-sidebar-search-background--focus: transparent;\n  --color-sidebar-search-border: #FFFFFF;\n  --color-sidebar-search-border-focus: #FFFFFF;\n  --color-sidebar-search-foreground: #FFFFFF;\n  --color-sidebar-current-text: #FFC2BF;\n  --color-content-foreground: #FFFFFF;\n  --color-toc-title: #FFFFFF;\n  --color-toc-item-text--hover: #FFFFFF;\n  --color-toc-item-text--active: #FFFFFF;\n  --color-table-header: #131416;\n  --color-table-bg: #232427;\n  --color-table-row: #444444;\n  --color-link: #FFC2BF;\n  --color-link--hover: #FFC2BF;\n  --color-search-icon: #FFFFFF;\n  --color-search-placeholder: #FFFFFF;\n  --color-literal: #F8C0A7;\n  --color-page-info: #FFFFFF;\n  --color-img-background: #131416;\n  --sidebar-tree-space-above: 0;\n  --sidebar-caption-space-above: 0;\n  \n    }\n    @media (prefers-color-scheme: dark) {\n      body:not([data-theme=\"light\"]) {\n        --color-code-background: #202020;\n  --color-code-foreground: #d0d0d0;\n  --color-sidebar-background: #131416;\n  --color-sidebar-background-border: #303335;\n  --color-sidebar-caption-text: #FFFFFF;\n  --color-sidebar-link-text: #FFFFFF;\n  --color-sidebar-link-text--top-level: #FFFFFF;\n  --color-sidebar-item-background--current: none;\n  --color-sidebar-item-background--hover: none;\n  --color-sidebar-item-expander-background: transparent;\n  --color-sidebar-item-expander-background--hover: transparent;\n  --color-sidebar-search-text: #FFFFFF;\n  --color-sidebar-search-background: #131416;\n  --color-sidebar-search-background--focus: transparent;\n  --color-sidebar-search-border: #FFFFFF;\n  --color-sidebar-search-border-focus: #FFFFFF;\n  --color-sidebar-search-foreground: #FFFFFF;\n  --color-sidebar-current-text: #FFC2BF;\n  --color-content-foreground: #FFFFFF;\n  --color-toc-title: #FFFFFF;\n  --color-toc-item-text--hover: #FFFFFF;\n  --color-toc-item-text--active: #FFFFFF;\n  --color-table-header: #131416;\n  --color-table-bg: #232427;\n  --color-table-row: #444444;\n  --color-link: #FFC2BF;\n  --color-link--hover: #FFC2BF;\n  --color-search-icon: #FFFFFF;\n  --color-search-placeholder: #FFFFFF;\n  --color-literal: #F8C0A7;\n  --color-page-info: #FFFFFF;\n  --color-img-background: #131416;\n  --sidebar-tree-space-above: 0;\n  --sidebar-caption-space-above: 0;\n  \n      }\n    }\n  }",
+      "script": [
+        {
+          "@src": "./test-html_files/jquery.js"
+        },
+        {
+          "@src": "./test-html_files/_sphinx_javascript_frameworks_compat.js"
+        },
+        {
+          "@data-url_root": "../",
+          "@id": "documentation_options",
+          "@src": "./test-html_files/documentation_options.js"
+        },
+        {
+          "@src": "./test-html_files/doctools.js"
+        },
+        {
+          "@src": "./test-html_files/sphinx_highlight.js"
+        },
+        {
+          "@src": "./test-html_files/furo.js"
+        },
+        {
+          "@src": "./test-html_files/githubStargazers.js"
+        },
+        {
+          "@src": "./test-html_files/sidebarScrollPosition.js"
+        }
+      ]
+    },
+    "body": {
+      "@data-theme": "auto",
+      "script": "document.body.dataset.theme = localStorage.getItem(\"theme\") || \"auto\";",
+      "svg": {
+        "@xmlns": "http://www.w3.org/2000/svg",
+        "@style": "display: none;",
+        "symbol": [
+          {
+            "@id": "svg-toc",
+            "@viewbox": "0 0 24 24",
+            "title": "Contents",
+            "svg": {
+              "@stroke": "currentColor",
+              "@fill": "currentColor",
+              "@stroke-width": "0",
+              "@viewbox": "0 0 1024 1024",
+              "path": {
+                "@d": "M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"
+              }
+            }
+          },
+          {
+            "@id": "svg-menu",
+            "@viewbox": "0 0 24 24",
+            "title": "Menu",
+            "svg": {
+              "@xmlns": "http://www.w3.org/2000/svg",
+              "@viewbox": "0 0 24 24",
+              "@fill": "none",
+              "@stroke": "currentColor",
+              "@stroke-width": "2",
+              "@stroke-linecap": "round",
+              "@stroke-linejoin": "round",
+              "@class": "feather-menu",
+              "line": [
+                {
+                  "@x1": "3",
+                  "@y1": "12",
+                  "@x2": "21",
+                  "@y2": "12"
+                },
+                {
+                  "@x1": "3",
+                  "@y1": "6",
+                  "@x2": "21",
+                  "@y2": "6"
+                },
+                {
+                  "@x1": "3",
+                  "@y1": "18",
+                  "@x2": "21",
+                  "@y2": "18"
+                }
+              ]
+            }
+          },
+          {
+            "@id": "svg-arrow-right",
+            "@viewbox": "0 0 24 24",
+            "title": "Expand",
+            "svg": {
+              "@xmlns": "http://www.w3.org/2000/svg",
+              "@viewbox": "0 0 24 24",
+              "@fill": "none",
+              "@stroke": "currentColor",
+              "@stroke-width": "2",
+              "@stroke-linecap": "round",
+              "@stroke-linejoin": "round",
+              "@class": "feather-chevron-right",
+              "polyline": {
+                "@points": "9 18 15 12 9 6"
+              }
+            }
+          },
+          {
+            "@id": "svg-sun",
+            "@viewbox": "0 0 24 24",
+            "title": "Light mode",
+            "svg": {
+              "@xmlns": "http://www.w3.org/2000/svg",
+              "@viewbox": "0 0 24 24",
+              "@fill": "none",
+              "@stroke": "currentColor",
+              "@stroke-width": "1.5",
+              "@stroke-linecap": "round",
+              "@stroke-linejoin": "round",
+              "@class": "feather-sun",
+              "circle": {
+                "@cx": "12",
+                "@cy": "12",
+                "@r": "5"
+              },
+              "line": [
+                {
+                  "@x1": "12",
+                  "@y1": "1",
+                  "@x2": "12",
+                  "@y2": "3"
+                },
+                {
+                  "@x1": "12",
+                  "@y1": "21",
+                  "@x2": "12",
+                  "@y2": "23"
+                },
+                {
+                  "@x1": "4.22",
+                  "@y1": "4.22",
+                  "@x2": "5.64",
+                  "@y2": "5.64"
+                },
+                {
+                  "@x1": "18.36",
+                  "@y1": "18.36",
+                  "@x2": "19.78",
+                  "@y2": "19.78"
+                },
+                {
+                  "@x1": "1",
+                  "@y1": "12",
+                  "@x2": "3",
+                  "@y2": "12"
+                },
+                {
+                  "@x1": "21",
+                  "@y1": "12",
+                  "@x2": "23",
+                  "@y2": "12"
+                },
+                {
+                  "@x1": "4.22",
+                  "@y1": "19.78",
+                  "@x2": "5.64",
+                  "@y2": "18.36"
+                },
+                {
+                  "@x1": "18.36",
+                  "@y1": "5.64",
+                  "@x2": "19.78",
+                  "@y2": "4.22"
+                }
+              ]
+            }
+          },
+          {
+            "@id": "svg-moon",
+            "@viewbox": "0 0 24 24",
+            "title": "Dark mode",
+            "svg": {
+              "@xmlns": "http://www.w3.org/2000/svg",
+              "@viewbox": "0 0 24 24",
+              "@fill": "none",
+              "@stroke": "currentColor",
+              "@stroke-width": "1.5",
+              "@stroke-linecap": "round",
+              "@stroke-linejoin": "round",
+              "@class": "icon-tabler-moon",
+              "path": [
+                {
+                  "@stroke": "none",
+                  "@d": "M0 0h24v24H0z",
+                  "@fill": "none"
+                },
+                {
+                  "@d": "M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z"
+                }
+              ]
+            }
+          },
+          {
+            "@id": "svg-sun-half",
+            "@viewbox": "0 0 24 24",
+            "title": "Auto light/dark mode",
+            "svg": {
+              "@xmlns": "http://www.w3.org/2000/svg",
+              "@viewbox": "0 0 24 24",
+              "@fill": "none",
+              "@stroke": "currentColor",
+              "@stroke-width": "1.5",
+              "@stroke-linecap": "round",
+              "@stroke-linejoin": "round",
+              "@class": "icon-tabler-shadow",
+              "path": [
+                {
+                  "@stroke": "none",
+                  "@d": "M0 0h24v24H0z",
+                  "@fill": "none"
+                },
+                {
+                  "@d": "M13 12h5"
+                },
+                {
+                  "@d": "M13 15h4"
+                },
+                {
+                  "@d": "M13 18h1"
+                },
+                {
+                  "@d": "M13 9h4"
+                },
+                {
+                  "@d": "M13 6h1"
+                }
+              ],
+              "circle": {
+                "@cx": "12",
+                "@cy": "12",
+                "@r": "9"
+              }
+            }
+          }
+        ]
+      },
+      "input": [
+        {
+          "@type": "checkbox",
+          "@class": "sidebar-toggle",
+          "@name": "__navigation",
+          "@id": "__navigation"
+        },
+        {
+          "@type": "checkbox",
+          "@class": "sidebar-toggle",
+          "@name": "__toc",
+          "@id": "__toc"
+        },
+        {
+          "@type": "checkbox",
+          "@class": "sidebar-toggle",
+          "@name": "__search",
+          "@id": "__search"
+        }
+      ],
+      "label": [
+        {
+          "@class": "overlay sidebar-overlay",
+          "@for": "__navigation",
+          "div": {
+            "@class": "visually-hidden",
+            "#text": "Hide navigation sidebar"
+          }
+        },
+        {
+          "@class": "overlay toc-overlay",
+          "@for": "__toc",
+          "div": {
+            "@class": "visually-hidden",
+            "#text": "Hide table of contents sidebar"
+          }
+        },
+        {
+          "@class": "overlay search-overlay",
+          "@for": "__search",
+          "div": {
+            "@class": "visually-hidden",
+            "#text": "Hide search"
+          }
+        }
+      ],
+      "div": {
+        "@class": "page",
+        "header": {
+          "@class": "mobile-header scrolled",
+          "div": [
+            {
+              "@class": "header-left",
+              "label": {
+                "@class": "nav-overlay-icon",
+                "@for": "__navigation",
+                "div": {
+                  "@class": "visually-hidden",
+                  "#text": "Toggle site navigation sidebar"
+                },
+                "i": {
+                  "@class": "icon",
+                  "svg": {
+                    "use": {
+                      "@href": "#svg-menu"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "@class": "header-center",
+              "a": {
+                "@href": "https://unstructured-io.github.io/unstructured/index.html",
+                "div": {
+                  "@class": "brand",
+                  "img": [
+                    {
+                      "@class": "header-logo only-light",
+                      "@src": "./test-html_files/logo-light-mode.svg",
+                      "@alt": "Light Logo"
+                    },
+                    {
+                      "@class": "header-logo only-dark",
+                      "@src": "./test-html_files/logo-dark-mode.svg",
+                      "@alt": "Dark Logo"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "@class": "header-right",
+              "label": {
+                "@class": "search-icon",
+                "@for": "__search",
+                "div": {
+                  "@class": "visually-hidden",
+                  "#text": "Toggle search"
+                }
+              },
+              "#comment": ""
+            }
+          ]
+        },
+        "div": [
+          {
+            "@class": "header__search",
+            "form": {
+              "@class": "header__search__container",
+              "@method": "get",
+              "@action": "https://unstructured-io.github.io/unstructured/search.html",
+              "@role": "search",
+              "input": [
+                {
+                  "@class": "header__search__input",
+                  "@placeholder": "Search",
+                  "@name": "q",
+                  "@aria-label": " Search"
+                },
+                {
+                  "@type": "hidden",
+                  "@name": "check_keywords",
+                  "@value": "yes"
+                },
+                {
+                  "@type": "hidden",
+                  "@name": "area",
+                  "@value": "default"
+                }
+              ],
+              "label": {
+                "@class": "close-icon",
+                "@for": "__search",
+                "div": {
+                  "@class": "visually-hidden",
+                  "#text": "Hide search"
+                }
+              }
+            },
+            "div": {
+              "@id": "searchbox"
+            }
+          },
+          {
+            "@class": "main",
+            "div": {
+              "@class": "content",
+              "div": {
+                "@class": "article-container",
+                "a": {
+                  "@href": "https://unstructured-io.github.io/unstructured/installation/full_installation.html#",
+                  "@class": "back-to-top muted-link",
+                  "svg": {
+                    "@xmlns": "http://www.w3.org/2000/svg",
+                    "@viewbox": "0 0 24 24",
+                    "path": {
+                      "@d": "M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"
+                    }
+                  },
+                  "span": "Back to top"
+                },
+                "div": [
+                  {
+                    "@class": "content-icon-container",
+                    "div": {
+                      "@class": "theme-toggle-container theme-toggle-content",
+                      "button": {
+                        "@class": "theme-toggle",
+                        "div": {
+                          "@class": "visually-hidden",
+                          "#text": "Toggle Light / Dark / Auto color theme"
+                        },
+                        "svg": [
+                          {
+                            "@class": "theme-icon-when-auto",
+                            "use": {
+                              "@href": "#svg-sun-half"
+                            }
+                          },
+                          {
+                            "@class": "theme-icon-when-dark",
+                            "use": {
+                              "@href": "#svg-moon"
+                            }
+                          },
+                          {
+                            "@class": "theme-icon-when-light",
+                            "use": {
+                              "@href": "#svg-sun"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "label": {
+                      "@class": "toc-overlay-icon toc-content-icon",
+                      "@for": "__toc",
+                      "div": {
+                        "@class": "visually-hidden",
+                        "#text": "Toggle table of contents sidebar"
+                      },
+                      "i": {
+                        "@class": "icon",
+                        "svg": {
+                          "use": {
+                            "@href": "#svg-toc"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "@class": "header-center",
+                    "a": {
+                      "@href": "https://unstructured-io.github.io/unstructured/index.html",
+                      "div": {
+                        "@class": "brand"
+                      }
+                    }
+                  }
+                ],
+                "article": {
+                  "@role": "main",
+                  "div": {
+                    "@class": "social social--main",
+                    "@style": "margin-top: 1em; display: flex; justify-content: right; gap: 8px",
+                    "a": {
+                      "@href": "https://join.slack.com/t/unstructuredw-kbe4326/shared_invite/zt-1x7cgo0pg-PTptXWylzPQF9xZolzCnwQ",
+                      "@class": "button--primary",
+                      "@target": "_blank",
+                      "span": {
+                        "@aria-label": "slack",
+                        "@class": "slack-icon"
+                      },
+                      "#text": "Join"
+                    },
+                    "div": {
+                      "@class": "github-stars github-stars--top-page",
+                      "a": [
+                        {
+                          "@class": "--left",
+                          "@target": "_blank",
+                          "@href": "https://github.com/Unstructured-IO/unstructured",
+                          "svg": {
+                            "@width": "19",
+                            "@height": "19",
+                            "@viewbox": "0 0 19 19",
+                            "@fill": "none",
+                            "@xmlns": "http://www.w3.org/2000/svg",
+                            "path": {
+                              "@d": "M8.43359 0.0678272C4.05472 0.5578 0.532587 4.1836 0.0566223 8.59336C-0.419342 13.1991 2.15086 17.3149 6.05377 18.8828C6.33935 18.9808 6.62493 18.7848 6.62493 18.3928V16.8249C6.62493 16.8249 6.24416 16.9229 5.76819 16.9229C4.43549 16.9229 3.86434 15.747 3.76914 15.061C3.67395 14.669 3.48357 14.375 3.19799 14.081C2.91241 13.9831 2.81721 13.9831 2.81721 13.8851C2.81721 13.6891 3.10279 13.6891 3.19799 13.6891C3.76914 13.6891 4.24511 14.375 4.43549 14.669C4.91146 15.453 5.48261 15.649 5.76819 15.649C6.14896 15.649 6.43454 15.551 6.62493 15.453C6.72012 14.767 7.0057 14.081 7.57686 13.6891C5.38742 13.1991 3.76914 11.9252 3.76914 9.76929C3.76914 8.69135 4.24511 7.61341 4.91146 6.82945C4.81626 6.63346 4.72107 6.14349 4.72107 5.45753C4.72107 5.06555 4.72107 4.47758 5.00665 3.88962C5.00665 3.88962 6.33935 3.88962 7.67205 5.16355C8.14802 4.96756 8.81437 4.86956 9.48071 4.86956C10.1471 4.86956 10.8134 4.96756 11.3846 5.16355C12.6221 3.88962 14.05 3.88962 14.05 3.88962C14.2404 4.47758 14.2404 5.06555 14.2404 5.45753C14.2404 6.24149 14.1452 6.63346 14.05 6.82945C14.7163 7.61341 15.1923 8.59335 15.1923 9.76929C15.1923 11.9252 13.574 13.1991 11.3846 13.6891C11.9557 14.179 12.3365 15.061 12.3365 15.9429V18.4908C12.3365 18.7848 12.6221 19.0788 13.0029 18.9808C16.525 17.5109 19 13.9831 19 9.86728C19 3.98761 14.1452 -0.618135 8.43359 0.0678272Z",
+                              "@fill": "white"
+                            }
+                          },
+                          "#text": "Star"
+                        },
+                        {
+                          "@class": "--right",
+                          "@target": "_blank",
+                          "@href": "https://github.com/Unstructured-IO/unstructured/stargazers",
+                          "#text": "2,667"
+                        }
+                      ]
+                    },
+                    "#comment": ""
+                  },
+                  "section": {
+                    "@id": "full-installation",
+                    "h1": {
+                      "a": {
+                        "@class": "headerlink",
+                        "@href": "https://unstructured-io.github.io/unstructured/installation/full_installation.html#full-installation",
+                        "@title": "Permalink to this heading",
+                        "#text": ""
+                      },
+                      "#text": "Full Installation"
+                    },
+                    "ol": {
+                      "@class": "arabic",
+                      "li": [
+                        {
+                          "p": [
+                            {
+                              "strong": "Installing Extras for Specific Document Types",
+                              "#text": ":\nIf you’re processing document types beyond the basics, you can install the necessary extras:"
+                            },
+                            "For a complete set of extras catering to every document type, use:"
+                          ],
+                          "div": [
+                            {
+                              "@class": "highlight-bash notranslate",
+                              "div": {
+                                "@class": "highlight",
+                                "pre": {
+                                  "span": [
+                                    "",
+                                    {
+                                      "@class": "w"
+                                    },
+                                    {
+                                      "@class": "w"
+                                    },
+                                    {
+                                      "@class": "s2",
+                                      "#text": "\"unstructured[docx,pptx]\""
+                                    }
+                                  ],
+                                  "#text": [
+                                    "pip",
+                                    "install"
+                                  ]
+                                }
+                              }
+                            },
+                            {
+                              "@class": "highlight-bash notranslate",
+                              "div": {
+                                "@class": "highlight",
+                                "pre": {
+                                  "span": [
+                                    "",
+                                    {
+                                      "@class": "w"
+                                    },
+                                    {
+                                      "@class": "w"
+                                    },
+                                    {
+                                      "@class": "s2",
+                                      "#text": "\"unstructured[all-docs]\""
+                                    }
+                                  ],
+                                  "#text": [
+                                    "pip",
+                                    "install"
+                                  ]
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "p": [
+                            {
+                              "strong": "Note on Older Versions",
+                              "cite": "unstructured<0.9.0",
+                              "#text": [
+                                ":\nFor versions earlier than",
+                                ", the following installation pattern was recommended:"
+                              ]
+                            },
+                            "While “local-inference” remains supported in newer versions for backward compatibility, it might be deprecated in future releases. It’s advisable to transition to the “all-docs” extra for comprehensive support."
+                          ],
+                          "div": {
+                            "@class": "highlight-bash notranslate",
+                            "div": {
+                              "@class": "highlight",
+                              "pre": {
+                                "span": [
+                                  "",
+                                  {
+                                    "@class": "w"
+                                  },
+                                  {
+                                    "@class": "w"
+                                  },
+                                  {
+                                    "@class": "s2",
+                                    "#text": "\"unstructured[local-inference]\""
+                                  }
+                                ],
+                                "#text": [
+                                  "pip",
+                                  "install"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "section": [
+                      {
+                        "@id": "installation-with-conda-on-windows",
+                        "@class": "",
+                        "h2": {
+                          "code": {
+                            "@class": "docutils literal notranslate",
+                            "span": {
+                              "@class": "pre",
+                              "#text": "conda"
+                            }
+                          },
+                          "a": {
+                            "@class": "headerlink",
+                            "@href": "https://unstructured-io.github.io/unstructured/installation/full_installation.html#installation-with-conda-on-windows",
+                            "@title": "Permalink to this heading",
+                            "#text": ""
+                          },
+                          "#text": [
+                            "Installation with",
+                            "on Windows"
+                          ]
+                        },
+                        "p": {
+                          "code": [
+                            {
+                              "@class": "docutils literal notranslate",
+                              "span": {
+                                "@class": "pre",
+                                "#text": "unstructured"
+                              }
+                            },
+                            {
+                              "@class": "docutils literal notranslate",
+                              "span": {
+                                "@class": "pre",
+                                "#text": "conda"
+                              }
+                            }
+                          ],
+                          "#text": [
+                            "You can install and run",
+                            "on Windows with",
+                            ", but the process\ninvolves a few extra steps. This section will help you get up and running."
+                          ]
+                        },
+                        "ul": {
+                          "@class": "simple",
+                          "li": [
+                            {
+                              "p": {
+                                "a": {
+                                  "@class": "reference external",
+                                  "@href": "https://docs.conda.io/projects/conda/en/latest/user-guide/install/windows.html",
+                                  "#text": "Anaconda"
+                                },
+                                "#text": [
+                                  "Install",
+                                  "on your Windows machine."
+                                ]
+                              }
+                            },
+                            {
+                              "p": {
+                                "a": {
+                                  "@class": "reference external",
+                                  "@href": "https://stackoverflow.com/questions/64261546/how-to-solve-error-microsoft-visual-c-14-0-or-greater-is-required-when-inst",
+                                  "#text": "this Stackoverflow post"
+                                },
+                                "code": {
+                                  "@class": "docutils literal notranslate",
+                                  "span": {
+                                    "@class": "pre",
+                                    "#text": "pycocotools"
+                                  }
+                                },
+                                "#text": [
+                                  "Install Microsoft C++ Build Tools using the instructions in",
+                                  ". C++ build tools are required for the",
+                                  "dependency."
+                                ]
+                              }
+                            },
+                            {
+                              "p": {
+                                "code": [
+                                  {
+                                    "@class": "docutils literal notranslate",
+                                    "span": [
+                                      {
+                                        "@class": "pre",
+                                        "#text": "conda"
+                                      },
+                                      {
+                                        "@class": "pre",
+                                        "#text": "env"
+                                      },
+                                      {
+                                        "@class": "pre",
+                                        "#text": "create"
+                                      },
+                                      {
+                                        "@class": "pre",
+                                        "#text": "-f"
+                                      },
+                                      {
+                                        "@class": "pre",
+                                        "#text": "environment.yml"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "@class": "docutils literal notranslate",
+                                    "span": {
+                                      "@class": "pre",
+                                      "#text": "environment.yml"
+                                    }
+                                  },
+                                  {
+                                    "@class": "docutils literal notranslate",
+                                    "span": {
+                                      "@class": "pre",
+                                      "#text": "unstructured"
+                                    }
+                                  },
+                                  {
+                                    "@class": "docutils literal notranslate",
+                                    "span": {
+                                      "@class": "pre",
+                                      "#text": "unstructured"
+                                    }
+                                  }
+                                ],
+                                "#text": [
+                                  "Run",
+                                  "using the",
+                                  "file in the",
+                                  "repo to create a virtual environment. The environment will be named",
+                                  "."
+                                ]
+                              }
+                            },
+                            {
+                              "p": {
+                                "code": {
+                                  "@class": "docutils literal notranslate",
+                                  "span": [
+                                    {
+                                      "@class": "pre",
+                                      "#text": "conda"
+                                    },
+                                    {
+                                      "@class": "pre",
+                                      "#text": "activate"
+                                    },
+                                    {
+                                      "@class": "pre",
+                                      "#text": "unstructured"
+                                    }
+                                  ]
+                                },
+                                "#text": [
+                                  "Run",
+                                  "to activate the virtualenvironment."
+                                ]
+                              }
+                            },
+                            {
+                              "p": {
+                                "code": [
+                                  {
+                                    "@class": "docutils literal notranslate",
+                                    "span": [
+                                      {
+                                        "@class": "pre",
+                                        "#text": "pip"
+                                      },
+                                      {
+                                        "@class": "pre",
+                                        "#text": "install"
+                                      },
+                                      {
+                                        "@class": "pre",
+                                        "#text": "unstructured"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "@class": "docutils literal notranslate",
+                                    "span": {
+                                      "@class": "pre",
+                                      "#text": "unstructured"
+                                    }
+                                  }
+                                ],
+                                "#text": [
+                                  "Run",
+                                  "to install the",
+                                  "library."
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        "section": [
+                          {
+                            "@id": "setting-up-unstructured-for-local-inference",
+                            "@class": "",
+                            "h3": {
+                              "code": {
+                                "@class": "docutils literal notranslate",
+                                "span": {
+                                  "@class": "pre",
+                                  "#text": "unstructured"
+                                }
+                              },
+                              "a": {
+                                "@class": "headerlink",
+                                "@href": "https://unstructured-io.github.io/unstructured/installation/full_installation.html#setting-up-unstructured-for-local-inference",
+                                "@title": "Permalink to this heading",
+                                "#text": ""
+                              },
+                              "#text": [
+                                "Setting up",
+                                "for local inference"
+                              ]
+                            },
+                            "p": [
+                              {
+                                "code": [
+                                  {
+                                    "@class": "docutils literal notranslate",
+                                    "span": {
+                                      "@class": "pre",
+                                      "#text": "detectron2"
+                                    }
+                                  },
+                                  {
+                                    "@class": "docutils literal notranslate",
+                                    "span": {
+                                      "@class": "pre",
+                                      "#text": "detectron2"
+                                    }
+                                  }
+                                ],
+                                "a": {
+                                  "@class": "reference external",
+                                  "@href": "https://layout-parser.github.io/tutorials/installation#for-windows-users",
+                                  "#text": "here"
+                                },
+                                "#text": [
+                                  "If you need to run model inferences locally, there are a few additional steps you need to\ntake. The main challenge is installing",
+                                  "for PDF layout parsing.",
+                                  "does not officially support Windows, but it is possible to get it to install on Windows.\nThe installation instructions are based on the instructions LayoutParser provides",
+                                  "."
+                                ]
+                              },
+                              {
+                                "code": {
+                                  "@class": "docutils literal notranslate",
+                                  "span": {
+                                    "@class": "pre",
+                                    "#text": "unstructured"
+                                  }
+                                },
+                                "a": {
+                                  "@class": "reference external",
+                                  "@href": "https://github.com/Unstructured-IO/unstructured",
+                                  "#text": "repo"
+                                },
+                                "#text": [
+                                  "At this point, you can verify the installation by running the following from the root directory of the",
+                                  ":"
+                                ]
+                              }
+                            ],
+                            "ul": {
+                              "@class": "simple",
+                              "li": [
+                                {
+                                  "p": {
+                                    "code": [
+                                      {
+                                        "@class": "docutils literal notranslate",
+                                        "span": [
+                                          {
+                                            "@class": "pre",
+                                            "#text": "pip"
+                                          },
+                                          {
+                                            "@class": "pre",
+                                            "#text": "install"
+                                          },
+                                          {
+                                            "@class": "pre",
+                                            "#text": "pycocotools-windows"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "@class": "docutils literal notranslate",
+                                        "span": {
+                                          "@class": "pre",
+                                          "#text": "pycocotools"
+                                        }
+                                      },
+                                      {
+                                        "@class": "docutils literal notranslate",
+                                        "span": [
+                                          {
+                                            "@class": "pre",
+                                            "#text": "pip3"
+                                          },
+                                          {
+                                            "@class": "pre",
+                                            "#text": "install"
+                                          },
+                                          {
+                                            "@class": "pre",
+                                            "#text": "\"git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&subdirectory=PythonAPI\""
+                                          }
+                                        ]
+                                      }
+                                    ],
+                                    "a": {
+                                      "@class": "reference external",
+                                      "@href": "https://github.com/cocodataset/cocoapi/issues/169#issuecomment-462528628",
+                                      "#text": "this GitHub issue"
+                                    },
+                                    "#text": [
+                                      "Run",
+                                      "to install a Windows compatible version of",
+                                      ". Alternatively, you can run",
+                                      "as outlined in",
+                                      "."
+                                    ]
+                                  }
+                                },
+                                {
+                                  "p": {
+                                    "code": [
+                                      {
+                                        "@class": "docutils literal notranslate",
+                                        "span": [
+                                          {
+                                            "@class": "pre",
+                                            "#text": "git"
+                                          },
+                                          {
+                                            "@class": "pre",
+                                            "#text": "clone"
+                                          },
+                                          {
+                                            "@class": "pre",
+                                            "#text": "https://github.com/ivanpp/detectron2.git"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "@class": "docutils literal notranslate",
+                                        "span": [
+                                          {
+                                            "@class": "pre",
+                                            "#text": "cd"
+                                          },
+                                          {
+                                            "@class": "pre",
+                                            "#text": "detectron2"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "@class": "docutils literal notranslate",
+                                        "span": [
+                                          {
+                                            "@class": "pre",
+                                            "#text": "pip"
+                                          },
+                                          {
+                                            "@class": "pre",
+                                            "#text": "install"
+                                          },
+                                          {
+                                            "@class": "pre",
+                                            "#text": "-e"
+                                          },
+                                          {
+                                            "@class": "pre",
+                                            "#text": "."
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "@class": "docutils literal notranslate",
+                                        "span": {
+                                          "@class": "pre",
+                                          "#text": "detectron2"
+                                        }
+                                      }
+                                    ],
+                                    "#text": [
+                                      "Run",
+                                      ", then",
+                                      ", then",
+                                      "to install a Windows compatible version of the",
+                                      "library."
+                                    ]
+                                  }
+                                },
+                                {
+                                  "p": {
+                                    "code": [
+                                      {
+                                        "@class": "docutils literal notranslate",
+                                        "span": {
+                                          "@class": "pre",
+                                          "#text": "iopath"
+                                        }
+                                      },
+                                      {
+                                        "@class": "docutils literal notranslate",
+                                        "span": [
+                                          {
+                                            "@class": "pre",
+                                            "#text": "git"
+                                          },
+                                          {
+                                            "@class": "pre",
+                                            "#text": "clone"
+                                          },
+                                          {
+                                            "@class": "pre",
+                                            "#text": "https://github.com/facebookresearch/iopath"
+                                          },
+                                          {
+                                            "@class": "pre",
+                                            "#text": "--single-branch"
+                                          },
+                                          {
+                                            "@class": "pre",
+                                            "#text": "--branch"
+                                          },
+                                          {
+                                            "@class": "pre",
+                                            "#text": "v0.1.8"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "@class": "docutils literal notranslate",
+                                        "span": {
+                                          "@class": "pre",
+                                          "#text": "iopath/iopath/common/file_io.py"
+                                        }
+                                      },
+                                      {
+                                        "@class": "docutils literal notranslate",
+                                        "span": [
+                                          {
+                                            "@class": "pre",
+                                            "#text": "filename"
+                                          },
+                                          {
+                                            "@class": "pre",
+                                            "#text": "="
+                                          },
+                                          {
+                                            "@class": "pre",
+                                            "#text": "path.split(\"/\")[-1]"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "@class": "docutils literal notranslate",
+                                        "span": [
+                                          {
+                                            "@class": "pre",
+                                            "#text": "filename"
+                                          },
+                                          {
+                                            "@class": "pre",
+                                            "#text": "="
+                                          },
+                                          {
+                                            "@class": "pre",
+                                            "#text": "parsed_url.path.split(\"/\")[-1]"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "@class": "docutils literal notranslate",
+                                        "span": {
+                                          "@class": "pre",
+                                          "#text": "iopath"
+                                        }
+                                      },
+                                      {
+                                        "@class": "docutils literal notranslate",
+                                        "span": [
+                                          {
+                                            "@class": "pre",
+                                            "#text": "pip"
+                                          },
+                                          {
+                                            "@class": "pre",
+                                            "#text": "install"
+                                          },
+                                          {
+                                            "@class": "pre",
+                                            "#text": "-e"
+                                          },
+                                          {
+                                            "@class": "pre",
+                                            "#text": "."
+                                          }
+                                        ]
+                                      }
+                                    ],
+                                    "a": {
+                                      "@class": "reference external",
+                                      "@href": "https://github.com/Layout-Parser/layout-parser/issues/15#issuecomment-819546751",
+                                      "#text": "this GitHub issue"
+                                    },
+                                    "#text": [
+                                      "Install the a Windows compatible version of",
+                                      "using the instructions outlined in",
+                                      ". First, run",
+                                      ". Then on line 753 in",
+                                      "change",
+                                      "to",
+                                      ". After that, navigate to the",
+                                      "directory and run",
+                                      "."
+                                    ]
+                                  }
+                                },
+                                {
+                                  "p": {
+                                    "code": [
+                                      {
+                                        "@class": "docutils literal notranslate",
+                                        "span": [
+                                          {
+                                            "@class": "pre",
+                                            "#text": "pip"
+                                          },
+                                          {
+                                            "@class": "pre",
+                                            "#text": "install"
+                                          },
+                                          {
+                                            "@class": "pre",
+                                            "#text": "unstructured[local-inference]"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "@class": "docutils literal notranslate",
+                                        "span": {
+                                          "@class": "pre",
+                                          "#text": "unstructured_inference"
+                                        }
+                                      }
+                                    ],
+                                    "#text": [
+                                      "Run",
+                                      ". This will install the",
+                                      "dependency."
+                                    ]
+                                  }
+                                }
+                              ]
+                            },
+                            "div": {
+                              "@class": "highlight-python notranslate",
+                              "div": {
+                                "@class": "highlight",
+                                "pre": {
+                                  "span": [
+                                    "",
+                                    {
+                                      "@class": "kn",
+                                      "#text": "from"
+                                    },
+                                    {
+                                      "@class": "nn",
+                                      "#text": "unstructured.partition.pdf"
+                                    },
+                                    {
+                                      "@class": "kn",
+                                      "#text": "import"
+                                    },
+                                    {
+                                      "@class": "n",
+                                      "#text": "partition_pdf"
+                                    },
+                                    {
+                                      "@class": "n",
+                                      "#text": "partition_pdf"
+                                    },
+                                    {
+                                      "@class": "p",
+                                      "#text": "("
+                                    },
+                                    {
+                                      "@class": "s2",
+                                      "#text": "\"example-docs/layout-parser-paper-fast.pdf\""
+                                    },
+                                    {
+                                      "@class": "p",
+                                      "#text": ","
+                                    },
+                                    {
+                                      "@class": "n",
+                                      "#text": "url"
+                                    },
+                                    {
+                                      "@class": "o",
+                                      "#text": "="
+                                    },
+                                    {
+                                      "@class": "kc",
+                                      "#text": "None"
+                                    },
+                                    {
+                                      "@class": "p",
+                                      "#text": ")"
+                                    }
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "@id": "installing-paddleocr",
+                            "@class": "",
+                            "h3": {
+                              "a": {
+                                "@class": "headerlink",
+                                "@href": "https://unstructured-io.github.io/unstructured/installation/full_installation.html#installing-paddleocr",
+                                "@title": "Permalink to this heading",
+                                "#text": ""
+                              },
+                              "#text": "Installing PaddleOCR"
+                            },
+                            "p": [
+                              {
+                                "code": [
+                                  {
+                                    "@class": "docutils literal notranslate",
+                                    "span": {
+                                      "@class": "pre",
+                                      "#text": "unstructured"
+                                    }
+                                  },
+                                  {
+                                    "@class": "docutils literal notranslate",
+                                    "span": {
+                                      "@class": "pre",
+                                      "#text": "paddleocr"
+                                    }
+                                  },
+                                  {
+                                    "@class": "docutils literal notranslate",
+                                    "span": {
+                                      "@class": "pre",
+                                      "#text": "unstructured"
+                                    }
+                                  },
+                                  {
+                                    "@class": "docutils literal notranslate",
+                                    "span": {
+                                      "@class": "pre",
+                                      "#text": "conda"
+                                    }
+                                  }
+                                ],
+                                "#text": [
+                                  "PaddleOCR is another package that is helpful to use in conjunction with",
+                                  ".\nYou can use the following steps to install",
+                                  "in your",
+                                  "environment."
+                                ]
+                              },
+                              {
+                                "code": {
+                                  "@class": "docutils literal notranslate",
+                                  "span": {
+                                    "@class": "pre",
+                                    "#text": ".jpg"
+                                  }
+                                },
+                                "#text": [
+                                  "At this point, you can verify the installation using the following commands. Choose a",
+                                  "image that contains text."
+                                ]
+                              }
+                            ],
+                            "ul": {
+                              "@class": "simple",
+                              "li": [
+                                {
+                                  "p": {
+                                    "code": {
+                                      "@class": "docutils literal notranslate",
+                                      "span": [
+                                        {
+                                          "@class": "pre",
+                                          "#text": "conda"
+                                        },
+                                        {
+                                          "@class": "pre",
+                                          "#text": "install"
+                                        },
+                                        {
+                                          "@class": "pre",
+                                          "#text": "-c"
+                                        },
+                                        {
+                                          "@class": "pre",
+                                          "#text": "esri"
+                                        },
+                                        {
+                                          "@class": "pre",
+                                          "#text": "paddleocr"
+                                        }
+                                      ]
+                                    },
+                                    "#text": "Run"
+                                  }
+                                },
+                                {
+                                  "p": {
+                                    "code": [
+                                      {
+                                        "@class": "docutils literal notranslate",
+                                        "span": {
+                                          "@class": "pre",
+                                          "#text": "detectron2"
+                                        }
+                                      },
+                                      {
+                                        "@class": "docutils literal notranslate",
+                                        "span": {
+                                          "@class": "pre",
+                                          "#text": "detectron2/tools"
+                                        }
+                                      },
+                                      {
+                                        "@class": "docutils literal notranslate",
+                                        "span": {
+                                          "@class": "pre",
+                                          "#text": "detectron2/detectron2_tools"
+                                        }
+                                      }
+                                    ],
+                                    "a": {
+                                      "@class": "reference external",
+                                      "@href": "https://github.com/PaddlePaddle/PaddleOCR/issues/1024",
+                                      "#text": "this issue"
+                                    },
+                                    "#text": [
+                                      "If you have the Windows version of",
+                                      "cloned and installed locally, change the name of",
+                                      "to",
+                                      ". Otherwise, you will hit the module name conflict error described in",
+                                      "."
+                                    ]
+                                  }
+                                },
+                                {
+                                  "p": {
+                                    "code": [
+                                      {
+                                        "@class": "docutils literal notranslate",
+                                        "span": {
+                                          "@class": "pre",
+                                          "#text": "KMP_DUPLICATE_LIB_OK"
+                                        }
+                                      },
+                                      {
+                                        "@class": "docutils literal notranslate",
+                                        "span": {
+                                          "@class": "pre",
+                                          "#text": "\"TRUE\""
+                                        }
+                                      },
+                                      {
+                                        "@class": "docutils literal notranslate",
+                                        "span": {
+                                          "@class": "pre",
+                                          "#text": "libiomp5md.dll"
+                                        }
+                                      }
+                                    ],
+                                    "a": {
+                                      "@class": "reference external",
+                                      "@href": "https://github.com/PaddlePaddle/PaddleOCR/issues/4613",
+                                      "#text": "in this issue on GitHub"
+                                    },
+                                    "#text": [
+                                      "Set the environment variable",
+                                      "to",
+                                      ". This prevents the",
+                                      "linking issue described",
+                                      "."
+                                    ]
+                                  }
+                                }
+                              ]
+                            },
+                            "div": {
+                              "@class": "highlight-python notranslate",
+                              "div": {
+                                "@class": "highlight",
+                                "pre": {
+                                  "span": [
+                                    "",
+                                    {
+                                      "@class": "kn",
+                                      "#text": "import"
+                                    },
+                                    {
+                                      "@class": "nn",
+                                      "#text": "numpy"
+                                    },
+                                    {
+                                      "@class": "k",
+                                      "#text": "as"
+                                    },
+                                    {
+                                      "@class": "nn",
+                                      "#text": "np"
+                                    },
+                                    {
+                                      "@class": "kn",
+                                      "#text": "from"
+                                    },
+                                    {
+                                      "@class": "nn",
+                                      "#text": "PIL"
+                                    },
+                                    {
+                                      "@class": "kn",
+                                      "#text": "import"
+                                    },
+                                    {
+                                      "@class": "n",
+                                      "#text": "Image"
+                                    },
+                                    {
+                                      "@class": "kn",
+                                      "#text": "from"
+                                    },
+                                    {
+                                      "@class": "nn",
+                                      "#text": "paddleocr"
+                                    },
+                                    {
+                                      "@class": "kn",
+                                      "#text": "import"
+                                    },
+                                    {
+                                      "@class": "n",
+                                      "#text": "PaddleOCR"
+                                    },
+                                    {
+                                      "@class": "n",
+                                      "#text": "filename"
+                                    },
+                                    {
+                                      "@class": "o",
+                                      "#text": "="
+                                    },
+                                    {
+                                      "@class": "s2",
+                                      "#text": "\"path/to/my/image.jpg\""
+                                    },
+                                    {
+                                      "@class": "n",
+                                      "#text": "img"
+                                    },
+                                    {
+                                      "@class": "o",
+                                      "#text": "="
+                                    },
+                                    {
+                                      "@class": "n",
+                                      "#text": "np"
+                                    },
+                                    {
+                                      "@class": "o",
+                                      "#text": "."
+                                    },
+                                    {
+                                      "@class": "n",
+                                      "#text": "array"
+                                    },
+                                    {
+                                      "@class": "p",
+                                      "#text": "("
+                                    },
+                                    {
+                                      "@class": "n",
+                                      "#text": "Image"
+                                    },
+                                    {
+                                      "@class": "o",
+                                      "#text": "."
+                                    },
+                                    {
+                                      "@class": "n",
+                                      "#text": "open"
+                                    },
+                                    {
+                                      "@class": "p",
+                                      "#text": "("
+                                    },
+                                    {
+                                      "@class": "n",
+                                      "#text": "filename"
+                                    },
+                                    {
+                                      "@class": "p",
+                                      "#text": "))"
+                                    },
+                                    {
+                                      "@class": "n",
+                                      "#text": "ocr"
+                                    },
+                                    {
+                                      "@class": "o",
+                                      "#text": "="
+                                    },
+                                    {
+                                      "@class": "n",
+                                      "#text": "PaddleOCR"
+                                    },
+                                    {
+                                      "@class": "p",
+                                      "#text": "("
+                                    },
+                                    {
+                                      "@class": "n",
+                                      "#text": "lang"
+                                    },
+                                    {
+                                      "@class": "o",
+                                      "#text": "="
+                                    },
+                                    {
+                                      "@class": "s2",
+                                      "#text": "\"en\""
+                                    },
+                                    {
+                                      "@class": "p",
+                                      "#text": ","
+                                    },
+                                    {
+                                      "@class": "n",
+                                      "#text": "use_gpu"
+                                    },
+                                    {
+                                      "@class": "o",
+                                      "#text": "="
+                                    },
+                                    {
+                                      "@class": "kc",
+                                      "#text": "False"
+                                    },
+                                    {
+                                      "@class": "p",
+                                      "#text": ","
+                                    },
+                                    {
+                                      "@class": "n",
+                                      "#text": "show_log"
+                                    },
+                                    {
+                                      "@class": "o",
+                                      "#text": "="
+                                    },
+                                    {
+                                      "@class": "kc",
+                                      "#text": "False"
+                                    },
+                                    {
+                                      "@class": "p",
+                                      "#text": ")"
+                                    },
+                                    {
+                                      "@class": "n",
+                                      "#text": "result"
+                                    },
+                                    {
+                                      "@class": "o",
+                                      "#text": "="
+                                    },
+                                    {
+                                      "@class": "n",
+                                      "#text": "ocr"
+                                    },
+                                    {
+                                      "@class": "o",
+                                      "#text": "."
+                                    },
+                                    {
+                                      "@class": "n",
+                                      "#text": "ocr"
+                                    },
+                                    {
+                                      "@class": "p",
+                                      "#text": "("
+                                    },
+                                    {
+                                      "@class": "n",
+                                      "#text": "img"
+                                    },
+                                    {
+                                      "@class": "o",
+                                      "#text": "="
+                                    },
+                                    {
+                                      "@class": "n",
+                                      "#text": "img"
+                                    },
+                                    {
+                                      "@class": "p",
+                                      "#text": ")"
+                                    }
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "@id": "logging",
+                        "@class": "",
+                        "h2": {
+                          "a": {
+                            "@class": "headerlink",
+                            "@href": "https://unstructured-io.github.io/unstructured/installation/full_installation.html#logging",
+                            "@title": "Permalink to this heading",
+                            "#text": ""
+                          },
+                          "#text": "Logging"
+                        },
+                        "p": {
+                          "code": [
+                            {
+                              "@class": "docutils literal notranslate",
+                              "span": {
+                                "@class": "pre",
+                                "#text": "LOG_LEVEL"
+                              }
+                            },
+                            {
+                              "@class": "docutils literal notranslate",
+                              "span": {
+                                "@class": "pre",
+                                "#text": "WARNING"
+                              }
+                            },
+                            {
+                              "@class": "docutils literal notranslate",
+                              "span": {
+                                "@class": "pre",
+                                "#text": "INFO"
+                              }
+                            },
+                            {
+                              "@class": "docutils literal notranslate",
+                              "span": {
+                                "@class": "pre",
+                                "#text": "DEBUG"
+                              }
+                            }
+                          ],
+                          "#text": [
+                            "You can set the logging level for the package with the",
+                            "environment variable.\nBy default, the log level is set to",
+                            ". For debugging, consider setting the log\nlevel to",
+                            "or",
+                            "."
+                          ]
+                        }
+                      },
+                      {
+                        "@id": "extra-dependencies",
+                        "@class": "",
+                        "h2": {
+                          "a": {
+                            "@class": "headerlink",
+                            "@href": "https://unstructured-io.github.io/unstructured/installation/full_installation.html#extra-dependencies",
+                            "@title": "Permalink to this heading",
+                            "#text": ""
+                          },
+                          "#text": "Extra Dependencies"
+                        },
+                        "section": [
+                          {
+                            "@id": "filetype-detection",
+                            "@class": "",
+                            "h3": {
+                              "a": {
+                                "@class": "headerlink",
+                                "@href": "https://unstructured-io.github.io/unstructured/installation/full_installation.html#filetype-detection",
+                                "@title": "Permalink to this heading",
+                                "#text": ""
+                              },
+                              "#text": "Filetype Detection"
+                            },
+                            "p": [
+                              {
+                                "code": [
+                                  {
+                                    "@class": "docutils literal notranslate",
+                                    "span": {
+                                      "@class": "pre",
+                                      "#text": "filetype"
+                                    }
+                                  },
+                                  {
+                                    "@class": "docutils literal notranslate",
+                                    "span": {
+                                      "@class": "pre",
+                                      "#text": "unstructured"
+                                    }
+                                  },
+                                  {
+                                    "@class": "docutils literal notranslate",
+                                    "span": {
+                                      "@class": "pre",
+                                      "#text": "libmagic"
+                                    }
+                                  },
+                                  {
+                                    "@class": "docutils literal notranslate",
+                                    "span": {
+                                      "@class": "pre",
+                                      "#text": "libmagic"
+                                    }
+                                  }
+                                ],
+                                "#text": [
+                                  "The",
+                                  "module in",
+                                  "uses",
+                                  "to detect MIME types. For\nthis to work, you’ll need",
+                                  "installed on your computer. On a Mac, you can run:"
+                                ]
+                              },
+                              "One Debian, run:",
+                              {
+                                "code": {
+                                  "@class": "docutils literal notranslate",
+                                  "span": {
+                                    "@class": "pre",
+                                    "#text": "conda"
+                                  }
+                                },
+                                "#text": [
+                                  "If you are on Windows using",
+                                  ", run:"
+                                ]
+                              }
+                            ],
+                            "div": [
+                              {
+                                "@class": "highlight-console notranslate",
+                                "div": {
+                                  "@class": "highlight",
+                                  "pre": {
+                                    "span": [
+                                      "",
+                                      {
+                                        "@class": "gp",
+                                        "#text": "$"
+                                      },
+                                      {
+                                        "@class": "w"
+                                      },
+                                      {
+                                        "@class": "w"
+                                      }
+                                    ],
+                                    "#text": [
+                                      "brew",
+                                      "install",
+                                      "libmagic"
+                                    ]
+                                  }
+                                }
+                              },
+                              {
+                                "@class": "highlight-console notranslate",
+                                "div": {
+                                  "@class": "highlight",
+                                  "pre": {
+                                    "span": [
+                                      "",
+                                      {
+                                        "@class": "gp",
+                                        "#text": "$"
+                                      },
+                                      {
+                                        "@class": "w"
+                                      },
+                                      {
+                                        "@class": "w"
+                                      },
+                                      {
+                                        "@class": "w"
+                                      },
+                                      {
+                                        "@class": "w"
+                                      }
+                                    ],
+                                    "#text": [
+                                      "sudo",
+                                      "apt-get",
+                                      "install",
+                                      "-y",
+                                      "libmagic-dev"
+                                    ]
+                                  }
+                                }
+                              },
+                              {
+                                "@class": "highlight-console notranslate",
+                                "div": {
+                                  "@class": "highlight",
+                                  "pre": {
+                                    "span": [
+                                      "",
+                                      {
+                                        "@class": "gp",
+                                        "#text": "$"
+                                      },
+                                      {
+                                        "@class": "w"
+                                      },
+                                      {
+                                        "@class": "w"
+                                      },
+                                      {
+                                        "@class": "w"
+                                      },
+                                      {
+                                        "@class": "w"
+                                      }
+                                    ],
+                                    "#text": [
+                                      "conda",
+                                      "install",
+                                      "-c",
+                                      "conda-forge",
+                                      "libmagic"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "@id": "xml-html-dependencies",
+                            "h3": {
+                              "a": {
+                                "@class": "headerlink",
+                                "@href": "https://unstructured-io.github.io/unstructured/installation/full_installation.html#xml-html-dependencies",
+                                "@title": "Permalink to this heading",
+                                "#text": ""
+                              },
+                              "#text": "XML/HTML Dependencies"
+                            },
+                            "p": {
+                              "code": [
+                                {
+                                  "@class": "docutils literal notranslate",
+                                  "span": {
+                                    "@class": "pre",
+                                    "#text": "libxml2"
+                                  }
+                                },
+                                {
+                                  "@class": "docutils literal notranslate",
+                                  "span": {
+                                    "@class": "pre",
+                                    "#text": "libxlst"
+                                  }
+                                }
+                              ],
+                              "#text": [
+                                "For XML and HTML parsing, you’ll need",
+                                "and",
+                                "installed. On a Mac, you can do\nthat with:"
+                              ]
+                            },
+                            "div": {
+                              "@class": "highlight-console notranslate",
+                              "div": {
+                                "@class": "highlight",
+                                "pre": {
+                                  "span": [
+                                    "",
+                                    {
+                                      "@class": "gp",
+                                      "#text": "$"
+                                    },
+                                    {
+                                      "@class": "w"
+                                    },
+                                    {
+                                      "@class": "w"
+                                    },
+                                    {
+                                      "@class": "gp",
+                                      "#text": "$"
+                                    },
+                                    {
+                                      "@class": "w"
+                                    },
+                                    {
+                                      "@class": "w"
+                                    }
+                                  ],
+                                  "#text": [
+                                    "brew",
+                                    "install",
+                                    "libxml2",
+                                    "brew",
+                                    "install",
+                                    "libxslt"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "@id": "huggingface-dependencies",
+                            "@class": "",
+                            "h3": {
+                              "a": {
+                                "@class": "headerlink",
+                                "@href": "https://unstructured-io.github.io/unstructured/installation/full_installation.html#huggingface-dependencies",
+                                "@title": "Permalink to this heading",
+                                "#text": ""
+                              },
+                              "#text": "Huggingface Dependencies"
+                            },
+                            "p": [
+                              {
+                                "code": [
+                                  {
+                                    "@class": "docutils literal notranslate",
+                                    "span": {
+                                      "@class": "pre",
+                                      "#text": "transformers"
+                                    }
+                                  },
+                                  {
+                                    "@class": "docutils literal notranslate",
+                                    "span": {
+                                      "@class": "pre",
+                                      "#text": "pip"
+                                    }
+                                  }
+                                ],
+                                "#text": [
+                                  "The",
+                                  "requires the Rust compiler to be present on your system in\norder to properly",
+                                  "install. If a Rust compiler is not available on your system,\nyou can run the following command to install it:"
+                                ]
+                              },
+                              {
+                                "code": [
+                                  {
+                                    "@class": "docutils literal notranslate",
+                                    "span": {
+                                      "@class": "pre",
+                                      "#text": "transformers"
+                                    }
+                                  },
+                                  {
+                                    "@class": "docutils literal notranslate",
+                                    "span": {
+                                      "@class": "pre",
+                                      "#text": "sentencepiece"
+                                    }
+                                  },
+                                  {
+                                    "@class": "docutils literal notranslate",
+                                    "span": {
+                                      "@class": "pre",
+                                      "#text": "unstructured"
+                                    }
+                                  },
+                                  {
+                                    "@class": "docutils literal notranslate",
+                                    "span": {
+                                      "@class": "pre",
+                                      "#text": "sentencepiece"
+                                    }
+                                  }
+                                ],
+                                "a": {
+                                  "@class": "reference external",
+                                  "@href": "https://github.com/google/sentencepiece#installation",
+                                  "#text": "sentencepiece install instructions"
+                                },
+                                "#text": [
+                                  "Additionally, some tokenizers in the",
+                                  "library required the",
+                                  "library. This is not included as an",
+                                  "dependency because it only applies\nto some tokenizers. See the",
+                                  "for\ninformation on how to install",
+                                  "if your tokenizer requires it."
+                                ]
+                              }
+                            ],
+                            "div": {
+                              "@class": "highlight-console notranslate",
+                              "div": {
+                                "@class": "highlight",
+                                "pre": {
+                                  "span": [
+                                    "",
+                                    {
+                                      "@class": "gp",
+                                      "#text": "$"
+                                    },
+                                    {
+                                      "@class": "w"
+                                    },
+                                    {
+                                      "@class": "w"
+                                    },
+                                    {
+                                      "@class": "s1",
+                                      "#text": "'=https'"
+                                    },
+                                    {
+                                      "@class": "w"
+                                    },
+                                    {
+                                      "@class": "w"
+                                    },
+                                    {
+                                      "@class": "w"
+                                    },
+                                    {
+                                      "@class": "w"
+                                    },
+                                    {
+                                      "@class": "p",
+                                      "#text": "|"
+                                    },
+                                    {
+                                      "@class": "w"
+                                    }
+                                  ],
+                                  "#text": [
+                                    "curl",
+                                    "--proto",
+                                    "--tlsv1.2",
+                                    "-sSf",
+                                    "https://sh.rustup.rs",
+                                    "sh"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              },
+              "footer": {
+                "div": [
+                  {
+                    "@class": "related-pages",
+                    "a": [
+                      {
+                        "@class": "next-page",
+                        "@href": "https://unstructured-io.github.io/unstructured/installation/docker.html",
+                        "div": {
+                          "@class": "page-info",
+                          "div": [
+                            {
+                              "@class": "context",
+                              "span": "Next"
+                            },
+                            {
+                              "@class": "title",
+                              "#text": "Docker Installation"
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "@class": "prev-page",
+                        "@href": "https://unstructured-io.github.io/unstructured/installing.html",
+                        "div": {
+                          "@class": "page-info",
+                          "div": [
+                            {
+                              "@class": "context",
+                              "span": "Previous"
+                            },
+                            {
+                              "@class": "title",
+                              "#text": "Installation"
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "@class": "bottom-of-page",
+                    "div": [
+                      {
+                        "@class": "left-details",
+                        "div": {
+                          "@class": "copyright",
+                          "#text": "Copyright © 2022-2023, Unstructured Technologies"
+                        },
+                        "a": [
+                          {
+                            "@href": "https://www.sphinx-doc.org/",
+                            "#text": "Sphinx"
+                          },
+                          {
+                            "@class": "muted-link",
+                            "@href": "https://pradyunsg.me/",
+                            "#text": "@pradyunsg"
+                          },
+                          {
+                            "@href": "https://github.com/pradyunsg/furo",
+                            "#text": "Furo"
+                          }
+                        ],
+                        "#text": [
+                          "Made with",
+                          "and",
+                          "'s"
+                        ]
+                      },
+                      {
+                        "@class": "right-details",
+                        "div": {
+                          "@class": "icons"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "aside": {
+              "@class": "toc-drawer",
+              "div": {
+                "@class": "toc-sticky toc-scroll",
+                "div": [
+                  {
+                    "@class": "toc-title-container",
+                    "span": {
+                      "@class": "toc-title",
+                      "#text": "Contents"
+                    }
+                  },
+                  {
+                    "@class": "toc-tree-container",
+                    "div": {
+                      "@class": "toc-tree",
+                      "ul": {
+                        "li": {
+                          "a": {
+                            "@class": "reference internal",
+                            "@href": "https://unstructured-io.github.io/unstructured/installation/full_installation.html#",
+                            "#text": "Full Installation"
+                          },
+                          "ul": {
+                            "li": [
+                              {
+                                "@class": "",
+                                "a": {
+                                  "@class": "reference internal",
+                                  "@href": "https://unstructured-io.github.io/unstructured/installation/full_installation.html#installation-with-conda-on-windows",
+                                  "code": {
+                                    "@class": "docutils literal notranslate",
+                                    "span": {
+                                      "@class": "pre",
+                                      "#text": "conda"
+                                    }
+                                  },
+                                  "#text": [
+                                    "Installation with",
+                                    "on Windows"
+                                  ]
+                                },
+                                "ul": {
+                                  "li": [
+                                    {
+                                      "@class": "",
+                                      "a": {
+                                        "@class": "reference internal",
+                                        "@href": "https://unstructured-io.github.io/unstructured/installation/full_installation.html#setting-up-unstructured-for-local-inference",
+                                        "code": {
+                                          "@class": "docutils literal notranslate",
+                                          "span": {
+                                            "@class": "pre",
+                                            "#text": "unstructured"
+                                          }
+                                        },
+                                        "#text": [
+                                          "Setting up",
+                                          "for local inference"
+                                        ]
+                                      }
+                                    },
+                                    {
+                                      "@class": "",
+                                      "a": {
+                                        "@class": "reference internal",
+                                        "@href": "https://unstructured-io.github.io/unstructured/installation/full_installation.html#installing-paddleocr",
+                                        "#text": "Installing PaddleOCR"
+                                      }
+                                    }
+                                  ]
+                                }
+                              },
+                              {
+                                "@class": "",
+                                "a": {
+                                  "@class": "reference internal",
+                                  "@href": "https://unstructured-io.github.io/unstructured/installation/full_installation.html#logging",
+                                  "#text": "Logging"
+                                }
+                              },
+                              {
+                                "@class": "",
+                                "a": {
+                                  "@class": "reference internal",
+                                  "@href": "https://unstructured-io.github.io/unstructured/installation/full_installation.html#extra-dependencies",
+                                  "#text": "Extra Dependencies"
+                                },
+                                "ul": {
+                                  "li": [
+                                    {
+                                      "@class": "",
+                                      "a": {
+                                        "@class": "reference internal",
+                                        "@href": "https://unstructured-io.github.io/unstructured/installation/full_installation.html#filetype-detection",
+                                        "#text": "Filetype Detection"
+                                      }
+                                    },
+                                    {
+                                      "a": {
+                                        "@class": "reference internal",
+                                        "@href": "https://unstructured-io.github.io/unstructured/installation/full_installation.html#xml-html-dependencies",
+                                        "#text": "XML/HTML Dependencies"
+                                      }
+                                    },
+                                    {
+                                      "@class": "",
+                                      "a": {
+                                        "@class": "reference internal",
+                                        "@href": "https://unstructured-io.github.io/unstructured/installation/full_installation.html#huggingface-dependencies",
+                                        "#text": "Huggingface Dependencies"
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "aside": {
+          "@class": "sidebar-drawer",
+          "div": {
+            "@class": "sidebar-container",
+            "div": [
+              {
+                "@class": "theme-toggle-container theme-toggle-header sidebar__theme-toggle",
+                "button": {
+                  "@class": "theme-toggle",
+                  "div": {
+                    "@class": "visually-hidden",
+                    "#text": "Toggle Light / Dark / Auto color theme"
+                  },
+                  "svg": [
+                    {
+                      "@class": "theme-icon-when-auto",
+                      "use": {
+                        "@href": "#svg-sun-half"
+                      }
+                    },
+                    {
+                      "@class": "theme-icon-when-dark",
+                      "use": {
+                        "@href": "#svg-moon"
+                      }
+                    },
+                    {
+                      "@class": "theme-icon-when-light",
+                      "use": {
+                        "@href": "#svg-sun"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "@class": "sidebar-sticky",
+                "a": {
+                  "@class": "sidebar-brand",
+                  "@href": "https://unstructured-io.github.io/unstructured/index.html",
+                  "div": {
+                    "@class": "sidebar-logo-container",
+                    "img": [
+                      {
+                        "@class": "sidebar-logo only-light",
+                        "@src": "./test-html_files/logo-light-mode.svg",
+                        "@alt": "Light Logo"
+                      },
+                      {
+                        "@class": "sidebar-logo only-dark",
+                        "@src": "./test-html_files/logo-dark-mode.svg",
+                        "@alt": "Dark Logo"
+                      }
+                    ]
+                  }
+                },
+                "div": [
+                  {
+                    "@class": "social social--sidebar",
+                    "@style": "margin-top: 1em; display: flex; justify-content: right; gap: 8px",
+                    "a": {
+                      "@href": "https://join.slack.com/t/unstructuredw-kbe4326/shared_invite/zt-1x7cgo0pg-PTptXWylzPQF9xZolzCnwQ",
+                      "@class": "button--primary",
+                      "@target": "_blank",
+                      "span": {
+                        "@aria-label": "slack",
+                        "@class": "slack-icon"
+                      },
+                      "#text": "Join"
+                    },
+                    "div": {
+                      "@class": "github-stars github-stars--sidebar",
+                      "a": [
+                        {
+                          "@class": "--left",
+                          "@target": "_blank",
+                          "@href": "https://github.com/Unstructured-IO/unstructured",
+                          "svg": {
+                            "@width": "19",
+                            "@height": "19",
+                            "@viewbox": "0 0 19 19",
+                            "@fill": "none",
+                            "@xmlns": "http://www.w3.org/2000/svg",
+                            "path": {
+                              "@d": "M8.43359 0.0678272C4.05472 0.5578 0.532587 4.1836 0.0566223 8.59336C-0.419342 13.1991 2.15086 17.3149 6.05377 18.8828C6.33935 18.9808 6.62493 18.7848 6.62493 18.3928V16.8249C6.62493 16.8249 6.24416 16.9229 5.76819 16.9229C4.43549 16.9229 3.86434 15.747 3.76914 15.061C3.67395 14.669 3.48357 14.375 3.19799 14.081C2.91241 13.9831 2.81721 13.9831 2.81721 13.8851C2.81721 13.6891 3.10279 13.6891 3.19799 13.6891C3.76914 13.6891 4.24511 14.375 4.43549 14.669C4.91146 15.453 5.48261 15.649 5.76819 15.649C6.14896 15.649 6.43454 15.551 6.62493 15.453C6.72012 14.767 7.0057 14.081 7.57686 13.6891C5.38742 13.1991 3.76914 11.9252 3.76914 9.76929C3.76914 8.69135 4.24511 7.61341 4.91146 6.82945C4.81626 6.63346 4.72107 6.14349 4.72107 5.45753C4.72107 5.06555 4.72107 4.47758 5.00665 3.88962C5.00665 3.88962 6.33935 3.88962 7.67205 5.16355C8.14802 4.96756 8.81437 4.86956 9.48071 4.86956C10.1471 4.86956 10.8134 4.96756 11.3846 5.16355C12.6221 3.88962 14.05 3.88962 14.05 3.88962C14.2404 4.47758 14.2404 5.06555 14.2404 5.45753C14.2404 6.24149 14.1452 6.63346 14.05 6.82945C14.7163 7.61341 15.1923 8.59335 15.1923 9.76929C15.1923 11.9252 13.574 13.1991 11.3846 13.6891C11.9557 14.179 12.3365 15.061 12.3365 15.9429V18.4908C12.3365 18.7848 12.6221 19.0788 13.0029 18.9808C16.525 17.5109 19 13.9831 19 9.86728C19 3.98761 14.1452 -0.618135 8.43359 0.0678272Z",
+                              "@fill": "white"
+                            }
+                          },
+                          "#text": "Star"
+                        },
+                        {
+                          "@class": "--right",
+                          "@target": "_blank",
+                          "@href": "https://github.com/Unstructured-IO/unstructured/stargazers",
+                          "#text": "2,667"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "@id": "searchbox"
+                  },
+                  {
+                    "@class": "sidebar-scroll",
+                    "div": {
+                      "@class": "sidebar-tree",
+                      "p": {
+                        "@class": "caption",
+                        "@role": "heading",
+                        "span": {
+                          "@class": "caption-text",
+                          "#text": "Documentation"
+                        }
+                      },
+                      "ul": {
+                        "@class": "current",
+                        "li": [
+                          {
+                            "@class": "toctree-l1 has-children",
+                            "a": {
+                              "@class": "reference internal",
+                              "@href": "https://unstructured-io.github.io/unstructured/introduction.html",
+                              "#text": "Introduction"
+                            },
+                            "input": {
+                              "@class": "toctree-checkbox",
+                              "@id": "toctree-checkbox-1",
+                              "@name": "toctree-checkbox-1",
+                              "@role": "switch",
+                              "@type": "checkbox"
+                            },
+                            "label": {
+                              "@for": "toctree-checkbox-1",
+                              "div": {
+                                "@class": "visually-hidden",
+                                "#text": "Toggle navigation of Introduction"
+                              },
+                              "i": {
+                                "@class": "icon",
+                                "svg": {
+                                  "use": {
+                                    "@href": "#svg-arrow-right"
+                                  }
+                                }
+                              }
+                            },
+                            "ul": {
+                              "li": [
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/introduction/overview.html",
+                                    "#text": "Overview"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/introduction/key_concepts.html",
+                                    "#text": "Key Concepts"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/introduction/getting_started.html",
+                                    "#text": "Getting Started"
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "@class": "toctree-l1 current has-children",
+                            "a": {
+                              "@class": "reference internal",
+                              "@href": "https://unstructured-io.github.io/unstructured/installing.html",
+                              "#text": "Installation"
+                            },
+                            "input": {
+                              "@checked": "",
+                              "@class": "toctree-checkbox",
+                              "@id": "toctree-checkbox-2",
+                              "@name": "toctree-checkbox-2",
+                              "@role": "switch",
+                              "@type": "checkbox"
+                            },
+                            "label": {
+                              "@for": "toctree-checkbox-2",
+                              "div": {
+                                "@class": "visually-hidden",
+                                "#text": "Toggle navigation of Installation"
+                              },
+                              "i": {
+                                "@class": "icon",
+                                "svg": {
+                                  "use": {
+                                    "@href": "#svg-arrow-right"
+                                  }
+                                }
+                              }
+                            },
+                            "ul": {
+                              "@class": "current",
+                              "li": [
+                                {
+                                  "@class": "toctree-l2 current current-page",
+                                  "a": {
+                                    "@class": "current reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/installation/full_installation.html#",
+                                    "#text": "Full Installation"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/installation/docker.html",
+                                    "#text": "Docker Installation"
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "@class": "toctree-l1",
+                            "a": {
+                              "@class": "reference internal",
+                              "@href": "https://unstructured-io.github.io/unstructured/api.html",
+                              "#text": "Unstructured API"
+                            }
+                          },
+                          {
+                            "@class": "toctree-l1 has-children",
+                            "a": {
+                              "@class": "reference internal",
+                              "@href": "https://unstructured-io.github.io/unstructured/bricks.html",
+                              "#text": "Bricks"
+                            },
+                            "input": {
+                              "@class": "toctree-checkbox",
+                              "@id": "toctree-checkbox-3",
+                              "@name": "toctree-checkbox-3",
+                              "@role": "switch",
+                              "@type": "checkbox"
+                            },
+                            "label": {
+                              "@for": "toctree-checkbox-3",
+                              "div": {
+                                "@class": "visually-hidden",
+                                "#text": "Toggle navigation of Bricks"
+                              },
+                              "i": {
+                                "@class": "icon",
+                                "svg": {
+                                  "use": {
+                                    "@href": "#svg-arrow-right"
+                                  }
+                                }
+                              }
+                            },
+                            "ul": {
+                              "li": [
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/bricks/partition.html",
+                                    "#text": "Partitioning"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/bricks/cleaning.html",
+                                    "#text": "Cleaning"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/bricks/extracting.html",
+                                    "#text": "Extracting"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/bricks/staging.html",
+                                    "#text": "Staging"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/bricks/chunking.html",
+                                    "#text": "Chunking"
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "@class": "toctree-l1 has-children",
+                            "a": {
+                              "@class": "reference internal",
+                              "@href": "https://unstructured-io.github.io/unstructured/upstream_connectors.html",
+                              "#text": "Upstream Connectors"
+                            },
+                            "input": {
+                              "@class": "toctree-checkbox",
+                              "@id": "toctree-checkbox-4",
+                              "@name": "toctree-checkbox-4",
+                              "@role": "switch",
+                              "@type": "checkbox"
+                            },
+                            "label": {
+                              "@for": "toctree-checkbox-4",
+                              "div": {
+                                "@class": "visually-hidden",
+                                "#text": "Toggle navigation of Upstream Connectors"
+                              },
+                              "i": {
+                                "@class": "icon",
+                                "svg": {
+                                  "use": {
+                                    "@href": "#svg-arrow-right"
+                                  }
+                                }
+                              }
+                            },
+                            "ul": {
+                              "li": [
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/upstream_connectors/airtable.html",
+                                    "#text": "Airtable"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/upstream_connectors/azure.html",
+                                    "#text": "Azure"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/upstream_connectors/biomed.html",
+                                    "#text": "Biomed"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/upstream_connectors/box.html",
+                                    "#text": "Box"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/upstream_connectors/confluence.html",
+                                    "#text": "Confluence"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/upstream_connectors/delta_table.html",
+                                    "#text": "Delta Table"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/upstream_connectors/discord.html",
+                                    "#text": "Discord"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/upstream_connectors/dropbox.html",
+                                    "#text": "Dropbox"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/upstream_connectors/github.html",
+                                    "#text": "Github"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/upstream_connectors/gitlab.html",
+                                    "#text": "Gitlab"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/upstream_connectors/google_cloud_storage.html",
+                                    "#text": "Google Cloud Storage"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/upstream_connectors/google_drive.html",
+                                    "#text": "Google Drive"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/upstream_connectors/jira.html",
+                                    "#text": "Jira"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/upstream_connectors/local_connector.html",
+                                    "#text": "Local"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/upstream_connectors/notion.html",
+                                    "#text": "Notion"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/upstream_connectors/onedrive.html",
+                                    "#text": "One Drive"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/upstream_connectors/outlook.html",
+                                    "#text": "Outlook"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/upstream_connectors/reddit.html",
+                                    "#text": "Reddit"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/upstream_connectors/s3.html",
+                                    "#text": "S3"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/upstream_connectors/salesforce.html",
+                                    "#text": "Salesforce"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/upstream_connectors/sharepoint.html",
+                                    "#text": "Sharepoint"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/upstream_connectors/slack.html",
+                                    "#text": "Slack"
+                                  }
+                                },
+                                {
+                                  "@class": "toctree-l2",
+                                  "a": {
+                                    "@class": "reference internal",
+                                    "@href": "https://unstructured-io.github.io/unstructured/upstream_connectors/wikipedia.html",
+                                    "#text": "Wikipedia"
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "@class": "toctree-l1",
+                            "a": {
+                              "@class": "reference internal",
+                              "@href": "https://unstructured-io.github.io/unstructured/metadata.html",
+                              "#text": "Metadata"
+                            }
+                          },
+                          {
+                            "@class": "toctree-l1",
+                            "a": {
+                              "@class": "reference internal",
+                              "@href": "https://unstructured-io.github.io/unstructured/examples.html",
+                              "#text": "Examples"
+                            }
+                          },
+                          {
+                            "@class": "toctree-l1",
+                            "a": {
+                              "@class": "reference internal",
+                              "@href": "https://unstructured-io.github.io/unstructured/integrations.html",
+                              "#text": "Integrations"
+                            }
+                          },
+                          {
+                            "@class": "toctree-l1 has-children",
+                            "a": {
+                              "@class": "reference internal",
+                              "@href": "https://unstructured-io.github.io/unstructured/best_practices.html",
+                              "#text": "Best Practices"
+                            },
+                            "input": {
+                              "@class": "toctree-checkbox",
+                              "@id": "toctree-checkbox-5",
+                              "@name": "toctree-checkbox-5",
+                              "@role": "switch",
+                              "@type": "checkbox"
+                            },
+                            "label": {
+                              "@for": "toctree-checkbox-5",
+                              "div": {
+                                "@class": "visually-hidden",
+                                "#text": "Toggle navigation of Best Practices"
+                              },
+                              "i": {
+                                "@class": "icon",
+                                "svg": {
+                                  "use": {
+                                    "@href": "#svg-arrow-right"
+                                  }
+                                }
+                              }
+                            },
+                            "ul": {
+                              "li": {
+                                "@class": "toctree-l2",
+                                "a": {
+                                  "@class": "reference internal",
+                                  "@href": "https://unstructured-io.github.io/unstructured/best_practices/strategies.html",
+                                  "#text": "Strategies"
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ],
+                "form": {
+                  "@class": "sidebar-search-container",
+                  "@method": "get",
+                  "@action": "https://unstructured-io.github.io/unstructured/search.html",
+                  "@role": "search",
+                  "input": [
+                    {
+                      "@class": "sidebar-search",
+                      "@placeholder": "Search",
+                      "@name": "q",
+                      "@aria-label": "Search"
+                    },
+                    {
+                      "@type": "hidden",
+                      "@name": "check_keywords",
+                      "@value": "yes"
+                    },
+                    {
+                      "@type": "hidden",
+                      "@name": "area",
+                      "@value": "default"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}
