@@ -1,33 +1,33 @@
 import os
 import requests
+import json
 
-url = "https://localhost:8000/embed"
+filepath = 'src/api/tests/fixtures/test_medium_text.txt'
+url = "http://localhost:8000/embed"
 headers = {
-    "Content-Type": "multipart/form-data",
-    "headers": {
-        "Authorization": os.getenv("INTERNAL_API_KEY"),
-        "X-EmbeddingAPI-Key": os.getenv("OPEN_AI_KEY"),
-        "X-VectorDB-Key": os.getenv("QDRANT_KEY"),
-    }
+    "Authorization": os.getenv("INTERNAL_API_KEY"),
+    "X-EmbeddingAPI-Key": os.getenv("OPEN_AI_KEY"),
+    "X-VectorDB-Key": os.getenv("QDRANT_KEY"),
 }
 
 data = {
-    'EmbeddingsMetadata': {
+    'EmbeddingsMetadata': json.dumps({
         "embeddings_type": "OPEN_AI", 
         "chunk_size": 256, 
         "chunk_overlap": 128
-        },
-    'VectorDBMetadata': {
+    }),
+    'VectorDBMetadata': json.dumps({
         "vector_db_type": "QDRANT", 
         "index_name": "test-1536",
-        "environment": "https://2221925e-165f-43d1-9244-997fa6a47843.eu-central-1-0.aws.cloud.qdrant.io"
-    }
-}  
-
-files = {
-    'SourceData': open('path/to/file', 'rb')
+        "environment": os.getenv("TESTING_ENV")
+    })
 }
 
+files = {
+    'SourceData': open(filepath, 'rb')
+}
+
+print("sending request")
 response = requests.post(
     url, 
     headers=headers, 
@@ -45,7 +45,7 @@ job_id = response_json['JobID']
 print(f"Job ID: {job_id}")
 
 # poll the server for the job status
-url = f"https://localhost:8000/jobs/{job_id}/status"
+url = f"http://localhost:8000/jobs/{job_id}/status"
 job_status = None
 while job_status != "COMPLETED" and job_status != "FAILURE":
     headers = {
