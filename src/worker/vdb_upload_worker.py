@@ -26,6 +26,7 @@ from pymilvus import Collection, connections
 from deeplake.core.vectorstore import VectorStore
 from shared.embeddings_type import EmbeddingsType
 from shared.vector_db_type import VectorDBType
+from shared.utils import generate_uuid_from_tuple
 
 logging.basicConfig(filename='./vdb-upload-log.txt', level=logging.INFO)
 logging.basicConfig(filename='./vdb-upload-errors.txt', level=logging.ERROR)
@@ -40,7 +41,6 @@ def upload_batch(batch_id, text_embeddings_list):
 
         db.refresh(batch)
         vectors_uploaded = write_embeddings_to_vector_db(text_embeddings_list, batch.vector_db_metadata, batch.id, batch.job_id)
-        print(f"vectors uploaded: {vectors_uploaded}")
     
         if vectors_uploaded:
             with get_db() as db:
@@ -99,13 +99,6 @@ def write_embeddings_to_pinecone(upsert_list, vector_db_metadata):
     
     logging.info(f"Successfully uploaded {vectors_uploaded} vectors to pinecone")
     return vectors_uploaded
-
-def generate_uuid_from_tuple(t, namespace_uuid='6ba7b810-9dad-11d1-80b4-00c04fd430c8'):
-    namespace = uuid.UUID(namespace_uuid)
-    name = "-".join(map(str, t))
-    unique_uuid = uuid.uuid5(namespace, name)
-
-    return str(unique_uuid)
 
 def create_qdrant_source_chunk_dict(text_embeddings_list, batch_id, job_id):
     upsert_list = []
