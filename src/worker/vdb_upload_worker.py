@@ -134,7 +134,7 @@ def write_embeddings_to_redis(upsert_list, vector_db_metadata):
     pipe = redis_client.pipeline()
 
     for i in range(0,len(upsert_list[0])):
-        key = f'vectorflow:{upsert_list[0][i]}'
+        key = f'{vector_db_metadata.collection}:{upsert_list[0][i]}'
         obj = {"source_data": upsert_list[1][i], "embeddings": np.array(upsert_list[2][i]).tobytes()}
 
         pipe.hset(key, mapping=obj)
