@@ -15,6 +15,7 @@ import logging
 import uuid
 import weaviate
 import redis
+import numpy as np
 import worker.config as config
 import services.database.batch_service as batch_service
 import services.database.job_service as job_service
@@ -128,16 +129,13 @@ def write_embeddings_to_redis(upsert_list, vector_db_metadata):
     
     logging.info(f"Starting redis upsert for {len(upsert_list)} vectors")
 
-    pipe = redis_client.pipeline()
-
     batch_size = config.PINECONE_BATCH_SIZE
 
     pipe = redis_client.pipeline()
 
-    for i in range(0,len(upsert_list), batch_size):
-
-        key = f'vectorflow:{upsert_list[0][i:i+batch_size]}'
-        obj = {"source_data": upsert_list[1][i:i+batch_size], "embeddings": upsert_list[2][i:i+batch_size]}
+    for i in range(0,len(upsert_list[0])):
+        key = f'vectorflow:{upsert_list[0][i]}'
+        obj = {"source_data": upsert_list[1][i], "embeddings": np.array(upsert_list[2][i]).tobytes()}
 
         pipe.hset(key, mapping=obj)
 
