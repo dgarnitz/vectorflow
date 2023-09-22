@@ -1,11 +1,10 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from models.batch import Batch
 
 #this is required for Batch's foreign relation to work, otherwise Job won't laod and it throws an error
 from models.job import Job
  
 from shared.batch_status import BatchStatus
-from sqlalchemy.orm import joinedload
 
 def create_batches(db: Session, batches: list[Batch]):
     db.add_all(batches)

@@ -1,5 +1,4 @@
-from api.vectorflow_request import VectorflowRequest
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from models.batch import Batch
 from models.job import Job
 from shared.batch_status import BatchStatus
@@ -59,7 +58,7 @@ def get_job_with_vdb_metadata(db: Session, job_id: int):
         joinedload(Job.vector_db_metadata)
     ).first()
 
-def create_job_with_vdb_metadata(db: Session, vectorflow_request: VectorflowRequest, source_filename: str):
+def create_job_with_vdb_metadata(db: Session, vectorflow_request, source_filename: str):
     job = Job(webhook_url=vectorflow_request.webhook_url if vectorflow_request.webhook_url else None, 
               source_filename=source_filename,  
               vector_db_metadata=vectorflow_request.vector_db_metadata)

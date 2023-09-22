@@ -10,6 +10,7 @@ import magic
 import json
 import fitz
 import base64
+import logging
 from io import BytesIO
 import services.database.batch_service as batch_service
 import services.database.job_service as job_service
@@ -195,6 +196,7 @@ def upload_image():
             return jsonify({'message': f"Successfully added {file.filename} batches to the queue", 'JobID': job_id}), 200
         
         except Exception as e:
+            logging.error(f"Attempt to upload file {file.filename} failed due to error: {e}")
             return jsonify({'error': f"Attempt to upload file {file.filename} failed due to error: {e}"}), 400
     else:
         return jsonify({'error': 'Uploaded file is not a JPG, JPEG, or PNG file'}), 400

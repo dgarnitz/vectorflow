@@ -5,6 +5,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
 import json
+import base64
 import pika
 import logging
 import time
@@ -41,13 +42,12 @@ def transform_vector_to_list(vector):
     numpy_array = squeezed_tensor.numpy()
     return numpy_array.tolist()
 
-def create_pinecone_source_chunk_dict(embeddings_list, job_id, filename):
+def create_pinecone_source_chunk_dict(embedding, job_id, filename):
     upsert_list = []
-    for i, embedding in enumerate(embeddings_list):
-        upsert_list.append(
-            {"id": generate_uuid_from_tuple((job_id, i)), 
+    upsert_list.append(
+            {"id": generate_uuid_from_tuple((job_id, filename)), 
             "values": embedding, 
-            "metadata": {"source_document": filename}})
+            "metadata": {"source_document": filename}})       
     return upsert_list
 
 def write_embeddings_to_pinecone(upsert_list, vector_db_metadata):
@@ -77,16 +77,16 @@ def write_embeddings_to_pinecone(upsert_list, vector_db_metadata):
 def upload_embeddings(embeddings, job):
     with get_db() as db:
         if job.vector_db_metadata.vector_db_type == VectorDBType.PINECONE:
-            upsert_list = create_pinecone_source_chunk_dict(embeddings, job.job_id, job.source_filename)
+            upsert_list = create_pinecone_source_chunk_dict(embeddings, job.id, job.source_filename)
             vectors_uploaded = write_embeddings_to_pinecone(upsert_list, job.vector_db_metadata)
             
             if vectors_uploaded:
-                job_service.update_job_status(db, job.job_id, JobStatus.COMPLETED)
+                job_service.update_job_status(db, job.id, JobStatus.COMPLETED)
             else:
-                job_service.update_job_status(db, job.job_id, JobStatus.FAILED)
+                job_service.update_job_status(db, job.id, JobStatus.FAILED)
         else:
             logging.error('Unsupported vector DB type:', job.vector_db_metadata.vector_db_type)
-            job_service.update_job_status(db, job.job_id, JobStatus.FAILED)
+            job_service.update_job_status(db, job.id, JobStatus.FAILED)
 
 def process_image(image_bytes, job_id):
     with get_db() as db:
@@ -107,7 +107,8 @@ def process_image(image_bytes, job_id):
 def callback(ch, method, properties, body):
     try:
         data = json.loads(body)
-        image_bytes = data['image_bytes']
+        encoded_image_string = data['image_bytes']
+        image_bytes = base64.b64decode(encoded_image_string)
         job_id = data['job_id']
         os.environ["VECTOR_DB_KEY"] = data['vector_db_key']
 

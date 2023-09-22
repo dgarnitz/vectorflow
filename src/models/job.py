@@ -1,4 +1,4 @@
-from models.embeddings_metadata import EmbeddingsMetadata
+from models.vector_db_metadata import VectorDBMetadata
 from sqlalchemy import Column, Integer, String, DateTime, Enum, ForeignKey
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -17,5 +17,5 @@ class Job(Base):
     start_time = Column(DateTime(timezone=True), default=func.now())
     source_filename = Column(String)
 
-    embeddings_metadata_id = Column(Integer, ForeignKey('embeddings_metadata.id'))
-    embeddings_metadata = relationship(EmbeddingsMetadata)
+    vector_db_metadata_id = Column(Integer, ForeignKey('vector_db_metadata.id'))
+    vector_db_metadata = relationship(VectorDBMetadata)
