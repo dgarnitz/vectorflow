@@ -20,15 +20,15 @@
 
 # Introduction
 
-VectorFlow is an open source, high throughput, fault tolerant vector embedding pipeline. With a simple API request, you can send raw data that will be embedded and stored in any vector database or returned back to you.
+VectorFlow is an open source, high throughput, fault tolerant vector embedding pipeline. With a simple API request, you can send raw data that will be embedded and stored in any vector database or returned back to you. VectorFlow is multi-modal and can ingest both textual and image data. 
 
-This current version is an MVP and should not be used in production yet. Right now the system only supports uploading single TXT or PODF files at a time, up to 25 MB.
+This current version is an MVP and should not be used in production yet. Right now the system only supports uploading single files at a time, up to 25 MB. For text-based files, it supports TXT, PDF and .DOCX. For image files, it support JPG, JPEG, and PNG. 
 
 # Run it Locally
 
 ## Docker-Compose
 
-The best way to run VectorFlow is via `docker compose`.
+The best way to run VectorFlow is via `docker compose`. If you are running this on Mac, please grant Docker permissions to read from your Documents folder [as instructed here](https://stackoverflow.com/questions/58482352/operation-not-permitted-from-docker-container-logged-as-root). If this fails, remove the `volume` section from the `docker-compose.yml`.
 
 ### 1) Set Environment Variables
 
@@ -40,7 +40,7 @@ cd env_scripts
 touch env_vars.env
 ```
 
-This creates a file called `env_vars.env` in the `env_scripts` folder to add all the environment variables mentioned below.
+This creates a file called `env_vars.env` in the `env_scripts` folder to add all the environment variables mentioned below. You only need to set the `LOCAL_VECTOR_DB` variable if you are running qdrant, Milvus or Weaviate locally.  
 
 ```
 INTERNAL_API_KEY=your-choice
@@ -60,7 +60,7 @@ You can choose a variable for `INTERNAL_API_KEY`, `POSTGRES_PASSWORD`, and `POST
 
 ### 2) Run Docker-Compose
 
-Make sure you pull Rabbit MQ and Postgres into your local docker repo. We also recommend running a vector DB in locally, so make sure to pull the image of the one you are using:
+Make sure you pull Rabbit MQ and Postgres into your local docker repo. We also recommend running a vector DB in locally, so make sure to pull the image of the one you are using. Our `docker-compose` file will spin up qdrant by default and create two index/collections. If you plan to run Milvus or Weaviate, you will have to configure them on your own. 
 
 ```
 docker pull rabbitmq
@@ -93,9 +93,9 @@ To use VectorFlow in a live system, make an HTTP request to your API's URL at po
 
 ### Request & Response Payload
 
-All requests require an HTTP Header with `Authorization` key which is the same as your `INTERNAL_API_KEY` env var that you defined before (see above). You must pass your vector database api key with the HTTP Header `X-VectorDB-Key` and the embedding api key with `X-EmbeddingAPI-Key`.
+All requests require an HTTP Header with `Authorization` key which is the same as your `INTERNAL_API_KEY` env var that you defined before (see above). You must pass your vector database api key with the HTTP Header `X-VectorDB-Key` if you are running a connecting to a cloud-based instance of a vector DB, and the embedding api key with `X-EmbeddingAPI-Key` if you are using OpenAI. HuggingFace Sentence Transformer embeddings do not require an api key, but you must follow the above steps to run the container with the model you need. 
 
-VectorFlow currently supports OpenAI ADA embeddings and Pinecone, Qdrant, Weaviate, and Milvus vector databases. 
+VectorFlow currently supports Pinecone, Qdrant, Weaviate, and Milvus vector databases. 
 
 To check the status of a `job`, make a `GET` request to this endpoint: `/jobs/<int:job_id>/status`. The response will be in the form:
 
@@ -112,7 +112,7 @@ To submit a `job` for embedding, make a `POST` request to this endpoint: `/embed
     'SourceData=path_to_txt_file'
     'LinesPerBatch=4096'
     'EmbeddingsMetadata={
-        "embeddings_type": "OPEN_AI | HUGGING_FACE",
+        "embeddings_type": "OPEN_AI | HUGGING_FACE | IMAGE",
         "chunk_size": 512,
         "chunk_overlap": 128,
         "chunk_strategy": "EXACT | PARAGRAPH | SENTENCE",
@@ -135,12 +135,15 @@ You will get the following payload back:
 }
 ```
 
+### VectorFlow API Client
+The easiest way to use VectorFlow is to with the our testing client, located in `src/testing_client.py`. Running this script will submit a document to VectorFlow for embedding. You can change the values to match your configuration. 
+
 ### Sample Curl Request
 
 The following request will embed a TXT document with OpenAI's ADA model and upload the results to a Pinecone index called `test`. Make sure that your Pinecone index is called `test`. If you run the curl command from the root directory the path to the test_text.txt is `./src/api/tests/fixtures/test_text.txt`, changes this if you want to use another TXT document to embed.
 
 ```
-curl -X POST -H 'Content-Type: multipart/form-data' -H "Authorization: INTERNAL_API_KEY" -H "X-EmbeddingAPI-Key: your-key-here" -H "X-VectorDB-Key: your-key-here" -F 'EmbeddingsMetadata={"embeddings_type": "open_ai", "chunk_size": 256, "chunk_overlap": 128}' -F 'SourceData=@./src/api/tests/fixtures/test_text.txt' -F 'VectorDBMetadata={"vector_db_type": "pinecone", "index_name": "test", "environment": "us-east-1-aws"}'  http://localhost:8000/embed
+curl -X POST -H 'Content-Type: multipart/form-data' -H "Authorization: INTERNAL_API_KEY" -H "X-EmbeddingAPI-Key: your-key-here" -H "X-VectorDB-Key: your-key-here" -F 'EmbeddingsMetadata={"embeddings_type": "open_ai", "chunk_size": 256, "chunk_overlap": 128}' -F 'SourceData=@./src/api/tests/fixtures/test_text.txt' -F 'VectorDBMetadata={"vector_db_type": "qdrant", "index_name": "test", "environment": "url-to-collection"}'  http://localhost:8000/embed
 ```
 
 To check the status of the job,
@@ -154,13 +157,29 @@ VectorFlow enforces a standardized schema for uploading data to a vector store:
 ```
 id: int
 source_data: string
+source_document: string
 embeddings: float array
 ```
 
-The id can be used for deduplication and idempotency. Please note for Weaviate, the id is called `vectorflow_id`. We plan to support dynamically detect and/or configurable schemas down the road. 
+The id can be used for deduplication and idempotency. Please note for Weaviate, the id is called `vectorflow_id`. We plan to support dynamically detected and/or configurable schemas down the road. 
 
 ### S3 Endpoint
 VectorFlow is integrated with AWS s3. You can pass a pre-signed s3 URL in the body of the HTTP instead of a file. Use the form field `PreSignedURL` and hit the endpoint `/s3`. This endpoint has the same configuration and restrictions as the `/embed` endpoint. 
+
+## Image Embedding
+VectorFlow can embed images using the [Image2Vec library](https://github.com/christiansafka/img2vec). It will create a 512 dimensional vector by default from any image.  
+
+### How to Use
+Send a POST request to the `/images` endpoint to utilize this capability. You pass the same set of fields in `VectorDBMetadata` as you would for the `/embed` or `/s3` endpoints but for `EmbeddingsMetadata` you only need to pass `"embeddings_type": "IMAGE"` 
+
+The `docker-compose` file will not spin this capability up automatically. Either run `app.py --model_name your-sentence-transformer-model`, or build and run the docker image in `src/images` with:
+
+```
+docker build --file images/Dockerfile -t vectorflow_image_embedding:latest .
+docker run --network=vectorflow --name=vectorflow_image_embedding -d --env-file=/path/to/.env vectorflow_image_embedding:latest
+```
+
+Note that the Image2Vec uses the ResNet 18 by default. You can configure it to run larger models with higher dimensionality for more fine-grained embeddings. These take several minutes to download the weights from the source. VectorFlow does not provision hardware, so you must ensure your hardware has enough RAM/VRAM for the model. By default, VectorFlow will run models on GPU with CUDA if available.
 
 # Contributing
 

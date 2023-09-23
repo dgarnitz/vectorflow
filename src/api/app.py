@@ -36,7 +36,7 @@ def embed():
     if not vectorflow_request.vectorflow_key or not auth.validate_credentials(vectorflow_request.vectorflow_key):
         return jsonify({'error': 'Invalid credentials'}), 401
  
-    if not vectorflow_request.embeddings_metadata or not vectorflow_request.vector_db_metadata or not vectorflow_request.vector_db_key:
+    if not vectorflow_request.embeddings_metadata or not vectorflow_request.vector_db_metadata or (not vectorflow_request.vector_db_key and not os.getenv('LOCAL_VECTOR_DB')):
         return jsonify({'error': 'Missing required fields'}), 400
     
     if vectorflow_request.embeddings_metadata.embeddings_type == EmbeddingsType.HUGGING_FACE and not vectorflow_request.embeddings_metadata.hugging_face_model_name:
@@ -87,7 +87,7 @@ def s3_presigned_url():
         return jsonify({'error': 'Invalid credentials'}), 401
  
     pre_signed_url = request.form.get('PreSignedURL')
-    if not vectorflow_request.embeddings_metadata or not vectorflow_request.vector_db_metadata or not vectorflow_request.vector_db_key or not pre_signed_url:
+    if not vectorflow_request.embeddings_metadata or not vectorflow_request.vector_db_metadata or (not vectorflow_request.vector_db_key and not os.getenv('LOCAL_VECTOR_DB'))or not pre_signed_url:
         return jsonify({'error': 'Missing required fields'}), 400
     
     response = requests.get(pre_signed_url)
