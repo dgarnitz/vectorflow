@@ -1,6 +1,8 @@
 import sys
 import os
 
+from worker import config
+
 # this is needed to import classes from other directories
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
@@ -13,6 +15,7 @@ import ssl
 import torch
 import pinecone
 import numpy as np
+import weaviate
 from img2vec_pytorch import Img2Vec
 from PIL import Image
 from io import BytesIO
@@ -21,6 +24,8 @@ from services.database.database import get_db
 from shared.job_status import JobStatus
 from shared.utils import generate_uuid_from_tuple
 from shared.vector_db_type import VectorDBType
+from qdrant_client.models import PointStruct
+from worker.vdb_upload_worker import write_embeddings_to_milvus, write_embeddings_to_pinecone, write_embeddings_to_qdrant
 
 # global configs
 logging.basicConfig(filename='./image-worker-log.txt', level=logging.INFO)
@@ -33,7 +38,6 @@ def embed_image(image_bytes):
 
     # Get a vector from img2vec, returned as a torch FloatTensor
     vector_tensor = img2vec.get_vec(img, tensor=True)
-
     embedding_list = transform_vector_to_list(vector_tensor)
     return embedding_list
 
@@ -50,42 +54,86 @@ def create_pinecone_source_chunk_dict(embedding, job_id, filename):
             "metadata": {"source_document": filename}})       
     return upsert_list
 
-def write_embeddings_to_pinecone(upsert_list, vector_db_metadata):
-    pinecone_api_key = os.getenv('VECTOR_DB_KEY')
-    pinecone.init(api_key=pinecone_api_key, environment=vector_db_metadata.environment)
-    index = pinecone.GRPCIndex(vector_db_metadata.index_name)
-    if not index:
-        logging.error(f"Index {vector_db_metadata.index_name} does not exist in environment {vector_db_metadata.environment}")
+def create_qdrant_source_chunk_dict(embedding, job_id, source_filename):
+    upsert_list = []
+    upsert_list.append(
+            PointStruct(
+                id=generate_uuid_from_tuple((job_id, source_filename)),
+                vector=embedding,
+                payload={"source_document": source_filename}
+            ))
+    return upsert_list
+
+def create_milvus_source_chunk_dict(embedding, job_id, source_filename):
+    ids = []
+    source_texts = []
+    embeddings = []
+    source_filenames = []
+    ids.append(generate_uuid_from_tuple((job_id, source_filename)))
+    embeddings.append(embedding)
+    source_filenames.append(source_filename)    
+    return [ids, source_texts, embeddings, source_filenames]
+
+def write_image_embeddings_to_weaviate(embedding, vector_db_metadata, job_id, source_filename):
+    client = weaviate.Client(
+        url=vector_db_metadata.environment,
+        auth_client_secret=weaviate.AuthApiKey(api_key=os.getenv('VECTOR_DB_KEY')),
+    ) if vector_db_metadata.environment != os.getenv('LOCAL_VECTOR_DB') else weaviate.Client(url=vector_db_metadata.environment)
+
+    index = client.schema.get()
+    class_list = [class_dict["class"] for class_dict in index["classes"]]
+    if not index or not vector_db_metadata.index_name in class_list:
+        logging.error(f"Collection {vector_db_metadata.index_name} does not exist at cluster URL {vector_db_metadata.environment}")
         return None
     
-    logging.info(f"Starting pinecone upsert for {len(upsert_list)} vectors")
+    logging.info(f"Starting Weaviate upsert for image vector")
+    try:
+        with client.batch(batch_size=config.PINECONE_BATCH_SIZE, dynamic=True, num_workers=2) as batch:
+            properties = {
+                    "vectoflow_id": generate_uuid_from_tuple((job_id, source_filename, i)),
+                    "source_document": source_filename
+                }
 
-    batch_size = 128
-    vectors_uploaded = 0
-
-    for i in range(0,len(upsert_list), batch_size):
-        try:
-            upsert_response = index.upsert(vectors=upsert_list[i:i+batch_size])
-            vectors_uploaded += upsert_response.upserted_count
-        except Exception as e:
-            logging.error('Error writing embeddings to pinecone:', e)
-            return None
+            client.batch.add_data_object(
+                properties,
+                vector_db_metadata.index_name,
+                vector=embedding
+            )
+                
+    except Exception as e:
+        logging.error('Error writing embeddings to weaviate:', e)
+        return None
     
-    logging.info(f"Successfully uploaded {vectors_uploaded} vectors to pinecone")
-    return vectors_uploaded
+    logging.info(f"Successfully uploaded image vector to Weaviate")
+    return 1
 
-def upload_embeddings(embeddings, job):
+def write_embeddings_to_vector_db(embedding, vector_db_metadata, job_id):
     with get_db() as db:
-        if job.vector_db_metadata.vector_db_type == VectorDBType.PINECONE:
-            upsert_list = create_pinecone_source_chunk_dict(embeddings, job.id, job.source_filename)
-            vectors_uploaded = write_embeddings_to_pinecone(upsert_list, job.vector_db_metadata)
-            
-            if vectors_uploaded:
-                job_service.update_job_status(db, job.id, JobStatus.COMPLETED)
-            else:
-                job_service.update_job_status(db, job.id, JobStatus.FAILED)
-        else:
+        job = job_service.get_job(db, job_id)
+        source_filename = job.source_filename
+    
+    if vector_db_metadata.vector_db_type == VectorDBType.PINECONE:
+        upsert_list = create_pinecone_source_chunk_dict(embedding,  job_id, source_filename)
+        return write_embeddings_to_pinecone(upsert_list, vector_db_metadata)
+    elif vector_db_metadata.vector_db_type == VectorDBType.QDRANT:
+        upsert_list = create_qdrant_source_chunk_dict(embedding, job_id, source_filename)
+        return write_embeddings_to_qdrant(upsert_list, vector_db_metadata)
+    elif vector_db_metadata.vector_db_type == VectorDBType.WEAVIATE:
+        return write_image_embeddings_to_weaviate(embedding, vector_db_metadata, job_id, source_filename)
+    elif vector_db_metadata.vector_db_type == VectorDBType.MILVUS:
+        upsert_list = create_milvus_source_chunk_dict(embedding, job_id, source_filename)
+        return write_embeddings_to_milvus(upsert_list, vector_db_metadata)
+    else:
+        logging.error('Unsupported vector DB type:', vector_db_metadata.vector_db_type)
+
+def upload_embeddings(embedding, job):
+    with get_db() as db:
+        vectors_uploaded = write_embeddings_to_vector_db(embedding, job.vector_db_metadata, job.id)
+
+        if vectors_uploaded:
+            job_service.update_job_status(db, job.id, JobStatus.COMPLETED)
             logging.error('Unsupported vector DB type:', job.vector_db_metadata.vector_db_type)
+        else:
             job_service.update_job_status(db, job.id, JobStatus.FAILED)
 
 def process_image(image_bytes, job_id):
@@ -97,8 +145,8 @@ def process_image(image_bytes, job_id):
             job_service.update_job_status(db, job.id, JobStatus.PROCESSING_BATCHES)
 
     try:
-        embeddings = embed_image(image_bytes)
-        upload_embeddings(embeddings, job)
+        embedding = embed_image(image_bytes)
+        upload_embeddings(embedding, job)
     except Exception as e:
         logging.error('Error embedding image:', e)
         with get_db() as db:
