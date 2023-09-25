@@ -2,24 +2,38 @@ import os
 import requests
 import json
 
-filepath = '/Users/davidgarnitz/Documents/Other/garnitz.jpg'
-url = "http://localhost:8000/images"
+#####################
+# Testing Variables #
+#####################
+filepath = './api/tests/fixtures/test_medium_text.txt'
+url = "http://localhost:8000/embed"
+embedding_key = os.getenv("OPEN_AI_KEY")
+vector_db_key = os.getenv("MILVUS_KEY")
+embedding_type="OPEN_AI"
+vector_db_type = "MILVUS"
+index_name = "test1536"
+testing_environment = os.getenv("TESTING_ENV")
+
+##################
+# Testing script #
+##################
+
 headers = {
     "Authorization": os.getenv("INTERNAL_API_KEY"),
-    "X-EmbeddingAPI-Key": os.getenv("OPEN_AI_KEY"),
-    "X-VectorDB-Key": os.getenv("PINECONE_KEY"),
+    "X-EmbeddingAPI-Key": embedding_key,
+    "X-VectorDB-Key": vector_db_key,
 }
 
 data = {
     'EmbeddingsMetadata': json.dumps({
-        "embeddings_type": "IMAGE", 
+        "embeddings_type": embedding_type, 
         "chunk_size": 256, 
         "chunk_overlap": 128
     }),
     'VectorDBMetadata': json.dumps({
-        "vector_db_type": "PINECONE", 
-        "index_name": "test-512",
-        "environment": os.getenv("TESTING_ENV")
+        "vector_db_type": vector_db_type, 
+        "index_name": index_name,
+        "environment": testing_environment
     })
 }
 
@@ -47,7 +61,7 @@ print(f"Job ID: {job_id}")
 # poll the server for the job status
 url = f"http://localhost:8000/jobs/{job_id}/status"
 job_status = None
-while job_status != "COMPLETED" and job_status != "FAILURE":
+while job_status != "COMPLETED" and job_status != "FAILED":
     headers = {
         "Authorization": os.getenv("INTERNAL_API_KEY"),
     }

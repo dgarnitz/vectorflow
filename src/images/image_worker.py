@@ -131,7 +131,6 @@ def upload_embeddings(embedding, job):
 
         if vectors_uploaded:
             job_service.update_job_status(db, job.id, JobStatus.COMPLETED)
-            logging.error('Unsupported vector DB type:', job.vector_db_metadata.vector_db_type)
         else:
             job_service.update_job_status(db, job.id, JobStatus.FAILED)
 
