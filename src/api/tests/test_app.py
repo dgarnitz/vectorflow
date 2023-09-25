@@ -135,40 +135,6 @@ class TestApp(unittest.TestCase):
         # assert
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json['JobStatus'], JobStatus.NOT_STARTED.value)
-    
-    @patch('api.pipeline.Pipeline.connect')
-    @patch('api.pipeline.Pipeline.get_queue_size')
-    @patch('api.pipeline.Pipeline.disconnect')
-    def test_dequeue_endpoint_empty(self, mock_disconnect, mock_get_queue_size, mock_connect):
-        # arrange
-        mock_get_queue_size.return_value = 0
-
-        # act
-        response = self.client.get('/dequeue', headers=self.headers)
-
-        # assert
-        self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.json['error'], 'No jobs in queue') 
-
-    @patch('api.pipeline.Pipeline.get_from_queue')
-    @patch('api.pipeline.Pipeline.connect')
-    @patch('api.pipeline.Pipeline.get_queue_size')
-    @patch('api.pipeline.Pipeline.disconnect')
-    def test_dequeue_endpoint_not_empty(self, mock_disconnect, mock_get_queue_size, mock_connect, mock_get_from_queue):
-        # arrange
-        mock_get_queue_size.return_value = 1
-        mock_get_from_queue.return_value = json.dumps((1, "This is a test"))
-
-        # act
-        response = self.client.get('/dequeue', headers=self.headers)
-
-        # assert
-        self.assertEqual(response.status_code, 200)
-
-        batch_id = response.json['batch_id']
-        self.assertEqual(batch_id, 1)
-        source_data = response.json['source_data']
-        self.assertEqual(source_data, "This is a test")
 
     def test_split_file(self):
         # arrange

@@ -2,23 +2,23 @@ import os
 import requests
 import json
 
-filepath = 'src/api/tests/fixtures/test_medium_text.txt'
-url = "http://localhost:8000/embed"
+filepath = '/Users/davidgarnitz/Documents/Other/garnitz.jpg'
+url = "http://localhost:8000/images"
 headers = {
     "Authorization": os.getenv("INTERNAL_API_KEY"),
     "X-EmbeddingAPI-Key": os.getenv("OPEN_AI_KEY"),
-    "X-VectorDB-Key": os.getenv("QDRANT_KEY"),
+    "X-VectorDB-Key": os.getenv("PINECONE_KEY"),
 }
 
 data = {
     'EmbeddingsMetadata': json.dumps({
-        "embeddings_type": "OPEN_AI", 
+        "embeddings_type": "IMAGE", 
         "chunk_size": 256, 
         "chunk_overlap": 128
     }),
     'VectorDBMetadata': json.dumps({
-        "vector_db_type": "QDRANT", 
-        "index_name": "test-1536",
+        "vector_db_type": "PINECONE", 
+        "index_name": "test-512",
         "environment": os.getenv("TESTING_ENV")
     })
 }

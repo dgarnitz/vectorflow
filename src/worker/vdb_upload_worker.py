@@ -23,7 +23,6 @@ from shared.batch_status import BatchStatus
 from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct
 from pymilvus import Collection, connections
-from deeplake.core.vectorstore import VectorStore
 from shared.embeddings_type import EmbeddingsType
 from shared.vector_db_type import VectorDBType
 from shared.utils import generate_uuid_from_tuple
@@ -50,30 +49,31 @@ def upload_batch(batch_id, text_embeddings_list):
             update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
 
 def write_embeddings_to_vector_db(text_embeddings_list, vector_db_metadata, batch_id, job_id):
+    with get_db() as db:
+        job = job_service.get_job(db, job_id)
+        source_filename = job.source_filename
+    
     if vector_db_metadata.vector_db_type == VectorDBType.PINECONE:
-        upsert_list = create_pinecone_source_chunk_dict(text_embeddings_list, batch_id, job_id)
+        upsert_list = create_pinecone_source_chunk_dict(text_embeddings_list, batch_id, job_id, source_filename)
         return write_embeddings_to_pinecone(upsert_list, vector_db_metadata)
     elif vector_db_metadata.vector_db_type == VectorDBType.QDRANT:
-        upsert_list = create_qdrant_source_chunk_dict(text_embeddings_list, batch_id, job_id)
+        upsert_list = create_qdrant_source_chunk_dict(text_embeddings_list, batch_id, job_id, source_filename)
         return write_embeddings_to_qdrant(upsert_list, vector_db_metadata)
     elif vector_db_metadata.vector_db_type == VectorDBType.WEAVIATE:
-        return write_embeddings_to_weaviate(text_embeddings_list, vector_db_metadata, batch_id, job_id)
+        return write_embeddings_to_weaviate(text_embeddings_list, vector_db_metadata, batch_id, job_id, source_filename)
     elif vector_db_metadata.vector_db_type == VectorDBType.MILVUS:
-        upsert_list = create_milvus_source_chunk_dict(text_embeddings_list, batch_id, job_id)
+        upsert_list = create_milvus_source_chunk_dict(text_embeddings_list, batch_id, job_id, source_filename)
         return write_embeddings_to_milvus(upsert_list, vector_db_metadata)
-    elif vector_db_metadata.vector_db_type == VectorDBType.DEEPLAKE:
-        upsert_list = create_deeplake_source_chunk_dict(text_embeddings_list, batch_id, job_id)
-        return write_embeddings_to_deeplake(upsert_list, vector_db_metadata)
     else:
         logging.error('Unsupported vector DB type:', vector_db_metadata.vector_db_type)
 
-def create_pinecone_source_chunk_dict(text_embeddings_list, batch_id, job_id):
+def create_pinecone_source_chunk_dict(text_embeddings_list, batch_id, job_id, source_filename):
     upsert_list = []
     for i, (source_text, embedding) in enumerate(text_embeddings_list):
         upsert_list.append(
             {"id": generate_uuid_from_tuple((job_id, batch_id, i)), 
             "values": embedding, 
-            "metadata": {"source_text": source_text}})
+            "metadata": {"source_text": source_text, "source_document": source_filename}})
     return upsert_list
 
 def write_embeddings_to_pinecone(upsert_list, vector_db_metadata):
@@ -100,14 +100,14 @@ def write_embeddings_to_pinecone(upsert_list, vector_db_metadata):
     logging.info(f"Successfully uploaded {vectors_uploaded} vectors to pinecone")
     return vectors_uploaded
 
-def create_qdrant_source_chunk_dict(text_embeddings_list, batch_id, job_id):
+def create_qdrant_source_chunk_dict(text_embeddings_list, batch_id, job_id, source_filename):
     upsert_list = []
     for i, (source_text, embedding) in enumerate(text_embeddings_list):
         upsert_list.append(
             PointStruct(
                 id=generate_uuid_from_tuple((job_id, batch_id, i)),
                 vector=embedding,
-                payload={"source_text": source_text}
+                payload={"source_text": source_text, "source_document": source_filename}
             )
         )
     return upsert_list
@@ -143,11 +143,11 @@ def write_embeddings_to_qdrant(upsert_list, vector_db_metadata):
     logging.info(f"Successfully uploaded {len(upsert_list)} vectors to qdrant")
     return len(upsert_list)
 
-def write_embeddings_to_weaviate(text_embeddings_list, vector_db_metadata,  batch_id, job_id):
+def write_embeddings_to_weaviate(text_embeddings_list, vector_db_metadata,  batch_id, job_id, source_filename):
     client = weaviate.Client(
         url=vector_db_metadata.environment,
         auth_client_secret=weaviate.AuthApiKey(api_key=os.getenv('VECTOR_DB_KEY')),
-    )
+    ) if vector_db_metadata.environment != os.getenv('LOCAL_VECTOR_DB') else weaviate.Client(url=vector_db_metadata.environment)
 
     index = client.schema.get()
     class_list = [class_dict["class"] for class_dict in index["classes"]]
@@ -161,7 +161,8 @@ def write_embeddings_to_weaviate(text_embeddings_list, vector_db_metadata,  batc
             for i, (text, vector) in enumerate(text_embeddings_list):
                 properties = {
                     "source_data": text,
-                    "vectoflow_id": generate_uuid_from_tuple((job_id, batch_id, i))
+                    "vectoflow_id": generate_uuid_from_tuple((job_id, batch_id, i)),
+                    "source_document": source_filename
                 }
 
                 client.batch.add_data_object(
@@ -176,64 +177,28 @@ def write_embeddings_to_weaviate(text_embeddings_list, vector_db_metadata,  batc
     logging.info(f"Successfully uploaded {len(text_embeddings_list)} vectors to Weaviate")
     return len(text_embeddings_list)
 
-def create_deeplake_source_chunk_dict(text_embeddings_list, batch_id, job_id):
+def create_milvus_source_chunk_dict(text_embeddings_list, batch_id, job_id, source_filename):
     ids = []
     source_texts = []
     embeddings = []
-
+    source_filenames = []
     for i, (source_text, embedding) in enumerate(text_embeddings_list):
         ids.append(generate_uuid_from_tuple((job_id, batch_id, i)))
         source_texts.append(source_text)
         embeddings.append(embedding)
-    
-    return [ids, source_texts, embeddings]
-
-def write_embeddings_to_deeplake(upsert_list, vector_db_metadata):
- 
-    # Token key for deeplake hub
-    activeloop_token = os.getenv('VECTOR_DB_KEY')
-    
-    # Creates vectorflow dataset if it doesn't exist
-    vector_store = VectorStore(path = vector_db_metadata.index_name, verbose=False, token = activeloop_token)
-
-    logging.info(f"Starting Deeplake insert for {len(upsert_list)} vectors")
-    
-    batch_size = config.PINECONE_BATCH_SIZE
-    vectors_uploaded = 0
-
-    for i in range(0,len(upsert_list), batch_size):
-        try:   
-            # Directly upload embeddings
-            add_response = vector_store.add(
-                text = upsert_list[1][i:i+batch_size],
-                embedding = upsert_list[2][i:i+batch_size],
-                metadata  = upsert_list[0][i:i+batch_size],
-                return_ids = True
-            )
-            vectors_uploaded += len(add_response)
-
-        except Exception as e:
-            logging.error('Error writing embeddings to deeplake:', e)
-            return None    
-
-    logging.info(f"Successfully uploaded {vectors_uploaded} vectors to deeplake")
-    return vectors_uploaded
-
-def create_milvus_source_chunk_dict(text_embeddings_list, batch_id, job_id):
-    ids = []
-    source_texts = []
-    embeddings = []
-    for i, (source_text, embedding) in enumerate(text_embeddings_list):
-        ids.append(generate_uuid_from_tuple((job_id, batch_id, i)))
-        source_texts.append(source_text)
-        embeddings.append(embedding)
-    return [ids, source_texts, embeddings]
+        source_filenames.append(source_filename)
+    return [ids, source_texts, embeddings, source_filenames]
 
 def write_embeddings_to_milvus(upsert_list, vector_db_metadata):
-    connections.connect("default", 
-        uri = vector_db_metadata.environment,
-        token = os.getenv('VECTOR_DB_KEY')
-    )
+    if vector_db_metadata.environment != os.getenv('LOCAL_VECTOR_DB'):
+        connections.connect("default", 
+            uri = vector_db_metadata.environment,
+            token = os.getenv('VECTOR_DB_KEY')
+        )
+    else:
+        connections.connect("default", 
+            host = vector_db_metadata.environment
+        )
 
     collection = Collection(vector_db_metadata.index_name)
     if not collection:
@@ -273,11 +238,13 @@ def update_batch_and_job_status(job_id, batch_status, batch_id):
             job_service.update_job_status(db, job_id, JobStatus.FAILED)
 
 def callback(ch, method, properties, body):
+    # do these outside the try-catch so it can update the batch status if there's an error
+    # if this parsing logic fails, the batch shouldn't be marked as failed
+    data = json.loads(body)
+    batch_id, text_embeddings_list, vector_db_key = data
+    os.environ["VECTOR_DB_KEY"] = vector_db_key
+    
     try:
-        data = json.loads(body)
-        batch_id, text_embeddings_list, vector_db_key = data
-        os.environ["VECTOR_DB_KEY"] = vector_db_key
-
         logging.info("Batch retrieved successfully")
         upload_batch(batch_id, text_embeddings_list)
         logging.info("Batch processed successfully")
