@@ -26,3 +26,14 @@ print("collection created")
 print("verifying collection")
 collection = client.get_collection(collection_name="test-384")
 print(collection)
+
+print("creating image embedding testing collection with 512 dimensions")
+client.recreate_collection(
+    collection_name="test-512",
+    vectors_config=models.VectorParams(size=512, distance=models.Distance.COSINE),
+)
+print("collection created")
+
+print("verifying collection")
+collection = client.get_collection(collection_name="test-512")
+print(collection)
