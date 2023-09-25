@@ -13,6 +13,7 @@ COPY images /app/images
 COPY shared /app/shared
 COPY models /app/models
 COPY services /app/services
+COPY worker /app/worker
 
 # install requirements
 RUN pip install --no-cache-dir -r /app/images/requirements.txt

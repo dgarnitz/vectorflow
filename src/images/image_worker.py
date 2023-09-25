@@ -1,8 +1,6 @@
 import sys
 import os
 
-from worker import config
-
 # this is needed to import classes from other directories
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
@@ -19,6 +17,7 @@ import weaviate
 from img2vec_pytorch import Img2Vec
 from PIL import Image
 from io import BytesIO
+import worker.config as config
 import services.database.job_service as job_service
 from services.database.database import get_db
 from shared.job_status import JobStatus

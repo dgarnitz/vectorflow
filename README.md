@@ -155,7 +155,7 @@ curl -X GET -H "Authorization: INTERNAL_API_KEY" http://localhost:8000/jobs/<job
 ### Vector Database Schema Standard
 VectorFlow enforces a standardized schema for uploading data to a vector store:
 ```
-id: int
+id: string
 source_data: string
 source_document: string
 embeddings: float array
