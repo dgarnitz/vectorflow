@@ -6,3 +6,6 @@ def generate_uuid_from_tuple(t, namespace_uuid='6ba7b810-9dad-11d1-80b4-00c04fd4
     unique_uuid = uuid.uuid5(namespace, name)
 
     return str(unique_uuid)
+
+def str_to_bool(value):
+    return str(value).lower() in ["true", "1", "yes"]
