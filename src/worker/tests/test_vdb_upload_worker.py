@@ -11,7 +11,7 @@ from shared.job_status import JobStatus
 class TestVDBUploadWorker(unittest.TestCase):
     @patch('worker.worker.upload_to_vector_db')
     @patch('sqlalchemy.orm.session.Session.refresh')
-    @patch('services.database.batch_service.update_batch_status')
+    @patch('services.database.batch_service.update_batch_status_with_successful_minibatch')
     @patch('services.database.job_service.update_job_status')
     @patch('services.database.database.get_db')
     @patch('services.database.job_service.get_job')
@@ -26,7 +26,7 @@ class TestVDBUploadWorker(unittest.TestCase):
         mock_get_job, 
         mock_get_db,
         mock_update_job_status,
-        mock_update_batch_status,
+        mock_update_batch_status_with_successful_minibatch,
         mock_db_refresh,
         mock_upload_to_vector_db):
         # arrange
@@ -37,6 +37,7 @@ class TestVDBUploadWorker(unittest.TestCase):
                       batch_status=BatchStatus.PROCESSING, 
                       vector_db_metadata=VectorDBMetadata())
         mock_write_embeddings_to_vector_db.return_value = 1
+        mock_update_batch_status_with_successful_minibatch.return_value = BatchStatus.COMPLETED
         mock_get_batch.return_value = batch
         mock_get_job.return_value = job
         mock_get_db.return_value = "test_db"
@@ -94,11 +95,13 @@ class TestVDBUploadWorker(unittest.TestCase):
             text_embeddings_dict = [(chunk, [1.0, 2.0, 3.0, 4.0, 5.0]) for chunk in chunks]
             batch_id = 1
             job_id = 1
+            source_filename = "test_filename"
 
             # act
-            upsert_list = vdb_upload_worker.create_pinecone_source_chunk_dict(text_embeddings_dict, batch_id, job_id)
+            upsert_list = vdb_upload_worker.create_pinecone_source_chunk_dict(text_embeddings_dict, batch_id, job_id, source_filename)
 
             # assert
             self.assertEqual(len(upsert_list), 3)
             self.assertEqual(upsert_list[0]['metadata']['source_text'], chunks[0])
             self.assertEqual(upsert_list[0]['values'], [1.0, 2.0, 3.0, 4.0, 5.0])
+            self.assertEqual(upsert_list[0]['metadata']['source_document'], source_filename)

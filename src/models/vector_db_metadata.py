@@ -26,3 +26,11 @@ class VectorDBMetadata(Base):
             index_name = vector_db_metadata_dict['index_name'], 
             environment = vector_db_metadata_dict['environment'])
         return vector_db_metadata
+    
+    @staticmethod
+    def _from_dict(vdb_dict):
+        vector_db_metadata = VectorDBMetadata(
+            vector_db_type = VectorDBType[vdb_dict['vector_db_type']], 
+            index_name = vdb_dict['index_name'], 
+            environment = vdb_dict['environment'])
+        return vector_db_metadata

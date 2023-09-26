@@ -5,14 +5,15 @@ import ssl
 class Pipeline:
     def __init__(self):
         self.credentials = pika.PlainCredentials(os.getenv('RABBITMQ_USERNAME'), os.getenv('RABBITMQ_PASSWORD'))
-        self.queue_name = os.getenv('EMBEDDING_QUEUE')
+        self.embedding_queue = os.getenv('EMBEDDING_QUEUE')
+        self.image_queue = os.getenv('IMAGE_QUEUE')
         self.channel = None
 
-    def connect(self):
+    def connect(self, queue):
         connection_params = self._get_connection_params()
         connection = pika.BlockingConnection(connection_params)
         self.channel = connection.channel()
-        self.channel.queue_declare(queue=self.queue_name)
+        self.channel.queue_declare(queue=queue)
 
     def disconnect(self):
         if self.channel and self.channel.is_open:
@@ -33,20 +34,5 @@ class Pipeline:
                 credentials=self.credentials,
             )
 
-
-    def add_to_queue(self, data):
-        self.channel.basic_publish(exchange='', routing_key=self.queue_name, body=str(data))
-
-    # NOTE: for debugging and testing
-    def get_from_queue(self):
-        method_frame, header_frame, body = self.channel.basic_get(queue=self.queue_name)
-        if method_frame:
-            self.channel.basic_ack(method_frame.delivery_tag)
-            return body
-        return None
-
-    # NOTE: for debugging and testing
-    def get_queue_size(self):
-        response = self.channel.queue_declare(queue=self.queue_name, passive=True)
-        return response.method.message_count
-    
+    def add_to_queue(self, data, queue):
+        self.channel.basic_publish(exchange='', routing_key=queue, body=str(data))

@@ -1,11 +1,11 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from models.batch import Batch
 from models.job import Job
 from shared.batch_status import BatchStatus
 from shared.job_status import JobStatus
 
-def create_job(db: Session, webhook_url: str):
-    job = Job(webhook_url=webhook_url)
+def create_job(db: Session, webhook_url: str, source_filename: str):
+    job = Job(webhook_url=webhook_url, source_filename=source_filename)
     db.add(job)
     db.commit()
     db.refresh(job)
@@ -52,3 +52,17 @@ def update_job_status(db: Session, job_id: int, job_status: JobStatus):
         db.refresh(job)
         return job
     return None
+
+def get_job_with_vdb_metadata(db: Session, job_id: int):
+    return db.query(Job).filter(Job.id == job_id).options(
+        joinedload(Job.vector_db_metadata)
+    ).first()
+
+def create_job_with_vdb_metadata(db: Session, vectorflow_request, source_filename: str):
+    job = Job(webhook_url=vectorflow_request.webhook_url if vectorflow_request.webhook_url else None, 
+              source_filename=source_filename,  
+              vector_db_metadata=vectorflow_request.vector_db_metadata)
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+    return job

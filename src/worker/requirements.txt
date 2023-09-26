@@ -10,7 +10,6 @@ certifi==2023.7.22
 cffi==1.15.1
 charset-normalizer==3.2.0
 cryptography==41.0.3
-deeplake==3.6.25 
 dnspython==2.4.1
 environs==9.5.0
 exceptiongroup==1.1.2

@@ -9,6 +9,8 @@ import requests
 import magic
 import json
 import fitz
+import base64
+import logging
 from io import BytesIO
 import services.database.batch_service as batch_service
 import services.database.job_service as job_service
@@ -21,6 +23,7 @@ from services.database.database import get_db
 from api.vectorflow_request import VectorflowRequest
 from shared.embeddings_type import EmbeddingsType
 from docx import Document
+from shared.image_search_request import ImageSearchRequest
 
 auth = Auth()
 pipeline = Pipeline()
@@ -34,7 +37,7 @@ def embed():
     if not vectorflow_request.vectorflow_key or not auth.validate_credentials(vectorflow_request.vectorflow_key):
         return jsonify({'error': 'Invalid credentials'}), 401
  
-    if not vectorflow_request.embeddings_metadata or not vectorflow_request.vector_db_metadata or not vectorflow_request.vector_db_key:
+    if not vectorflow_request.embeddings_metadata or not vectorflow_request.vector_db_metadata or (not vectorflow_request.vector_db_key and not os.getenv('LOCAL_VECTOR_DB')):
         return jsonify({'error': 'Missing required fields'}), 400
     
     if vectorflow_request.embeddings_metadata.embeddings_type == EmbeddingsType.HUGGING_FACE and not vectorflow_request.embeddings_metadata.hugging_face_model_name:
@@ -76,27 +79,6 @@ def get_job_status(job_id):
             return jsonify({'JobStatus': job.job_status.value}), 200
         else:
             return jsonify({'error': "Job not found"}), 404
-
-
-#: NOTE: This endpoint is for debugging and testing only. 
-@app.route("/dequeue")
-def dequeue():
-    vectorflow_key = request.headers.get('Authorization')
-    if not vectorflow_key or not auth.validate_credentials(vectorflow_key):
-        return jsonify({'error': 'Invalid credentials'}), 401
-    
-    pipeline.connect()
-    if pipeline.get_queue_size() == 0:
-        pipeline.disconnect()
-        return jsonify({'error': 'No jobs in queue'}), 404
-    else:
-        body = pipeline.get_from_queue()
-        pipeline.disconnect()
-
-        data = json.loads(body)
-        batch_id, source_data = data
-
-        return jsonify({'batch_id': batch_id, 'source_data': source_data}), 200
     
 @app.route("/s3", methods=['POST'])
 def s3_presigned_url():
@@ -106,7 +88,7 @@ def s3_presigned_url():
         return jsonify({'error': 'Invalid credentials'}), 401
  
     pre_signed_url = request.form.get('PreSignedURL')
-    if not vectorflow_request.embeddings_metadata or not vectorflow_request.vector_db_metadata or not vectorflow_request.vector_db_key or not pre_signed_url:
+    if not vectorflow_request.embeddings_metadata or not vectorflow_request.vector_db_metadata or (not vectorflow_request.vector_db_key and not os.getenv('LOCAL_VECTOR_DB')) or not pre_signed_url:
         return jsonify({'error': 'Missing required fields'}), 400
     
     response = requests.get(pre_signed_url)
@@ -117,7 +99,7 @@ def s3_presigned_url():
         if mime_type == 'text/plain':
             file_content = response.text
             with get_db() as db:
-                job = job_service.create_job(db, vectorflow_request.webhook_url)
+                job = job_service.create_job(db, vectorflow_request.webhook_url, None)
             batch_count = create_batches(file_content, job.id, vectorflow_request)
             return jsonify({'message': f"Successfully added {batch_count} batches to the queue", 'JobID': job.id}), 200
         
@@ -129,7 +111,7 @@ def s3_presigned_url():
                     file_content += page.get_text()
 
             with get_db() as db:
-                job = job_service.create_job(db, vectorflow_request.webhook_url)
+                job = job_service.create_job(db, vectorflow_request.webhook_url, None)
             batch_count = create_batches(file_content, job.id, vectorflow_request)
             return jsonify({'message': f"Successfully added {batch_count} batches to the queue", 'JobID': job.id}), 200
         
@@ -154,7 +136,7 @@ def process_file(file, vectorflow_request):
                 file_content += page.get_text()
 
     with get_db() as db:
-        job = job_service.create_job(db, vectorflow_request.webhook_url)
+        job = job_service.create_job(db, vectorflow_request.webhook_url, file.filename)
     batch_count = create_batches(file_content, job.id, vectorflow_request)
     return batch_count, job.id
 
@@ -170,8 +152,8 @@ def create_batches(file_content, job_id, vectorflow_request):
             data = (batch.id, chunk, vectorflow_request.vector_db_key, vectorflow_request.embedding_api_key)
             json_data = json.dumps(data)
 
-            pipeline.connect()
-            pipeline.add_to_queue(json_data)
+            pipeline.connect(queue=os.getenv('EMBEDDING_QUEUE'))
+            pipeline.add_to_queue(json_data, queue=os.getenv('EMBEDDING_QUEUE'))
             pipeline.disconnect()
 
     return job.total_batches if job else None
@@ -181,6 +163,143 @@ def split_file(file_content, lines_per_chunk=1000):
     for i in range(0, len(lines), lines_per_chunk):
         yield lines[i:i+lines_per_chunk]
 
+@app.route("/images", methods=['POST'])
+def upload_image():
+    # TODO: add validator service
+    vectorflow_request = VectorflowRequest(request)
+    if not vectorflow_request.vectorflow_key or not auth.validate_credentials(vectorflow_request.vectorflow_key):
+        return jsonify({'error': 'Invalid credentials'}), 401
+ 
+    if not vectorflow_request.vector_db_metadata or (not vectorflow_request.vector_db_key and not os.getenv('LOCAL_VECTOR_DB')):
+        return jsonify({'error': 'Missing required fields'}), 400
+    
+    if 'SourceData' not in request.files:
+        return jsonify({'error': 'No file part in the request'}), 400
+
+    file = request.files['SourceData']
+
+    # TODO: Remove this once the application is reworked to support large files
+    # Get the file size - Go to the end of the file, get the current position, and reset the file to the beginning
+    file.seek(0, os.SEEK_END)
+    file_size = file.tell()
+    file.seek(0)
+
+    if file_size > 2 * 1024 * 1024:
+        return jsonify({'error': 'File is too large. VectorFlow currently only supports 2 MB files or less for images. Larger file support coming soon.'}), 413
+    
+    # empty filename means no file was selected
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    
+    if file and (file.filename.endswith('.jpg') or file.filename.endswith('.jpeg') or file.filename.endswith('.png')):
+        try:
+            job_id = process_image(file, vectorflow_request)
+            return jsonify({'message': f"Successfully added {file.filename} batches to the queue", 'JobID': job_id}), 200
+        
+        except Exception as e:
+            logging.error(f"Attempt to upload file {file.filename} failed due to error: {e}")
+            return jsonify({'error': f"Attempt to upload file {file.filename} failed due to error: {e}"}), 400
+    else:
+        return jsonify({'error': 'Uploaded file is not a JPG, JPEG, or PNG file'}), 400
+
+def process_image(file, vectorflow_request):
+    # Create job
+    with get_db() as db:
+        job = job_service.create_job_with_vdb_metadata(db, vectorflow_request, file.filename)
+
+    # Convert image to bytes
+    img_bytes_io = BytesIO()
+    file.save(img_bytes_io)
+    image_bytes = img_bytes_io.getvalue()
+
+    # Encode image bytes to Base64 string to allowed for serializaton to JSON
+    encoded_image_string = base64.b64encode(image_bytes).decode("utf-8")
+
+    # Convert to JSON - this format can be read agnostic of the technology on the other side
+    message_body = {
+        'image_bytes': encoded_image_string,
+        'vector_db_key': vectorflow_request.vector_db_key,
+        'job_id': job.id,
+    }
+    json_data = json.dumps(message_body)
+
+    pipeline.connect(queue=os.getenv('IMAGE_QUEUE'))
+    pipeline.add_to_queue(json_data, queue=os.getenv('IMAGE_QUEUE'))
+    pipeline.disconnect()
+    
+    return job.id
+
+@app.route("/images/search", methods=['POST'])
+def search_image():
+    image_search_request = ImageSearchRequest._from_request(request)
+    if not image_search_request.vectorflow_key or not auth.validate_credentials(image_search_request.vectorflow_key):
+        return jsonify({'error': 'Invalid credentials'}), 401
+ 
+    if not image_search_request.vector_db_metadata or (not image_search_request.vector_db_key and not os.getenv('LOCAL_VECTOR_DB')):
+        return jsonify({'error': 'Missing required fields'}), 400
+    
+    if 'SourceData' not in request.files:
+        return jsonify({'error': 'No file part in the request'}), 400
+
+    file = request.files['SourceData']
+
+    # TODO: Remove this once the application is reworked to support large files
+    # Get the file size - Go to the end of the file, get the current position, and reset the file to the beginning
+    file.seek(0, os.SEEK_END)
+    file_size = file.tell()
+    file.seek(0)
+
+    if file_size > 2 * 1024 * 1024:
+        return jsonify({'error': 'File is too large. VectorFlow currently only supports 2 MB files or less for images. Larger file support coming soon.'}), 413
+    
+    # empty filename means no file was selected
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    
+    if file and (file.filename.endswith('.jpg') or file.filename.endswith('.jpeg') or file.filename.endswith('.png')):
+        try:
+            response = search_image(file, image_search_request)
+
+            if response.status_code == 200:
+                response_json = response.json()
+                if "vectors" in response_json:
+                    return jsonify({'message': f"Successfully fetched {image_search_request.top_k} results including vectors",
+                        'similar_images': response_json['similar_images'],
+                        'vectors': response_json['vectors']}), 200
+                else:
+                    return jsonify({'message': f"Successfully fetched {image_search_request.top_k} results", 
+                        'similar_images': response_json['similar_images']}), 200
+            else:
+                response_json = response.json()
+                error_message = response_json["error"]
+                return jsonify({'error': f"Attempt to fetch images similar to {file.filename} failed due to error: {error_message}"}), response.status_code
+        
+        except Exception as e:
+            logging.error(f"Attempt to fetch images similar to {file.filename} failed due to error: {e}")
+            return jsonify({'error': f"Attempt to fetch images similar to {file.filename} failed due to error: {e}"}), 400
+    else:
+        return jsonify({'error': 'Uploaded file is not a JPG, JPEG, or PNG file'}), 400
+    
+def search_image(file, image_search_request):
+    url = f"{os.getenv('IMAGE_SEARCH_URL')}/search"
+    data = {
+        'ImageSearchRequest': json.dumps(image_search_request.serialize()),
+    }
+
+    files = {
+        'SourceData': file
+    }
+
+    try:
+        response = requests.post(
+            url=url, 
+            data=data, 
+            files=files
+        )
+        return response
+    except requests.RequestException as e:
+        print(f"Error: {e}")
+        return {"error": str(e)}, 500
 
 if __name__ == '__main__':
    app.run(host='0.0.0.0', debug=True)

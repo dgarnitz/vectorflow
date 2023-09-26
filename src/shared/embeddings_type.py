@@ -5,3 +5,4 @@ class EmbeddingsType(Enum):
     COHERE = 'cohere'
     SELF_HOSTED = 'self_hosted'
     HUGGING_FACE = 'hugging_face'
+    IMAGE = 'image'
