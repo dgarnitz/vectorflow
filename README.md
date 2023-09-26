@@ -105,7 +105,7 @@ To check the status of a `job`, make a `GET` request to this endpoint: `/jobs/<i
 }
 ```
 
-To submit a `job` for embedding, make a `POST` request to this endpoint: `/embed` with the following payload and the `'Content-Type: multipart/form-data'` header:
+To submit a `job` for embedding, make a `POST` request to the `/embed` endpoint with a file attached, the `'Content-Type: multipart/form-data'` header and the following payload:
 
 ```
 {
@@ -166,10 +166,10 @@ The id can be used for deduplication and idempotency. Please note for Weaviate, 
 ### S3 Endpoint
 VectorFlow is integrated with AWS s3. You can pass a pre-signed s3 URL in the body of the HTTP instead of a file. Use the form field `PreSignedURL` and hit the endpoint `/s3`. This endpoint has the same configuration and restrictions as the `/embed` endpoint. 
 
-## Image Embedding
-VectorFlow can embed images using the [Image2Vec library](https://github.com/christiansafka/img2vec). It will create a 512 dimensional vector by default from any image.  
+## Image Embedding & Similarity Search
+VectorFlow can embed images using the [Image2Vec library](https://github.com/christiansafka/img2vec). It will create a 512 dimensional vector by default from any image. You can also perform a Top-K image similarity search. 
 
-### How to Use
+### How to Use Image Upload
 Send a POST request to the `/images` endpoint to utilize this capability. You pass the same set of fields in `VectorDBMetadata` as you would for the `/embed` or `/s3` endpoints but for `EmbeddingsMetadata` you only need to pass `"embeddings_type": "IMAGE"` 
 
 The `docker-compose` file will not spin this capability up automatically. Either run `app.py --model_name your-sentence-transformer-model`, or build and run the docker image in `src/images` with:
@@ -180,6 +180,45 @@ docker run --network=vectorflow --name=vectorflow_image_embedding -d --env-file=
 ```
 
 Note that the Image2Vec uses the ResNet 18 by default. You can configure it to run larger models with higher dimensionality for more fine-grained embeddings. These take several minutes to download the weights from the source. VectorFlow does not provision hardware, so you must ensure your hardware has enough RAM/VRAM for the model. By default, VectorFlow will run models on GPU with CUDA if available.
+
+### How to Use Image Search
+Performing an image similarity search requires running another service. You can build and run it using docker:
+```
+docker build --file images/Dockerfile.search -t vectorflow_image_search:latest .
+docker run --network=vectorflow --name=vectorflow_image_search -d --env-file=/path/to/.env vectorflow_image_search:latest
+```
+
+### Request
+To perform a search, send a `POST` request to `/images/search` endpoint with an image file attached, the `'Content-Type: multipart/form-data'` header and the following body:
+```
+{
+    'ReturnVectors': boolean,
+    'TopK': integer, less than 1000,
+    'VectorDBMetadata={
+        "vector_db_type": "PINECONE | QDRANT | WEAVIATE | MILVUS",
+        "index_name": "index_name",
+        "environment": "env_name"
+    }'
+}
+```
+All requests require an HTTP Header with `Authorization` key which is the same as your `INTERNAL_API_KEY` env var that you defined before (see above). You must pass your vector database api key with the HTTP Header `X-VectorDB-Key` if you are running a connecting to a cloud-based instance of a vector DB. 
+
+### Response
+An image similarity search will return a response object containing the top K matches, plus the raw vectors if requested, with of the following form:
+```
+{
+    "similar_images": list of match objects
+    "vectors": list of list of floats
+}
+```
+where `match`` objects are defined as:
+```
+{
+    "id": str,
+    "score": float,
+    "metadata": {"source_document" : str}
+}
+```
 
 # Contributing
 

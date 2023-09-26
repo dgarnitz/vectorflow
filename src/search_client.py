@@ -6,7 +6,7 @@ import json
 # Testing Variables #
 #####################
 filepath = '/Users/davidgarnitz/Documents/other/garnitz.jpg'
-url = "http://localhost:5000/images/query"
+url = "http://localhost:8000/images/search"
 embedding_key = os.getenv("OPEN_AI_KEY")
 vector_db_key = os.getenv("PINECONE_KEY")
 vector_db_type = "PINECONE"

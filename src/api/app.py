@@ -229,7 +229,7 @@ def process_image(file, vectorflow_request):
     
     return job.id
 
-@app.route("/images/query", methods=['POST'])
+@app.route("/images/search", methods=['POST'])
 def search_image():
     image_search_request = ImageSearchRequest._from_request(request)
     if not image_search_request.vectorflow_key or not auth.validate_credentials(image_search_request.vectorflow_key):
@@ -281,12 +281,10 @@ def search_image():
         return jsonify({'error': 'Uploaded file is not a JPG, JPEG, or PNG file'}), 400
     
 def search_image(file, image_search_request):
-    url = f"{os.getenv('IMAGE_SEARCH_URL')}search"
+    url = f"{os.getenv('IMAGE_SEARCH_URL')}/search"
     data = {
         'ImageSearchRequest': json.dumps(image_search_request.serialize()),
     }
-
-    print(data)
 
     files = {
         'SourceData': file

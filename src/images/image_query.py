@@ -14,11 +14,11 @@ from shared.image_search_request import ImageSearchRequest
 from shared.vector_db_type import VectorDBType
 from PIL import Image
 from io import BytesIO
-from images.image_worker import transform_vector_to_list
 
 logging.basicConfig(filename='./image-query-log.txt', level=logging.INFO)
 
-img2vec = None
+logging.info("Initializing Img2Vec on CPU.")
+img2vec = Img2Vec(cuda=False)
 app = Flask(__name__)
 CORS(app) 
 
@@ -50,6 +50,11 @@ def embed_image(image_bytes):
     vector_tensor = img2vec.get_vec(img, tensor=True)
     embedding_list = transform_vector_to_list(vector_tensor)
     return embedding_list
+
+def transform_vector_to_list(vector):
+    squeezed_tensor = vector.squeeze()
+    numpy_array = squeezed_tensor.numpy()
+    return numpy_array.tolist()
 
 def search_vector_db(embedding, image_search_request):
     vector_db_metadata = image_search_request.vector_db_metadata
@@ -95,6 +100,4 @@ def search_pinecone(embedding, image_search_request):
         return {"error": f"error querying pinecone: {str(e)}"}
 
 if __name__ == '__main__':
-   logging.info("Initializing Img2Vec on CPU.")
-   img2vec = Img2Vec(cuda=False)
    app.run(host='0.0.0.0', debug=True, port=5050)

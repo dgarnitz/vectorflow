@@ -1,0 +1,32 @@
+# Use an official Python runtime as a parent image
+FROM python:3.9.9-slim-buster
+
+# Sets dumping log messages directly to stream instead of buffering
+ENV PYTHONUNBUFFERED=1
+
+# Set working directory in the container
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends gcc  && apt-get install -y libmagic1 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy key requirements
+COPY images /app/images
+COPY shared /app/shared
+COPY models /app/models
+COPY services /app/services
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r /app/images/requirements.txt
+
+# run script to enable docker compose to sync with rabbitmq
+COPY ../scripts/wait-for-it.sh /wait-for-it.sh
+RUN chmod +x /wait-for-it.sh
+
+# Make port 8000 available to the world outside this container
+EXPOSE 8000
+
+# Run the command to start gunicorn with 1 worker. NOTE you may have to alter the number of workers.
+CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:5050", "images.image_query:app"]
