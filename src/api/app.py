@@ -115,8 +115,19 @@ def s3_presigned_url():
             batch_count = create_batches(file_content, job.id, vectorflow_request)
             return jsonify({'message': f"Successfully added {batch_count} batches to the queue", 'JobID': job.id}), 200
         
+        elif mime_type == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+            docx_data = BytesIO(response.content)
+            doc = Document(docx_data)
+            file_content = "\n".join([paragraph.text for paragraph in doc.paragraphs])
+
+            with get_db() as db:
+                job = job_service.create_job(db, vectorflow_request.webhook_url, None)
+            batch_count = create_batches(file_content, job.id, vectorflow_request)
+            return jsonify({'message': f"Successfully added {batch_count} batches to the queue", 'JobID': job.id}), 200
+
+        
         else:
-            return jsonify({'error': 'Uploaded file is not a TXT or PDF file'}), 400
+            return jsonify({'error': 'Uploaded file is not a TXT, PDF or DOCX file'}), 400
     else:
         print('Failed to download file:', response.status_code, response.reason)
 
