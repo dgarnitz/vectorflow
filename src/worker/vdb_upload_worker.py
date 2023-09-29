@@ -67,7 +67,7 @@ def write_embeddings_to_vector_db(text_embeddings_list, vector_db_metadata, batc
         upsert_list = create_milvus_source_chunk_dict(text_embeddings_list, batch_id, job_id, source_filename)
         return write_embeddings_to_milvus(upsert_list, vector_db_metadata)
     elif vector_db_metadata.vector_db_type == VectorDBType.REDIS:
-        upsert_list = create_redis_source_chunk_dict(text_embeddings_list, batch_id, job_id)
+        upsert_list = create_redis_source_chunk_dict(text_embeddings_list, batch_id, job_id, source_filename)
         return write_embeddings_to_redis(upsert_list, vector_db_metadata)
     else:
         logging.error('Unsupported vector DB type:', vector_db_metadata.vector_db_type)
@@ -105,17 +105,19 @@ def write_embeddings_to_pinecone(upsert_list, vector_db_metadata):
     logging.info(f"Successfully uploaded {vectors_uploaded} vectors to pinecone")
     return vectors_uploaded
 
-def create_redis_source_chunk_dict(text_embeddings_list, batch_id, job_id):
+def create_redis_source_chunk_dict(text_embeddings_list, batch_id, job_id, source_filename):
     ids = []
     source_texts = []
+    source_documents = []
     embeddings = []
 
     for i, (source_text, embedding) in enumerate(text_embeddings_list):
         ids.append(generate_uuid_from_tuple((job_id, batch_id, i)))
         source_texts.append(source_text)
         embeddings.append(embedding)
+        source_documents.append(source_filename)
 
-    return [ids, source_texts, embeddings]
+    return [ids, source_texts, embeddings, source_documents]
 
 def write_embeddings_to_redis(upsert_list, vector_db_metadata):
     redis_client = redis.from_url(url=vector_db_metadata.environment, password=os.getenv('VECTOR_DB_KEY'), decode_responses=True)
@@ -135,7 +137,7 @@ def write_embeddings_to_redis(upsert_list, vector_db_metadata):
 
     for i in range(0,len(upsert_list[0])):
         key = f'{vector_db_metadata.collection}:{upsert_list[0][i]}'
-        obj = {"source_data": upsert_list[1][i], "embeddings": np.array(upsert_list[2][i]).tobytes()}
+        obj = {"source_data": upsert_list[1][i], "embeddings": np.array(upsert_list[2][i]).tobytes(), "source_document": upsert_list[3][i]}
 
         pipe.hset(key, mapping=obj)
 
