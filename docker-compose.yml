@@ -55,6 +55,8 @@ services:
       context: ./src
       dockerfile: api/Dockerfile
     container_name: vectorflow_api
+    volumes:
+      - ./src/:/app
     env_file:
       - ./env_scripts/env_vars.env
     networks:
@@ -73,6 +75,8 @@ services:
       context: ./src
       dockerfile: worker/Dockerfile
     container_name: vectorflow_worker
+    volumes:
+      - ./src/:/app
     env_file:
       - ./env_scripts/env_vars.env
     networks:
