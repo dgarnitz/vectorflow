@@ -9,7 +9,8 @@
 <h4 align="center">
   <a href="https://discord.gg/MEXuahMs2F">Join our Discord</a>  |
   <a href="https://www.getvectorflow.com/">Website</a>  |  
-  <a href="mailto:dan@getvectorflow.com">Get in touch</a>
+  <a href="mailto:dan@getvectorflow.com">Get in touch</a> |
+  <a href="https://vectorflow.dev-docs.dev/docs/"> Docs</a>
 </h4>
 
 <div align="center">
@@ -22,7 +23,7 @@
 
 VectorFlow is an open source, high throughput, fault tolerant vector embedding pipeline. With a simple API request, you can send raw data that will be embedded and stored in any vector database or returned back to you. VectorFlow is multi-modal and can ingest both textual and image data. 
 
-This current version is an MVP and should not be used in production yet. Right now the system only supports uploading single files at a time, up to 25 MB. For text-based files, it supports TXT, PDF and .DOCX. For image files, it support JPG, JPEG, and PNG. 
+This current version is an MVP. We recommend using it with Kubernetes in production. Right now the system only supports uploading single files at a time, up to 25 MB. For text-based files, it supports TXT, PDF and DOCX. For image files, it support JPG, JPEG, and PNG. 
 
 # Run it Locally
 
@@ -119,7 +120,7 @@ To submit a `job` for embedding, make a `POST` request to the `/embed` endpoint 
         "hugging_face_model_name": "model-name-here"
     }'
     'VectorDBMetadata={
-        "vector_db_type": "PINECONE | QDRANT | WEAVIATE | MILVUS",
+        "vector_db_type": "PINECONE | QDRANT | WEAVIATE | MILVUS | REDIS",
         "index_name": "index_name",
         "environment": "env_name"
     }'
@@ -136,7 +137,9 @@ You will get the following payload back:
 ```
 
 ### VectorFlow API Client
-The easiest way to use VectorFlow is to with the our testing client, located in `src/testing_client.py`. Running this script will submit a document to VectorFlow for embedding. You can change the values to match your configuration. 
+The easiest way to use VectorFlow is with the our testing client, located in `src/testing_client.py`. Running this script will submit a document to VectorFlow for embedding. You can change the values to match your configuration. 
+
+Note that the `TESTING_ENV` variable is the equivalent of the `enviroment` field in the `VectorDBMetadata`, which corresponds to an environment in Pincone, a class in Weaviate, a collection in qdrant, etc. 
 
 ### Sample Curl Request
 
@@ -195,7 +198,7 @@ To perform a search, send a `POST` request to `/images/search` endpoint with an 
     'ReturnVectors': boolean,
     'TopK': integer, less than 1000,
     'VectorDBMetadata={
-        "vector_db_type": "PINECONE | QDRANT | WEAVIATE | MILVUS",
+        "vector_db_type": "PINECONE | QDRANT | WEAVIATE | MILVUS | REDIS",
         "index_name": "index_name",
         "environment": "env_name"
     }'

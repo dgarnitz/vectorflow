@@ -13,7 +13,7 @@ import ssl
 import torch
 import services.database.batch_service as batch_service
 from sentence_transformers import SentenceTransformer
-from services.database.database import get_db
+from services.database.database import get_db, safe_db_operation
 from shared.batch_status import BatchStatus
 
 model = None
@@ -31,7 +31,7 @@ def embed(batch_id, batch_of_chunks_to_embed, vector_db_key):
                 model = model.to('cuda')
                 logging.info("Model moved to GPU.")
             except Exception as e:
-                logging.error("Error moving model to GPU. Staying on CPU. Error:", e)
+                logging.error("Error moving model to GPU. Staying on CPU. Error: %s", e)
         else:
             logging.info("CUDA not available. Model stays on CPU.")
         
@@ -43,12 +43,10 @@ def embed(batch_id, batch_of_chunks_to_embed, vector_db_key):
         embeddings_list = embeddings.tolist()
         text_embeddings_list = list(zip(batch_of_chunks_to_embed, embeddings_list))
 
-        with get_db() as db:
-            batch_service.augment_minibatches_embedded(db, batch_id)
-        
+        result = safe_db_operation(batch_service.augment_minibatches_embedded, batch_id)
         upload_to_vector_db(batch_id, text_embeddings_list, vector_db_key)
     except Exception as e:
-        logging.error('Error embedding batch:', e)
+        logging.error('Error embedding batch: %s', e)
 
         # TODO: Add retry logic and handle partial failure case
         update_batch_status(BatchStatus.FAILED, batch_id)
@@ -61,7 +59,7 @@ def upload_to_vector_db(batch_id, text_embeddings_list, vector_db_key):
                                       body=serialized_data)
         logging.info(f"Text embeddings for {batch_id} published to {os.getenv('VDB_UPLOAD_QUEUE')} queue")
     except Exception as e:
-        logging.error('Error publishing message to RabbitMQ:', e)
+        logging.error('Error publishing message to RabbitMQ: %s', e)
         update_batch_status(BatchStatus.FAILED, batch_id)
 
 def update_batch_status(batch_status, batch_id):
@@ -70,7 +68,7 @@ def update_batch_status(batch_status, batch_id):
             updated_batch_status = batch_service.update_batch_status(db, batch_id, batch_status)
             logging.info(f"Batch {batch_id} status updated to {updated_batch_status}")      
     except Exception as e:
-        logging.error('Error updating batch status:', e)
+        logging.error('Error updating batch status: %s', e)
 
 def get_args():
     parser = argparse.ArgumentParser(description="Run Flask app with specified model name")
@@ -84,7 +82,7 @@ def callback(ch, method, properties, body):
        embed(batch_id, batch_of_chunks_to_embed, vector_db_key)
        logging.info("Batch processed successfully")
     except Exception as e:
-        logging.error('Error processing batch:', e)
+        logging.error('Error processing batch: %s', e)
 
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
@@ -125,7 +123,7 @@ def start_connection():
             consume_channel.start_consuming()
             
         except Exception as e:
-            logging.error('ERROR connecting to RabbitMQ, retrying now. See exception:', e)
+            logging.error('ERROR connecting to RabbitMQ, retrying now. See exception: %s', e)
             time.sleep(10) # Wait before retrying
 
 if __name__ == "__main__": 

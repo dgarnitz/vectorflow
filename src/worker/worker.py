@@ -19,7 +19,7 @@ from shared.chunk_strategy import ChunkStrategy
 from shared.embeddings_type import EmbeddingsType
 from shared.batch_status import BatchStatus
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from services.database.database import get_db
+from services.database.database import get_db, safe_db_operation
 from shared.job_status import JobStatus
 
 logging.basicConfig(filename='./worker-log.txt', level=logging.INFO)
@@ -28,44 +28,43 @@ publish_channel = None
 connection = None
 
 def process_batch(batch_id, source_data):
-    with get_db() as db:
-        batch = batch_service.get_batch(db, batch_id)
-        job = job_service.get_job(db, batch.job_id)
+    batch = safe_db_operation(batch_service.get_batch, batch_id)
+    job = safe_db_operation(job_service.get_job, batch.job_id)
 
-        # TODO: update this logic once the batch creation logic is moved out of the API
-        if job.job_status == JobStatus.NOT_STARTED or job.job_status == JobStatus.CREATING_BATCHES:
-            job_service.update_job_status(db, job.id, JobStatus.PROCESSING_BATCHES)
-        
-        if batch.batch_status == BatchStatus.NOT_STARTED:
-            batch_service.update_batch_status(db, batch.id, BatchStatus.PROCESSING)
-        else:
-            batch_service.update_batch_retry_count(db, batch.id, batch.retries+1)
-            logging.info(f"Retrying batch {batch.id}")
+    # TODO: update this logic once the batch creation logic is moved out of the API
+    if job.job_status == JobStatus.NOT_STARTED or job.job_status == JobStatus.CREATING_BATCHES:
+        safe_db_operation(job_service.update_job_status, job.id, JobStatus.PROCESSING_BATCHES)
+    
+    if batch.batch_status == BatchStatus.NOT_STARTED:
+        safe_db_operation(batch_service.update_batch_status, batch.id, BatchStatus.PROCESSING)
+    else:
+        safe_db_operation( batch_service.update_batch_retry_count, batch.id, batch.retries+1)
+        logging.info(f"Retrying batch {batch.id}")
 
-        db.refresh(batch)
+    batch = safe_db_operation(batch_service.get_batch, batch_id)
 
-        embeddings_type = batch.embeddings_metadata.embeddings_type
-        if embeddings_type == EmbeddingsType.OPEN_AI:
-            try:
-                text_embeddings_list = embed_openai_batch(batch, source_data)
-                if text_embeddings_list:
-                    upload_to_vector_db(batch_id, text_embeddings_list)
-                else:
-                    logging.error(f"Failed to get OPEN AI embeddings for batch {batch.id}. Adding batch to retry queue.")
-                    update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
-
-            except Exception as e:
-                logging.error('Error embedding batch:', e)
+    embeddings_type = batch.embeddings_metadata.embeddings_type
+    if embeddings_type == EmbeddingsType.OPEN_AI:
+        try:
+            text_embeddings_list = embed_openai_batch(batch, source_data)
+            if text_embeddings_list:
+                upload_to_vector_db(batch_id, text_embeddings_list)
+            else:
+                logging.error(f"Failed to get OPEN AI embeddings for batch {batch.id}. Adding batch to retry queue.")
                 update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
-        elif embeddings_type == EmbeddingsType.HUGGING_FACE:
-            try:
-                embed_hugging_face_batch(batch, source_data)
-            except Exception as e:
-                logging.error('Error embedding batch:', e)
-                update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
-        else:
-            logging.error('Unsupported embeddings type:', embeddings_type)
+
+        except Exception as e:
+            logging.error('Error embedding batch: %s', e)
             update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
+    elif embeddings_type == EmbeddingsType.HUGGING_FACE:
+        try:
+            embed_hugging_face_batch(batch, source_data)
+        except Exception as e:
+            logging.error('Error embedding batch: %s', e)
+            update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
+    else:
+        logging.error('Unsupported embeddings type: %s', embeddings_type.value)
+        update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
 
 # NOTE: this method will embed mulitple chunks (a list of strings) at once and return a list of lists of floats (a list of embeddings)
 def get_openai_embedding(batch_of_chunks, attempts=5):
@@ -78,7 +77,7 @@ def get_openai_embedding(batch_of_chunks, attempts=5):
             if response["data"]:
                 return batch_of_chunks, response["data"]
         except Exception as e:
-            logging.error('Open AI Embedding API call failed:', e)
+            logging.error('Open AI Embedding API call failed: %s', e)
             time.sleep(2**i)  # Exponential backoff: 1, 2, 4, 8, 16 seconds.
     return batch_of_chunks, None
 
@@ -119,7 +118,7 @@ def publish_to_embedding_queue(batch_id, batch_of_chunks, model_name, attempts=5
             logging.info(f"Message published to open source queue {model_name} successfully")
             return
         except Exception as e:
-            logging.error('ERROR connecting to RabbitMQ, retrying now. See exception:', e)
+            logging.error('ERROR connecting to RabbitMQ, retrying now. See exception: %s', e)
             time.sleep(config.PIKA_RETRY_INTERVAL)
     
     # TODO: implement logic to handle partial failures & retries
@@ -133,8 +132,7 @@ def embed_hugging_face_batch(batch, source_data):
     chunked_data = chunk_data(batch.embeddings_metadata.chunk_strategy, source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
     hugging_face_batches = create_upload_batches(chunked_data, config.HUGGING_FACE_BATCH_SIZE)
     
-    with get_db() as db:
-        batch_service.update_batch_minibatch_count(db, batch.id, len(hugging_face_batches))
+    safe_db_operation(batch_service.update_batch_minibatch_count, batch.id, len(hugging_face_batches))
     
     for batch_of_chunks in hugging_face_batches:
         publish_to_embedding_queue(batch.id, batch_of_chunks, batch.embeddings_metadata.hugging_face_model_name)
@@ -208,11 +206,10 @@ def create_upload_batches(batches, max_batch_size):
 
 def update_batch_status(job_id, batch_status, batch_id):
     try:
-        with get_db() as db:
-            updated_batch_status = batch_service.update_batch_status(db, batch_id, batch_status)
-            logging.info(f"Batch {batch_id} for job {job_id} status updated to {updated_batch_status}")      
+        updated_batch_status = safe_db_operation(batch_service.update_batch_status, batch_id, batch_status)
+        logging.info(f"Batch {batch_id} for job {job_id} status updated to {updated_batch_status}")      
     except Exception as e:
-        logging.error('Error updating batch status:', e)
+        logging.error('Error updating batch status: %s', e)
 
 def upload_to_vector_db(batch_id, text_embeddings_list):
     try:
@@ -222,20 +219,28 @@ def upload_to_vector_db(batch_id, text_embeddings_list):
                                       body=serialized_data)
         logging.info("Message published successfully")
     except Exception as e:
-        logging.error('Error publishing message to RabbitMQ:', e)
+        logging.error('Error publishing message to RabbitMQ: %s', e)
 
 def callback(ch, method, properties, body):
     try:
         data = json.loads(body)
         batch_id, source_data, vector_db_key, embeddings_api_key = data
-        os.environ["VECTOR_DB_KEY"] = vector_db_key
-        os.environ["EMBEDDING_API_KEY"] = embeddings_api_key
+
+        if vector_db_key:
+            os.environ["VECTOR_DB_KEY"] = vector_db_key
+        else:
+            logging.info("No vector db key provided")
+        
+        if embeddings_api_key:
+            os.environ["EMBEDDING_API_KEY"] = embeddings_api_key
+        else:
+            logging.info("No embeddings api key provided")
 
         logging.info("Batch retrieved successfully")
         process_batch(batch_id, source_data)
         logging.info("Batch processed successfully")
     except Exception as e:
-        logging.error('Error processing batch:', e)
+        logging.error('Error processing batch: %s', e)
 
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
@@ -276,7 +281,7 @@ def start_connection():
             consume_channel.start_consuming()
             
         except Exception as e:
-            logging.error('ERROR connecting to RabbitMQ, retrying now. See exception:', e)
+            logging.error('ERROR connecting to RabbitMQ, retrying now. See exception: %s', e)
             time.sleep(config.PIKA_RETRY_INTERVAL) # Wait before retrying
 
 if __name__ == "__main__":
