@@ -19,7 +19,7 @@ import numpy as np
 import worker.config as config
 import services.database.batch_service as batch_service
 import services.database.job_service as job_service
-from services.database.database import get_db
+from services.database.database import get_db, safe_db_operation
 from shared.job_status import JobStatus
 from shared.batch_status import BatchStatus
 from qdrant_client import QdrantClient
@@ -33,27 +33,23 @@ logging.basicConfig(filename='./vdb-upload-log.txt', level=logging.INFO)
 logging.basicConfig(filename='./vdb-upload-errors.txt', level=logging.ERROR)
 
 def upload_batch(batch_id, text_embeddings_list):
-    with get_db() as db:
-        batch = batch_service.get_batch(db, batch_id)
-        
-        if batch.batch_status == BatchStatus.FAILED:
-            batch_service.update_batch_retry_count(db, batch.id, batch.retries+1)
-            logging.info(f"Retrying vector db upload of batch {batch.id}")
+    batch = safe_db_operation(batch_service.get_batch, batch_id)
+    if batch.batch_status == BatchStatus.FAILED:
+        safe_db_operation(batch_service.update_batch_retry_count, batch.id, batch.retries+1)
+        logging.info(f"Retrying vector db upload of batch {batch.id}")
 
-        db.refresh(batch)
-        vectors_uploaded = write_embeddings_to_vector_db(text_embeddings_list, batch.vector_db_metadata, batch.id, batch.job_id)
-    
-        if vectors_uploaded:
-            with get_db() as db:
-                status = batch_service.update_batch_status_with_successful_minibatch(db, batch.id)
-                update_batch_and_job_status(batch.job_id, status, batch.id)
-        else:
-            update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
+    batch = safe_db_operation(batch_service.get_batch, batch_id)
+    vectors_uploaded = write_embeddings_to_vector_db(text_embeddings_list, batch.vector_db_metadata, batch.id, batch.job_id)
+
+    if vectors_uploaded:
+        status = safe_db_operation(batch_service.update_batch_status_with_successful_minibatch, batch.id)
+        update_batch_and_job_status(batch.job_id, status, batch.id)
+    else:
+        update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
 
 def write_embeddings_to_vector_db(text_embeddings_list, vector_db_metadata, batch_id, job_id):
-    with get_db() as db:
-        job = job_service.get_job(db, job_id)
-        source_filename = job.source_filename
+    job = safe_db_operation(job_service.get_job, job_id)
+    source_filename = job.source_filename
     
     if vector_db_metadata.vector_db_type == VectorDBType.PINECONE:
         upsert_list = create_pinecone_source_chunk_dict(text_embeddings_list, batch_id, job_id, source_filename)
@@ -70,7 +66,7 @@ def write_embeddings_to_vector_db(text_embeddings_list, vector_db_metadata, batc
         upsert_list = create_redis_source_chunk_dict(text_embeddings_list, batch_id, job_id, source_filename)
         return write_embeddings_to_redis(upsert_list, vector_db_metadata)
     else:
-        logging.error('Unsupported vector DB type:', vector_db_metadata.vector_db_type)
+        logging.error('Unsupported vector DB type: %s', vector_db_metadata.vector_db_type.value)
 
 def create_pinecone_source_chunk_dict(text_embeddings_list, batch_id, job_id, source_filename):
     upsert_list = []
@@ -131,17 +127,15 @@ def write_embeddings_to_redis(upsert_list, vector_db_metadata):
     
     logging.info(f"Starting redis upsert for {len(upsert_list)} vectors")
 
-    batch_size = config.PINECONE_BATCH_SIZE
-
-    pipe = redis_client.pipeline()
+    redis_pipeline = redis_client.pipeline()
 
     for i in range(0,len(upsert_list[0])):
         key = f'{vector_db_metadata.collection}:{upsert_list[0][i]}'
         obj = {"source_data": upsert_list[1][i], "embeddings": np.array(upsert_list[2][i]).tobytes(), "source_document": upsert_list[3][i]}
 
-        pipe.hset(key, mapping=obj)
+        redis_pipeline.hset(key, mapping=obj)
 
-    res = pipe.execute()
+    res = redis_pipeline.execute()
 
     logging.info(f"Successfully uploaded {len(res)} vectors to redis")
     return len(res)
@@ -217,7 +211,7 @@ def write_embeddings_to_weaviate(text_embeddings_list, vector_db_metadata,  batc
                     vector=vector
                 )
     except Exception as e:
-        logging.error('Error writing embeddings to weaviate:', e)
+        logging.error('Error writing embeddings to weaviate: %s', e)
         return None
     
     logging.info(f"Successfully uploaded {len(text_embeddings_list)} vectors to Weaviate")
@@ -260,7 +254,7 @@ def write_embeddings_to_milvus(upsert_list, vector_db_metadata):
             insert_response = collection.insert(upsert_list[i:i+batch_size])
             vectors_uploaded += insert_response.insert_count
         except Exception as e:
-            logging.error('Error writing embeddings to milvus:', e)
+            logging.error('Error writing embeddings to milvus: %s', e)
             return None
     
     logging.info(f"Successfully uploaded {vectors_uploaded} vectors to milvus")
@@ -268,34 +262,37 @@ def write_embeddings_to_milvus(upsert_list, vector_db_metadata):
 
 def update_batch_and_job_status(job_id, batch_status, batch_id):
     try:
-        with get_db() as db:
-            if not job_id and batch_id:
-                job_id = batch_service.get_batch(db, batch_id).job_id
-            updated_batch_status = batch_service.update_batch_status(db, batch_id, batch_status)
-            job = job_service.update_job_with_batch(db, job_id, updated_batch_status)
-            if job.job_status == JobStatus.COMPLETED:
-                logging.info(f"Job {job_id} completed successfully")
-            elif job.job_status == JobStatus.PARTIALLY_COMPLETED:
-                logging.info(f"Job {job_id} partially completed. {job.batches_succeeded} out of {job.total_batches} batches succeeded")
+        if not job_id and batch_id:
+            job = safe_db_operation(batch_service.get_batch, batch_id)
+            job_id = job.job_id
+        updated_batch_status = safe_db_operation(batch_service.update_batch_status, batch_id, batch_status)
+        job = safe_db_operation(job_service.update_job_with_batch, job_id, updated_batch_status)
+        if job.job_status == JobStatus.COMPLETED:
+            logging.info(f"Job {job_id} completed successfully")
+        elif job.job_status == JobStatus.PARTIALLY_COMPLETED:
+            logging.info(f"Job {job_id} partially completed. {job.batches_succeeded} out of {job.total_batches} batches succeeded")
                 
     except Exception as e:
-        logging.error('Error updating job and batch status:', e)
-        with get_db() as db:
-            job_service.update_job_status(db, job_id, JobStatus.FAILED)
+        logging.error('Error updating job and batch status: %s', e)
+        safe_db_operation(job_service.update_job_status, job_id, JobStatus.FAILED)
 
 def callback(ch, method, properties, body):
     # do these outside the try-catch so it can update the batch status if there's an error
     # if this parsing logic fails, the batch shouldn't be marked as failed
     data = json.loads(body)
     batch_id, text_embeddings_list, vector_db_key = data
-    os.environ["VECTOR_DB_KEY"] = vector_db_key
+
+    if vector_db_key:
+        os.environ["VECTOR_DB_KEY"] = vector_db_key
+    else:
+        logging.info("No vector DB key provided")
     
     try:
         logging.info("Batch retrieved successfully")
         upload_batch(batch_id, text_embeddings_list)
         logging.info("Batch processed successfully")
     except Exception as e:
-        logging.error('Error processing batch:', e)
+        logging.error('Error processing batch: %s', e)
         update_batch_and_job_status(None, batch_id, BatchStatus.FAILED)
 
     ch.basic_ack(delivery_tag=method.delivery_tag)
@@ -330,7 +327,7 @@ def start_connection():
             channel.start_consuming()
             
         except Exception as e:
-            logging.error('ERROR connecting to RabbitMQ, retrying now. See exception:', e)
+            logging.error('ERROR connecting to RabbitMQ, retrying now. See exception: %s', e)
             time.sleep(config.PIKA_RETRY_INTERVAL) # Wait before retrying
 
 if __name__ == "__main__":

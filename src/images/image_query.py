@@ -61,7 +61,7 @@ def search_vector_db(embedding, image_search_request):
     if vector_db_metadata.vector_db_type == VectorDBType.PINECONE:
         return search_pinecone(embedding, image_search_request)
     else:
-        logging.error('Unsupported vector DB type:', vector_db_metadata.vector_db_type)
+        logging.error('Unsupported vector DB type: %s', vector_db_metadata.vector_db_type.value)
         return {"error": "Unsupported vector DB type"}
     
 def search_pinecone(embedding, image_search_request):

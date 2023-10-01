@@ -19,7 +19,7 @@ from PIL import Image
 from io import BytesIO
 import worker.config as config
 import services.database.job_service as job_service
-from services.database.database import get_db
+from services.database.database import get_db, safe_db_operation
 from shared.job_status import JobStatus
 from shared.utils import generate_uuid_from_tuple
 from shared.vector_db_type import VectorDBType
@@ -100,16 +100,15 @@ def write_image_embeddings_to_weaviate(embedding, vector_db_metadata, job_id, so
             )
                 
     except Exception as e:
-        logging.error('Error writing embeddings to weaviate:', e)
+        logging.error('Error writing embeddings to weaviate: %s', e)
         return None
     
     logging.info(f"Successfully uploaded image vector to Weaviate")
     return 1
 
 def write_embeddings_to_vector_db(embedding, vector_db_metadata, job_id):
-    with get_db() as db:
-        job = job_service.get_job(db, job_id)
-        source_filename = job.source_filename
+    job = safe_db_operation(job_service.get_job, job_id)
+    source_filename = job.source_filename    
     
     if vector_db_metadata.vector_db_type == VectorDBType.PINECONE:
         upsert_list = create_pinecone_source_chunk_dict(embedding,  job_id, source_filename)
@@ -123,32 +122,29 @@ def write_embeddings_to_vector_db(embedding, vector_db_metadata, job_id):
         upsert_list = create_milvus_source_chunk_dict(embedding, job_id, source_filename)
         return write_embeddings_to_milvus(upsert_list, vector_db_metadata)
     else:
-        logging.error('Unsupported vector DB type:', vector_db_metadata.vector_db_type)
+        logging.error('Unsupported vector DB type: %s', vector_db_metadata.vector_db_type.value)
 
 def upload_embeddings(embedding, job):
-    with get_db() as db:
-        vectors_uploaded = write_embeddings_to_vector_db(embedding, job.vector_db_metadata, job.id)
+    vectors_uploaded = write_embeddings_to_vector_db(embedding, job.vector_db_metadata, job.id)
 
-        if vectors_uploaded:
-            job_service.update_job_status(db, job.id, JobStatus.COMPLETED)
-        else:
-            job_service.update_job_status(db, job.id, JobStatus.FAILED)
+    if vectors_uploaded:
+        safe_db_operation(job_service.update_job_status, job.id, JobStatus.COMPLETED)
+    else:
+        safe_db_operation(job_service.update_job_status, job.id, JobStatus.FAILED)
 
 def process_image(image_bytes, job_id):
-    with get_db() as db:
-        job = job_service.get_job_with_vdb_metadata(db, job_id)
+    job = safe_db_operation(job_service.get_job_with_vdb_metadata, job_id)
         
-        # TODO: update this logic once the batch creation logic is moved out of the API
-        if job.job_status == JobStatus.NOT_STARTED or job.job_status == JobStatus.CREATING_BATCHES:
-            job_service.update_job_status(db, job.id, JobStatus.PROCESSING_BATCHES)
+    # TODO: update this logic once the batch creation logic is moved out of the API
+    if job.job_status == JobStatus.NOT_STARTED or job.job_status == JobStatus.CREATING_BATCHES:
+        safe_db_operation(job_service.update_job_status, job.id, JobStatus.PROCESSING_BATCHES)
 
     try:
         embedding = embed_image(image_bytes)
         upload_embeddings(embedding, job)
     except Exception as e:
-        logging.error('Error embedding image:', e)
-        with get_db() as db:
-            job_service.update_job_status(db, job.id, JobStatus.FAILED)
+        logging.error('Error embedding image: %s', e)
+        safe_db_operation(job_service.update_job_status, job.id, JobStatus.FAILED)
 
 def callback(ch, method, properties, body):
     try:
@@ -162,7 +158,7 @@ def callback(ch, method, properties, body):
         process_image(image_bytes, job_id)
         logging.info("Batch processed successfully")
     except Exception as e:
-        logging.error('Error with initial image processing:', e)
+        logging.error('Error with initial image processing: %s', e)
 
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
@@ -197,7 +193,7 @@ def start_connection():
             consume_channel.start_consuming()
             
         except Exception as e:
-            logging.error('ERROR connecting to RabbitMQ, retrying now. See exception:', e)
+            logging.error('ERROR connecting to RabbitMQ, retrying now. See exception: %s', e)
             time.sleep(10) # Wait before retrying
 
 if __name__ == "__main__":
@@ -207,7 +203,7 @@ if __name__ == "__main__":
             img2vec = Img2Vec(cuda=True)
             logging.info("Model moved to GPU.")
         except Exception as e:
-            logging.error("Error moving model to GPU. Staying on CPU. Error:", e)
+            logging.error("Error moving model to GPU. Staying on CPU. Error: %s", e)
     else:
         img2vec = Img2Vec(cuda=False)
         logging.info("CUDA not available. Model stays on CPU.")
