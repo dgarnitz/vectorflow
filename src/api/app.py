@@ -19,11 +19,12 @@ from flask_cors import CORS
 from models.batch import Batch
 from api.auth import Auth
 from api.pipeline import Pipeline
-from services.database.database import get_db
+from services.database.database import get_db, safe_db_operation
 from api.vectorflow_request import VectorflowRequest
 from shared.embeddings_type import EmbeddingsType
 from docx import Document
 from shared.image_search_request import ImageSearchRequest
+from urllib.parse import urlparse
 
 auth = Auth()
 pipeline = Pipeline()
@@ -42,6 +43,9 @@ def embed():
     
     if vectorflow_request.embeddings_metadata.embeddings_type == EmbeddingsType.HUGGING_FACE and not vectorflow_request.embeddings_metadata.hugging_face_model_name:
         return jsonify({'error': 'Hugging face embeddings models require a "hugging_face_model_name" in the "embeddings_metadata"'}), 400
+    
+    if vectorflow_request.webhook_url and not vectorflow_request.webhook_key:
+        return jsonify({'error': 'Webhook URL provided but no webhook key'}), 400
     
     if 'SourceData' not in request.files:
         return jsonify({'error': 'No file part in the request'}), 400
@@ -86,21 +90,24 @@ def s3_presigned_url():
     vectorflow_request = VectorflowRequest(request)
     if not vectorflow_request.vectorflow_key or not auth.validate_credentials(vectorflow_request.vectorflow_key):
         return jsonify({'error': 'Invalid credentials'}), 401
+    
+    if vectorflow_request.webhook_url and not vectorflow_request.webhook_key:
+        return jsonify({'error': 'Webhook URL provided but no webhook key'}), 400
  
     pre_signed_url = request.form.get('PreSignedURL')
     if not vectorflow_request.embeddings_metadata or not vectorflow_request.vector_db_metadata or (not vectorflow_request.vector_db_key and not os.getenv('LOCAL_VECTOR_DB')) or not pre_signed_url:
         return jsonify({'error': 'Missing required fields'}), 400
     
     response = requests.get(pre_signed_url)
+    file_name = get_s3_file_name(pre_signed_url)
+
     if response.status_code == 200:
         file_magic = magic.Magic(mime=True)
         mime_type = file_magic.from_buffer(response.content)
 
         if mime_type == 'text/plain':
             file_content = response.text
-            with get_db() as db:
-                job = job_service.create_job(db, vectorflow_request.webhook_url, None)
-            batch_count = create_batches(file_content, job.id, vectorflow_request)
+            job = safe_db_operation(job_service.create_job, vectorflow_request, file_name)
             return jsonify({'message': f"Successfully added {batch_count} batches to the queue", 'JobID': job.id}), 200
         
         elif mime_type == 'application/pdf':
@@ -110,8 +117,7 @@ def s3_presigned_url():
                 for page in doc:
                     file_content += page.get_text()
 
-            with get_db() as db:
-                job = job_service.create_job(db, vectorflow_request.webhook_url, None)
+            job = safe_db_operation(job_service.create_job, vectorflow_request, file_name)
             batch_count = create_batches(file_content, job.id, vectorflow_request)
             return jsonify({'message': f"Successfully added {batch_count} batches to the queue", 'JobID': job.id}), 200
         
@@ -120,11 +126,9 @@ def s3_presigned_url():
             doc = Document(docx_data)
             file_content = "\n".join([paragraph.text for paragraph in doc.paragraphs])
 
-            with get_db() as db:
-                job = job_service.create_job(db, vectorflow_request.webhook_url, None)
+            job = safe_db_operation(job_service.create_job, vectorflow_request, file_name)
             batch_count = create_batches(file_content, job.id, vectorflow_request)
             return jsonify({'message': f"Successfully added {batch_count} batches to the queue", 'JobID': job.id}), 200
-
         
         else:
             return jsonify({'error': 'Uploaded file is not a TXT, PDF or DOCX file'}), 400
@@ -146,8 +150,7 @@ def process_file(file, vectorflow_request):
             for page in doc:
                 file_content += page.get_text()
 
-    with get_db() as db:
-        job = job_service.create_job(db, vectorflow_request.webhook_url, file.filename)
+    job = safe_db_operation(job_service.create_job, vectorflow_request, file.filename)
     batch_count = create_batches(file_content, job.id, vectorflow_request)
     return batch_count, job.id
 
@@ -156,8 +159,8 @@ def create_batches(file_content, job_id, vectorflow_request):
     
     with get_db() as db:
         batches = [Batch(job_id=job_id, embeddings_metadata=vectorflow_request.embeddings_metadata, vector_db_metadata=vectorflow_request.vector_db_metadata) for _ in chunks]
-        batches = batch_service.create_batches(db, batches)
-        job = job_service.update_job_total_batches(db, job_id, len(batches))
+        batches = safe_db_operation(batch_service.create_batches, batches)
+        job = safe_db_operation(job_service.update_job_total_batches, job_id, len(batches))
 
         for batch, chunk in zip(batches, chunks):
             data = (batch.id, chunk, vectorflow_request.vector_db_key, vectorflow_request.embedding_api_key)
@@ -311,6 +314,14 @@ def search_image(file, image_search_request):
     except requests.RequestException as e:
         print(f"Error: {e}")
         return {"error": str(e)}, 500
+    
+def get_s3_file_name(pre_signed_url):
+    parsed_url = urlparse(pre_signed_url)
+    path_parts = parsed_url.path.lstrip('/').split('/')
+
+    # For the file name and not the full path:
+    file_name = path_parts[-1]
+    return file_name
 
 if __name__ == '__main__':
    app.run(host='0.0.0.0', debug=True)

@@ -11,3 +11,5 @@ class VectorflowRequest:
         self.vector_db_metadata = VectorDBMetadata._from_request(request)
         self.embeddings_metadata = EmbeddingsMetadata._from_request(request)
         self.lines_per_batch = int(request.form.get('LinesPerBatch')) if request.form.get('LinesPerBatch') else 1000
+        self.webhook_key = request.headers.get('X-Webhook-Key')
+        self.document_id = request.form.get('DocumentID')

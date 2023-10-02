@@ -145,7 +145,16 @@ class TestApp(unittest.TestCase):
 
         # assert
         self.assertEqual(len(chunks), 3)
-        
+
+    def test_get_s3_file_name(self):
+        # arrange
+        pre_signed_url = "https://s3.amazonaws.com/my-bucket-name/myfolder/myfile.txt"
+
+        # act
+        filename = app.get_s3_file_name(pre_signed_url)
+
+        # assert
+        self.assertEqual(filename, "myfile.txt")
 
 if __name__ == '__main__':
     unittest.main()

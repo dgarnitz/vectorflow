@@ -15,6 +15,9 @@ import services.database.batch_service as batch_service
 from sentence_transformers import SentenceTransformer
 from services.database.database import get_db, safe_db_operation
 from shared.batch_status import BatchStatus
+from services.database import job_service
+from shared.utils import send_embeddings_to_webhook
+from shared.job_status import JobStatus
 
 model = None
 publish_channel = None
@@ -43,8 +46,21 @@ def embed(batch_id, batch_of_chunks_to_embed, vector_db_key):
         embeddings_list = embeddings.tolist()
         text_embeddings_list = list(zip(batch_of_chunks_to_embed, embeddings_list))
 
-        result = safe_db_operation(batch_service.augment_minibatches_embedded, batch_id)
-        upload_to_vector_db(batch_id, text_embeddings_list, vector_db_key)
+        batch = safe_db_operation(batch_service.get_batch, batch_id)
+        job = safe_db_operation(job_service.get_job, batch.job_id)
+
+        safe_db_operation(batch_service.augment_minibatches_embedded, batch_id)
+
+        if job.webhook_url and job.webhook_key:
+            response = send_embeddings_to_webhook(text_embeddings_list, job)
+            if response.status_code == 200:
+                status = safe_db_operation(batch_service.update_batch_status_with_successful_minibatch, batch.id)
+                update_batch_and_job_status(batch.job_id, status, batch.id)
+            else:
+                update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
+                logging.error(f"Error sending embeddings to webhook. Status code: {response.status_code}")
+        else:
+            upload_to_vector_db(batch_id, text_embeddings_list, vector_db_key)
     except Exception as e:
         logging.error('Error embedding batch: %s', e)
 
@@ -69,6 +85,22 @@ def update_batch_status(batch_status, batch_id):
             logging.info(f"Batch {batch_id} status updated to {updated_batch_status}")      
     except Exception as e:
         logging.error('Error updating batch status: %s', e)
+
+def update_batch_and_job_status(job_id, batch_status, batch_id):
+    try:
+        if not job_id and batch_id:
+            job = safe_db_operation(batch_service.get_batch, batch_id)
+            job_id = job.job_id
+        updated_batch_status = safe_db_operation(batch_service.update_batch_status, batch_id, batch_status)
+        job = safe_db_operation(job_service.update_job_with_batch, job_id, updated_batch_status)
+        if job.job_status == JobStatus.COMPLETED:
+            logging.info(f"Job {job_id} completed successfully")
+        elif job.job_status == JobStatus.PARTIALLY_COMPLETED:
+            logging.info(f"Job {job_id} partially completed. {job.batches_succeeded} out of {job.total_batches} batches succeeded")
+                
+    except Exception as e:
+        logging.error('Error updating job and batch status: %s', e)
+        safe_db_operation(job_service.update_job_status, job_id, JobStatus.FAILED)
 
 def get_args():
     parser = argparse.ArgumentParser(description="Run Flask app with specified model name")

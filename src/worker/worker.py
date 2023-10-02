@@ -21,6 +21,8 @@ from shared.batch_status import BatchStatus
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from services.database.database import get_db, safe_db_operation
 from shared.job_status import JobStatus
+from shared.utils import send_embeddings_to_webhook
+from worker.vdb_upload_worker import update_batch_and_job_status
 
 logging.basicConfig(filename='./worker-log.txt', level=logging.INFO)
 logging.basicConfig(filename='./worker-errors.txt', level=logging.ERROR)
@@ -48,7 +50,12 @@ def process_batch(batch_id, source_data):
         try:
             text_embeddings_list = embed_openai_batch(batch, source_data)
             if text_embeddings_list:
-                upload_to_vector_db(batch_id, text_embeddings_list)
+                if job.webhook_url and job.webhook_key:
+                    logging.info(f"Sending {len(text_embeddings_list)} embeddings to webhook {job.webhook_url}")
+                    response = send_embeddings_to_webhook(text_embeddings_list, job)
+                    process_webhook_response(response, job.id, batch.id)
+                else:
+                    upload_to_vector_db(batch_id, text_embeddings_list)  
             else:
                 logging.error(f"Failed to get OPEN AI embeddings for batch {batch.id}. Adding batch to retry queue.")
                 update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
@@ -220,6 +227,13 @@ def upload_to_vector_db(batch_id, text_embeddings_list):
         logging.info("Message published successfully")
     except Exception as e:
         logging.error('Error publishing message to RabbitMQ: %s', e)
+
+def process_webhook_response(response, job_id, batch_id):
+    if response.status_code == 200:
+        update_batch_and_job_status(job_id, BatchStatus.COMPLETED, batch_id)
+    else:
+        logging.error("Error sending embeddings to webhook. Response: %s", response)
+        update_batch_and_job_status(job_id, BatchStatus.FAILED, batch_id)
 
 def callback(ch, method, properties, body):
     try:
