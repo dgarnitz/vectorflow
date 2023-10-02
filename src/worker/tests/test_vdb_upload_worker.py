@@ -13,7 +13,7 @@ class TestVDBUploadWorker(unittest.TestCase):
     @patch('sqlalchemy.orm.session.Session.refresh')
     @patch('services.database.batch_service.update_batch_status_with_successful_minibatch')
     @patch('services.database.job_service.update_job_status')
-    @patch('services.database.database.get_db')
+    @patch('services.database.database.safe_db_operation')
     @patch('services.database.job_service.get_job')
     @patch('services.database.batch_service.get_batch')
     @patch('worker.vdb_upload_worker.write_embeddings_to_vector_db')
@@ -24,7 +24,7 @@ class TestVDBUploadWorker(unittest.TestCase):
         mock_write_embeddings_to_vector_db, 
         mock_get_batch, 
         mock_get_job, 
-        mock_get_db,
+        mock_safe_db_operation,
         mock_update_job_status,
         mock_update_batch_status_with_successful_minibatch,
         mock_db_refresh,
@@ -40,7 +40,7 @@ class TestVDBUploadWorker(unittest.TestCase):
         mock_update_batch_status_with_successful_minibatch.return_value = BatchStatus.COMPLETED
         mock_get_batch.return_value = batch
         mock_get_job.return_value = job
-        mock_get_db.return_value = "test_db"
+        mock_safe_db_operation.return_value = "test_db"
 
         # act
         vdb_upload_worker.upload_batch(batch, text_embedding_list)
@@ -53,7 +53,7 @@ class TestVDBUploadWorker(unittest.TestCase):
     @patch('sqlalchemy.orm.session.Session.refresh')
     @patch('services.database.batch_service.update_batch_status')
     @patch('services.database.job_service.update_job_status')
-    @patch('services.database.database.get_db')
+    @patch('services.database.database.safe_db_operation')
     @patch('services.database.job_service.get_job')
     @patch('services.database.batch_service.get_batch')
     @patch('worker.vdb_upload_worker.write_embeddings_to_vector_db')
@@ -64,7 +64,7 @@ class TestVDBUploadWorker(unittest.TestCase):
         mock_write_embeddings_to_vector_db, 
         mock_get_batch, 
         mock_get_job, 
-        mock_get_db,
+        mock_safe_db_operation,
         mock_update_job_status,
         mock_update_batch_status,
         mock_db_refresh,
@@ -79,7 +79,7 @@ class TestVDBUploadWorker(unittest.TestCase):
         mock_write_embeddings_to_vector_db.return_value = 0
         mock_get_batch.return_value = batch
         mock_get_job.return_value = job
-        mock_get_db.return_value = "test_db"
+        mock_safe_db_operation.return_value = "test_db"
 
         # act
         vdb_upload_worker.upload_batch(batch, text_embedding_list)
