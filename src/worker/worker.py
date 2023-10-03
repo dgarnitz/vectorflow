@@ -157,7 +157,7 @@ def chunk_data(batch, source_data, job):
         chunked_data = validate_chunks(chunked_data, job.chunk_validation_url)
 
     if not chunked_data:
-        update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
+        update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
         raise Exception("Failed to chunk data") 
     return chunked_data
 
@@ -236,7 +236,9 @@ def create_upload_batches(batches, max_batch_size):
 def update_batch_status(job_id, batch_status, batch_id):
     try:
         updated_batch_status = safe_db_operation(batch_service.update_batch_status, batch_id, batch_status)
-        logging.info(f"Batch {batch_id} for job {job_id} status updated to {updated_batch_status}")      
+        logging.info(f"Batch {batch_id} for job {job_id} status updated to {updated_batch_status}") 
+        if update_batch_status == BatchStatus.FAILED:
+            update_batch_and_job_status(job_id, BatchStatus.FAILED, batch_id)     
     except Exception as e:
         logging.error('Error updating batch status: %s', e)
 
