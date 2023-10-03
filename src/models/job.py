@@ -22,3 +22,4 @@ class Job(Base):
 
     webhook_key = Column(String)
     document_id = Column(String)
+    chunk_validation_url = Column(String)
