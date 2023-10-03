@@ -13,3 +13,4 @@ class VectorflowRequest:
         self.lines_per_batch = int(request.form.get('LinesPerBatch')) if request.form.get('LinesPerBatch') else 1000
         self.webhook_key = request.headers.get('X-Webhook-Key')
         self.document_id = request.form.get('DocumentID')
+        self.chunk_validation_url = request.form.get('ChunkValidationURL')

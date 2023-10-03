@@ -38,7 +38,8 @@ data = {
         "environment": testing_environment
     }),
     'DocumentID': "test-document-id",
-    'WebhookURL': 'http://host.docker.internal:6060/vectors'
+    'WebhookURL': 'http://host.docker.internal:6060/vectors',
+    'ChunkValidationURL': 'http://host.docker.internal:6060/validate',
 }
 
 files = {

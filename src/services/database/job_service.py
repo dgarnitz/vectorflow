@@ -12,6 +12,8 @@ def create_job(db: Session, request, source_filename: str):
         job.webhook_key = request.webhook_key
     if request.document_id:
         job.document_id = request.document_id
+    if request.chunk_validation_url:
+        job.chunk_validation_url = request.chunk_validation_url
 
     db.add(job)
     db.commit()

@@ -44,11 +44,12 @@ def process_batch(batch_id, source_data):
         logging.info(f"Retrying batch {batch.id}")
 
     batch = safe_db_operation(batch_service.get_batch, batch_id)
+    chunked_data = chunk_data(batch, source_data, job)
 
     embeddings_type = batch.embeddings_metadata.embeddings_type
     if embeddings_type == EmbeddingsType.OPEN_AI:
         try:
-            text_embeddings_list = embed_openai_batch(batch, source_data)
+            text_embeddings_list = embed_openai_batch(batch, chunked_data)
             if text_embeddings_list:
                 if job.webhook_url and job.webhook_key:
                     logging.info(f"Sending {len(text_embeddings_list)} embeddings to webhook {job.webhook_url}")
@@ -65,7 +66,7 @@ def process_batch(batch_id, source_data):
             update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
     elif embeddings_type == EmbeddingsType.HUGGING_FACE:
         try:
-            embed_hugging_face_batch(batch, source_data)
+            embed_hugging_face_batch(batch, chunked_data)
         except Exception as e:
             logging.error('Error embedding batch: %s', e)
             update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
@@ -88,11 +89,9 @@ def get_openai_embedding(batch_of_chunks, attempts=5):
             time.sleep(2**i)  # Exponential backoff: 1, 2, 4, 8, 16 seconds.
     return batch_of_chunks, None
 
-def embed_openai_batch(batch, source_data):
+def embed_openai_batch(batch, chunked_data):
     logging.info("Starting Open AI Embeddings")
     openai.api_key = os.getenv('EMBEDDING_API_KEY')
-    
-    chunked_data = chunk_data(batch.embeddings_metadata.chunk_strategy, source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
     
     # Maximum number of items allowed in a batch by OpenAIs embedding API. There is also an 8191 token per item limit
     open_ai_batches = create_upload_batches(chunked_data, max_batch_size=config.MAX_OPENAI_EMBEDDING_BATCH_SIZE)
@@ -133,10 +132,8 @@ def publish_to_embedding_queue(batch_id, batch_of_chunks, model_name, attempts=5
         batch_service.update_batch_status(db, batch_id, BatchStatus.FAILED)
         logging.error(f"Failed to publish batch {batch_id} to open source queue {model_name} after {attempts} attempts.")
 
-def embed_hugging_face_batch(batch, source_data):
+def embed_hugging_face_batch(batch, chunked_data):
     logging.info(f"Starting Hugging Face Embeddings with {batch.embeddings_metadata.hugging_face_model_name}")
-    
-    chunked_data = chunk_data(batch.embeddings_metadata.chunk_strategy, source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
     hugging_face_batches = create_upload_batches(chunked_data, config.HUGGING_FACE_BATCH_SIZE)
     
     safe_db_operation(batch_service.update_batch_minibatch_count, batch.id, len(hugging_face_batches))
@@ -144,18 +141,43 @@ def embed_hugging_face_batch(batch, source_data):
     for batch_of_chunks in hugging_face_batches:
         publish_to_embedding_queue(batch.id, batch_of_chunks, batch.embeddings_metadata.hugging_face_model_name)
 
-def chunk_data(chunk_strategy, source_data, chunk_size, chunk_overlap):
-    if chunk_strategy == ChunkStrategy.EXACT:
-        chunked_data = chunk_data_exact(source_data, chunk_size, chunk_overlap)
+def chunk_data(batch, source_data, job):
+    if batch.embeddings_metadata.chunk_strategy == ChunkStrategy.EXACT:
+        chunked_data = chunk_data_exact(source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
 
-    elif chunk_strategy == ChunkStrategy.PARAGRAPH:
-        chunked_data = chunk_data_by_paragraph(source_data,chunk_size, chunk_overlap)
+    elif batch.embeddings_metadata.chunk_strategy == ChunkStrategy.PARAGRAPH:
+        chunked_data = chunk_data_by_paragraph(source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
 
-    elif chunk_strategy == ChunkStrategy.SENTENCE:
-        chunked_data = chunk_by_sentence(source_data, chunk_size, chunk_overlap)
+    elif batch.embeddings_metadata.chunk_strategy == ChunkStrategy.SENTENCE:
+        chunked_data = chunk_by_sentence(source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
     else:
-        chunked_data = chunk_data_exact(source_data, chunk_size, chunk_overlap)
+        chunked_data = chunk_data_exact(source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
+
+    if hasattr(job, 'chunk_validation_url') and job.chunk_validation_url:
+        chunked_data = validate_chunks(chunked_data, job.chunk_validation_url)
+
+    if not chunked_data:
+        update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
+        raise Exception("Failed to chunk data") 
     return chunked_data
+
+def validate_chunks(chunked_data, chunk_validation_url):
+    try:
+        response = requests.post(
+            chunk_validation_url, 
+            json={"chunks": chunked_data}, 
+            headers={"Content-Type": "application/json"},
+            timeout=config.VALIDATION_TIMEOUT 
+        )
+
+        if response.status_code == 200 and response.json()['valid_chunks']:
+            return response.json()['valid_chunks']
+        else:
+            logging.error(f"Chunk validation failed for url {chunk_validation_url}")
+            return None
+    except requests.exceptions.Timeout:
+        logging.error(f"Chunk validation timed out for url {chunk_validation_url}.")
+        return None
 
 def chunk_data_exact(data_chunks, chunk_size, chunk_overlap):
     data = "".join(data_chunks)
@@ -214,7 +236,9 @@ def create_upload_batches(batches, max_batch_size):
 def update_batch_status(job_id, batch_status, batch_id):
     try:
         updated_batch_status = safe_db_operation(batch_service.update_batch_status, batch_id, batch_status)
-        logging.info(f"Batch {batch_id} for job {job_id} status updated to {updated_batch_status}")      
+        logging.info(f"Batch {batch_id} for job {job_id} status updated to {updated_batch_status}") 
+        if update_batch_status == BatchStatus.FAILED:
+            update_batch_and_job_status(job_id, BatchStatus.FAILED, batch_id)     
     except Exception as e:
         logging.error('Error updating batch status: %s', e)
 

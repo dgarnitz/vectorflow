@@ -138,27 +138,10 @@ You will get the following payload back:
 }
 ```
 
-### Raw Embeddings Webhook
-If you wish to use VectorFlow only for chunking and generating embeddings, pass a `WebhookURL` parameter in the body of the `/embed` request and a `X-Webhook-Key` as a header. VectorFlow assumes a webhook key is required for writing back to any endpoint. 
-
 ### VectorFlow API Client
 The easiest way to use VectorFlow is with the our testing client, located in `src/testing_client.py`. Running this script will submit a document to VectorFlow for embedding. You can change the values to match your configuration. 
 
 Note that the `TESTING_ENV` variable is the equivalent of the `enviroment` field in the `VectorDBMetadata`, which corresponds to an environment in Pincone, a class in Weaviate, a collection in qdrant, etc. 
-
-### Sample Curl Request
-
-The following request will embed a TXT document with OpenAI's ADA model and upload the results to a Pinecone index called `test`. Make sure that your Pinecone index is called `test`. If you run the curl command from the root directory the path to the test_text.txt is `./src/api/tests/fixtures/test_text.txt`, changes this if you want to use another TXT document to embed.
-
-```
-curl -X POST -H 'Content-Type: multipart/form-data' -H "Authorization: INTERNAL_API_KEY" -H "X-EmbeddingAPI-Key: your-key-here" -H "X-VectorDB-Key: your-key-here" -F 'EmbeddingsMetadata={"embeddings_type": "open_ai", "chunk_size": 256, "chunk_overlap": 128}' -F 'SourceData=@./src/api/tests/fixtures/test_text.txt' -F 'VectorDBMetadata={"vector_db_type": "qdrant", "index_name": "test", "environment": "url-to-collection"}'  http://localhost:8000/embed
-```
-
-To check the status of the job,
-
-```
-curl -X GET -H "Authorization: INTERNAL_API_KEY" http://localhost:8000/jobs/<job_id>/status
-```
 
 ### Vector Database Schema Standard
 VectorFlow enforces a standardized schema for uploading data to a vector store:
@@ -170,6 +153,19 @@ embeddings: float array
 ```
 
 The id can be used for deduplication and idempotency. Please note for Weaviate, the id is called `vectorflow_id`. We plan to support dynamically detected and/or configurable schemas down the road. 
+
+### Raw Embeddings Webhook
+If you wish to use VectorFlow only for chunking and generating embeddings, pass a `WebhookURL` parameter in the body of the `/embed` request and a `X-Webhook-Key` as a header. VectorFlow assumes a webhook key is required for writing back to any endpoint. The embeddings are sent back along with the source chunks in tuple or lis of (source_chunk, embedding). This is sent as json with the following form:
+```
+{
+    'Embeddings': list[tuple(str, list[float])],
+    'DocumentID': str,
+    'JobID': int
+}
+```
+
+### Chunk Validation Webhook
+If you wish to validate which chunks you wish to embed, pass a `ChunkValidationURL` parameter in the body of the `/embed` request. This will send the request with the following json payload, `{"chunks": chunked_data}`, where `chunked_data` is a list of strings. It will expected back json containing key `valid_chunks` with a list of valid chunks for embedding. This endpoint will timeout after 30 seconds by default but can be configured in the application code. 
 
 ### S3 Endpoint
 VectorFlow is integrated with AWS s3. You can pass a pre-signed s3 URL in the body of the HTTP instead of a file. Use the form field `PreSignedURL` and hit the endpoint `/s3`. This endpoint has the same configuration and restrictions as the `/embed` endpoint. 

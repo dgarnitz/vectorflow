@@ -20,7 +20,7 @@ def send_embeddings_to_webhook(text_embeddings_list, job):
     # text_embeddings_list is list[(str, list[float])], should serialize automatically without json.dumps()
     data = {
         'Embeddings': text_embeddings_list,
-        'DocumentID': job.document_id if job.document_id else "",
+        'DocumentID': job.document_id if (hasattr(job, 'document_id') and job.document_id) else "",
         'JobID': job.id
     }
 
