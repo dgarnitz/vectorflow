@@ -9,6 +9,11 @@ from shared.batch_status import BatchStatus
 def create_batches(db: Session, batches: list[Batch]):
     db.add_all(batches)
     db.commit()
+    
+    # TODO: update to a bulk select or different strategy at scale since this approach
+    # has poor performance
+    for batch in batches:
+        db.refresh(batch)
     return batches
 
 def get_batch(db: Session, batch_id: str):

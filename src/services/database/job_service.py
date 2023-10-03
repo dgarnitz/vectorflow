@@ -4,8 +4,15 @@ from models.job import Job
 from shared.batch_status import BatchStatus
 from shared.job_status import JobStatus
 
-def create_job(db: Session, webhook_url: str, source_filename: str):
-    job = Job(webhook_url=webhook_url, source_filename=source_filename)
+def create_job(db: Session, request, source_filename: str):
+    job = Job(source_filename = source_filename)
+    if request.webhook_url:
+        job.webhook_url = request.webhook_url
+    if request.webhook_key:
+        job.webhook_key = request.webhook_key
+    if request.document_id:
+        job.document_id = request.document_id
+
     db.add(job)
     db.commit()
     db.refresh(job)

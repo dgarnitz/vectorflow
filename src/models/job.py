@@ -19,3 +19,6 @@ class Job(Base):
 
     vector_db_metadata_id = Column(Integer, ForeignKey('vector_db_metadata.id'))
     vector_db_metadata = relationship(VectorDBMetadata)
+
+    webhook_key = Column(String)
+    document_id = Column(String)

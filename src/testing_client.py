@@ -8,10 +8,10 @@ import json
 filepath = './api/tests/fixtures/test_medium_text.txt'
 url = "http://localhost:8000/embed"
 embedding_key = os.getenv("OPEN_AI_KEY")
-vector_db_key = os.getenv("MILVUS_KEY")
-embedding_type="OPEN_AI"
-vector_db_type = "MILVUS"
-index_name = "test1536"
+vector_db_key = os.getenv("QDRANT_KEY")
+embedding_type="HUGGING_FACE"
+vector_db_type = "QDRANT"
+index_name = "test-1536"
 testing_environment = os.getenv("TESTING_ENV")
 
 ##################
@@ -22,19 +22,23 @@ headers = {
     "Authorization": os.getenv("INTERNAL_API_KEY"),
     "X-EmbeddingAPI-Key": embedding_key,
     "X-VectorDB-Key": vector_db_key,
+    "X-Webhook-Key": "test-webhook-key",
 }
 
 data = {
     'EmbeddingsMetadata': json.dumps({
         "embeddings_type": embedding_type, 
         "chunk_size": 256, 
-        "chunk_overlap": 128
+        "chunk_overlap": 128,
+        "hugging_face_model_name": "BAAI/bge-small-en"
     }),
     'VectorDBMetadata': json.dumps({
         "vector_db_type": vector_db_type, 
         "index_name": index_name,
         "environment": testing_environment
-    })
+    }),
+    'DocumentID': "test-document-id",
+    'WebhookURL': 'http://host.docker.internal:6060/vectors'
 }
 
 files = {

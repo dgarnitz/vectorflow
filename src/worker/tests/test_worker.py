@@ -14,7 +14,7 @@ class TestWorker(unittest.TestCase):
     @patch('sqlalchemy.orm.session.Session.refresh')
     @patch('services.database.batch_service.update_batch_status')
     @patch('services.database.job_service.update_job_status')
-    @patch('services.database.database.get_db')
+    @patch('services.database.database.safe_db_operation')
     @patch('services.database.job_service.get_job')
     @patch('services.database.batch_service.get_batch')
     @patch('worker.worker.embed_openai_batch')
@@ -25,7 +25,7 @@ class TestWorker(unittest.TestCase):
         mock_embed_openai_batch, 
         mock_get_batch, 
         mock_get_job, 
-        mock_get_db,
+        mock_safe_db_operation,
         mock_update_job_status,
         mock_update_batch_status,
         mock_db_refresh,
@@ -38,7 +38,7 @@ class TestWorker(unittest.TestCase):
         mock_embed_openai_batch.return_value = text_embeddings_list
         mock_get_batch.return_value = batch
         mock_get_job.return_value = job
-        mock_get_db.return_value = "test_db"
+        mock_safe_db_operation.return_value = "test_db"
 
         # act
         worker.process_batch(batch.id, source_data)
@@ -51,7 +51,7 @@ class TestWorker(unittest.TestCase):
     @patch('sqlalchemy.orm.session.Session.refresh')
     @patch('services.database.batch_service.update_batch_status')
     @patch('services.database.job_service.update_job_status')
-    @patch('services.database.database.get_db')
+    @patch('services.database.database.safe_db_operation')
     @patch('services.database.job_service.get_job')
     @patch('services.database.batch_service.get_batch')
     @patch('worker.worker.embed_hugging_face_batch')
@@ -62,7 +62,7 @@ class TestWorker(unittest.TestCase):
         mock_embed_hugging_face_batch, 
         mock_get_batch, 
         mock_get_job, 
-        mock_get_db,
+        mock_safe_db_operation,
         mock_update_job_status,
         mock_update_batch_status,
         mock_db_refresh,
@@ -77,7 +77,7 @@ class TestWorker(unittest.TestCase):
         mock_embed_hugging_face_batch.return_value = text_embeddings_list
         mock_get_batch.return_value = batch
         mock_get_job.return_value = job
-        mock_get_db.return_value = "test_db"
+        mock_safe_db_operation.return_value = "test_db"
 
         # act
         worker.process_batch(batch.id, source_data)
@@ -89,7 +89,7 @@ class TestWorker(unittest.TestCase):
     @patch('sqlalchemy.orm.session.Session.refresh')
     @patch('services.database.batch_service.update_batch_status')
     @patch('services.database.job_service.update_job_status')
-    @patch('services.database.database.get_db')
+    @patch('services.database.database.safe_db_operation')
     @patch('services.database.job_service.get_job')
     @patch('services.database.batch_service.get_batch')
     @patch('worker.worker.embed_openai_batch')
@@ -100,7 +100,7 @@ class TestWorker(unittest.TestCase):
         mock_embed_openai_batch, 
         mock_get_batch, 
         mock_get_job, 
-        mock_get_db,
+        mock_safe_db_operation,
         mock_update_job_status,
         mock_update_batch_status,
         mock_db_refresh,
@@ -112,7 +112,7 @@ class TestWorker(unittest.TestCase):
         mock_embed_openai_batch.return_value = None
         mock_get_batch.return_value = batch
         mock_get_job.return_value = job
-        mock_get_db.return_value = "test_db"
+        mock_safe_db_operation.return_value = "test_db"
 
         # act
         worker.process_batch(batch.id, source_data)
@@ -125,7 +125,7 @@ class TestWorker(unittest.TestCase):
     @patch('sqlalchemy.orm.session.Session.refresh')
     @patch('services.database.batch_service.update_batch_status')
     @patch('services.database.job_service.update_job_status')
-    @patch('services.database.database.get_db')
+    @patch('services.database.database.safe_db_operation')
     @patch('services.database.job_service.get_job')
     @patch('services.database.batch_service.get_batch')
     @patch('worker.worker.embed_openai_batch')
@@ -136,7 +136,7 @@ class TestWorker(unittest.TestCase):
         mock_embed_openai_batch, 
         mock_get_batch, 
         mock_get_job, 
-        mock_get_db,
+        mock_safe_db_operation,
         mock_update_job_status,
         mock_update_batch_status,
         mock_db_refresh,
@@ -148,7 +148,7 @@ class TestWorker(unittest.TestCase):
         mock_embed_openai_batch.return_value = 0
         mock_get_batch.return_value = batch
         mock_get_job.return_value = job
-        mock_get_db.return_value = "test_db"
+        mock_safe_db_operation.return_value = "test_db"
 
         # act
         worker.process_batch(batch.id, source_data)

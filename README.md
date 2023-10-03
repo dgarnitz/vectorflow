@@ -10,7 +10,8 @@
   <a href="https://discord.gg/MEXuahMs2F">Join our Discord</a>  |
   <a href="https://www.getvectorflow.com/">Website</a>  |  
   <a href="mailto:dan@getvectorflow.com">Get in touch</a> |
-  <a href="https://vectorflow.dev-docs.dev/docs/"> Docs</a>
+  <a href="https://vectorflow.dev-docs.dev/docs/">Docs</a> |
+  <a href="https://app.getvectorflow.com/">Free Hosted Version</a> 
 </h4>
 
 <div align="center">
@@ -117,13 +118,14 @@ To submit a `job` for embedding, make a `POST` request to the `/embed` endpoint 
         "chunk_size": 512,
         "chunk_overlap": 128,
         "chunk_strategy": "EXACT | PARAGRAPH | SENTENCE",
-        "hugging_face_model_name": "model-name-here"
+        "hugging_face_model_name": "sentence-transformer-model-name-here"
     }'
     'VectorDBMetadata={
         "vector_db_type": "PINECONE | QDRANT | WEAVIATE | MILVUS | REDIS",
         "index_name": "index_name",
         "environment": "env_name"
     }'
+    'DocumentID=your-optional-internal-tracking-id'
 }
 ```
 
@@ -135,6 +137,9 @@ You will get the following payload back:
     'JobID': job_id
 }
 ```
+
+### Raw Embeddings Webhook
+If you wish to use VectorFlow only for chunking and generating embeddings, pass a `WebhookURL` parameter in the body of the `/embed` request and a `X-Webhook-Key` as a header. VectorFlow assumes a webhook key is required for writing back to any endpoint. 
 
 ### VectorFlow API Client
 The easiest way to use VectorFlow is with the our testing client, located in `src/testing_client.py`. Running this script will submit a document to VectorFlow for embedding. You can change the values to match your configuration. 
@@ -229,7 +234,7 @@ We love feedback from the community. If you have an idea of how to make this pro
 
 Our roadmap is outlined in the section below and we would love help in building it out. Our open issues are a great place to start and can be viewed [here](https://github.com/dgarnitz/vectorflow/issues). If you want to work on something not listed there, we recommend you open an issue with a proposed approach in mind before submitting a PR.
 
-Please tag `dgarnitz` on all PRs.
+Please tag `dgarnitz` on all PRs and update the README to reflect your changes.
 
 ### Testing
 
@@ -254,11 +259,12 @@ We also recommend you add verification evidence, such as screenshots, that show 
 
 # Roadmap
 
-- [ ] Connectors to other vector databases
-- [ ] Support for more files types such as `csv`, `word`, `xls`, etc
 - [ ] Support for multi-file, directory data ingestion from sources such as Salesforce, Google Drive, etc
 - [ ] Retry mechanism
 - [ ] Langchain & Llama Index integrations
 - [ ] Support callbacks for writing object metadata to a separate store
 - [ ] Dynamically configurable vector DB schemas
 - [ ] Deduplication capabilities
+- [ ] Vector version control
+- [ ] "Smart" chunker
+- [ ] "Smart" metadata extractor
