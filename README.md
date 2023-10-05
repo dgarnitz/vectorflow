@@ -22,11 +22,24 @@
 
 # Introduction
 
-VectorFlow is an open source, high throughput, fault tolerant vector embedding pipeline. With a simple API request, you can send raw data that will be embedded and stored in any vector database or returned back to you. VectorFlow is multi-modal and can ingest both textual and image data. 
+VectorFlow is an open source, high throughput, fault tolerant vector embedding pipeline. With a simple API request, you can send raw data that will be chunked, embedded and stored in any vector database or returned back to you. VectorFlow is multi-modal and can ingest both textual and image data. 
 
 This current version is an MVP. We recommend using it with Kubernetes in production. Right now the system only supports uploading single files at a time, up to 25 MB. For text-based files, it supports TXT, PDF and DOCX. For image files, it support JPG, JPEG, and PNG. 
 
 # Run it Locally
+With two simple commands you can set up VectorFlow locally:
+```
+pip install vectorflow-ai
+vectorflow
+```
+
+To start embedding documents, add your embedding and database keys to the `env_scrips/env_vars.sh` script that was generated and set the `filepath` variable in `clients/standard_upload_client.py` to point to the file you want to embed. Then run:
+```
+source env_scrips/env_vars.sh
+python clients/standard_upload_client.py
+```
+
+Below is a more detailed description of how to manually set up and configure the system. Please note that the `pip` command will not create a development environment on your machine, it only sets up and runs the docker-compose. 
 
 ## Docker-Compose
 
@@ -139,7 +152,7 @@ You will get the following payload back:
 ```
 
 ### VectorFlow API Client
-The easiest way to use VectorFlow is with the our testing client, located in `src/testing_client.py`. Running this script will submit a document to VectorFlow for embedding. You can change the values to match your configuration. 
+The easiest way to use VectorFlow is with the our clients, located in `clients/` directory. There are several scripts, with different configurations for qickly uploading data. We recommmend starting with the `clients/standard_upload_client.py` - Running this script will submit a document to VectorFlow for embedding with Open AI ADA and upload to the local qdrant instance. You can change the values to match your configuration. 
 
 Note that the `TESTING_ENV` variable is the equivalent of the `enviroment` field in the `VectorDBMetadata`, which corresponds to an environment in Pincone, a class in Weaviate, a collection in qdrant, etc. 
 
