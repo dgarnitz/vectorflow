@@ -29,8 +29,8 @@ This current version is an MVP. We recommend using it with Kubernetes in product
 # Run it Locally
 With two simple commands you can set up VectorFlow locally:
 ```
-pip install vectorflow-ai
-vectorflow
+git clone https://github.com/dgarnitz/vectorflow.git
+./setup.sh
 ```
 
 To start embedding documents, add your embedding and database keys to the `env_scrips/env_vars.sh` script that was generated and set the `filepath` variable in `clients/standard_upload_client.py` to point to the file you want to embed. Then run:
@@ -39,7 +39,7 @@ source env_scrips/env_vars.sh
 python clients/standard_upload_client.py
 ```
 
-Below is a more detailed description of how to manually set up and configure the system. Please note that the `pip` command will not create a development environment on your machine, it only sets up and runs the docker-compose. 
+Below is a more detailed description of how to manually set up and configure the system. Please note that the `setup` script will not create a development environment on your machine, it only sets up and runs the docker-compose. We do not advise using VectorFlow on Windows. 
 
 ## Docker-Compose
 
