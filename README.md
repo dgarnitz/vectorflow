@@ -29,7 +29,7 @@ This current version is an MVP. We recommend using it with Kubernetes in product
 # Run it Locally
 With two simple commands you can set up VectorFlow locally:
 ```
-pip install vectorflow
+pip install vectorflow-ai
 vectorflow
 ```
 
@@ -39,7 +39,7 @@ source env_scrips/env_vars.sh
 python clients/standard_upload_client.py
 ```
 
-Below is a more detailed description of how to manually set up and configure the system. 
+Below is a more detailed description of how to manually set up and configure the system. Please note that the `pip` command will not create a development environment on your machine, it only sets up and runs the docker-compose. 
 
 ## Docker-Compose
 

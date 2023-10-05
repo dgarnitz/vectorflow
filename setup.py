@@ -1,10 +1,10 @@
 from setuptools import setup
 
 setup(
-    name="vectorflow",
+    name="vectorflow-ai",
     version="0.1.0",  # Update version as needed
     install_requires=[
-        # List your project dependencies here if any
+        # No dependencies right now since this is only for setting up docker-compose
     ],
     entry_points={
         'console_scripts': [
