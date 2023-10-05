@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="vectorflow-ai",
-    version="0.1.0",  # Update version as needed
+    version="0.1.1",  # Update version as needed
     install_requires=[
         # No dependencies right now since this is only for setting up docker-compose
     ],
