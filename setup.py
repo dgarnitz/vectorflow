@@ -1,5 +1,9 @@
 from setuptools import setup
 
+# Read the content of your README file
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
+
 setup(
     name="vectorflow-ai",
     version="0.1.0",  # Update version as needed
@@ -13,4 +17,6 @@ setup(
     },
     py_modules=["vectorflow"],
     include_package_data=True,  # This ensures non-python files (like your setup.sh) are included
+    long_description=long_description,
+    long_description_content_type="text/markdown",  # This is important! It tells PyPI the README is in Markdown
 )

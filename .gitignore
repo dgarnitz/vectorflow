@@ -6,3 +6,6 @@ env_scripts/
 .DS_Store
 hf_config/
 deploy/
+dist/
+build/
+vectorflow_ai.egg-info/
