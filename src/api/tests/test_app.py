@@ -1,5 +1,6 @@
 import unittest
 import json
+import os
 from flask import Flask
 from flask.testing import FlaskClient
 from models.job import Job
@@ -66,6 +67,8 @@ class TestApp(unittest.TestCase):
                                                    index_name="test_index", 
                                                    environment="test_environment")
 
+        current_local_vector_db = os.getenv("LOCAL_VECTOR_DB")
+        del os.environ["LOCAL_VECTOR_DB"]
         headers = {"Authorization": app.auth.internal_api_key}
         with open('api/tests/fixtures/test_text.txt', 'rb') as data_file:
             response = self.client.post('/embed', 
@@ -76,6 +79,7 @@ class TestApp(unittest.TestCase):
         
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['error'], "Missing required fields")
+        os.environ["LOCAL_VECTOR_DB"] = current_local_vector_db
 
     def test_embed_endpoint_no_file(self):
         test_embeddings_metadata = EmbeddingsMetadata(embeddings_type=EmbeddingsType.OPEN_AI)
