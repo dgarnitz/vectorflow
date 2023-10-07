@@ -178,7 +178,7 @@ class TestWorker(unittest.TestCase):
     @patch('services.database.job_service.get_job')
     @patch('services.database.batch_service.get_batch')
     @patch('worker.worker.embed_openai_batch')
-    @patch('worker.worker.update_batch_status')
+    @patch('worker.worker.update_batch_and_job_status')
     def test_process_batch_failure_validate_chunks(
         self, 
         mock_update_batch_and_job_status, 
