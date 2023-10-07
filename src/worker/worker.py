@@ -22,7 +22,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from services.database.database import get_db, safe_db_operation
 from shared.job_status import JobStatus
 from shared.utils import send_embeddings_to_webhook
-from worker.vdb_upload_worker import update_batch_and_job_status
 
 logging.basicConfig(filename='./worker-log.txt', level=logging.INFO)
 logging.basicConfig(filename='./worker-errors.txt', level=logging.ERROR)
@@ -258,6 +257,23 @@ def process_webhook_response(response, job_id, batch_id):
     else:
         logging.error("Error sending embeddings to webhook. Response: %s", response)
         update_batch_and_job_status(job_id, BatchStatus.FAILED, batch_id)
+
+# TODO: refactor into utils
+def update_batch_and_job_status(job_id, batch_status, batch_id):
+    try:
+        if not job_id and batch_id:
+            job = safe_db_operation(batch_service.get_batch, batch_id)
+            job_id = job.job_id
+        updated_batch_status = safe_db_operation(batch_service.update_batch_status, batch_id, batch_status)
+        job = safe_db_operation(job_service.update_job_with_batch, job_id, updated_batch_status)
+        if job.job_status == JobStatus.COMPLETED:
+            logging.info(f"Job {job_id} completed successfully")
+        elif job.job_status == JobStatus.PARTIALLY_COMPLETED:
+            logging.info(f"Job {job_id} partially completed. {job.batches_succeeded} out of {job.total_batches} batches succeeded")
+                
+    except Exception as e:
+        logging.error('Error updating job and batch status: %s', e)
+        safe_db_operation(job_service.update_job_status, job_id, JobStatus.FAILED)
 
 def callback(ch, method, properties, body):
     try:

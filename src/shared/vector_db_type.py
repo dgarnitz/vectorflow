@@ -9,3 +9,4 @@ class VectorDBType(Enum):
     VESPA = 'vespa'
     PGVECTOR = 'pgvector'
     REDIS = 'redis'
+    LANCEDB = 'lancedb'
