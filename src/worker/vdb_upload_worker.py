@@ -15,6 +15,8 @@ import logging
 import uuid
 import weaviate
 import redis
+import lancedb
+import pyarrow as pa
 import numpy as np
 import worker.config as config
 import services.database.batch_service as batch_service
@@ -65,6 +67,9 @@ def write_embeddings_to_vector_db(text_embeddings_list, vector_db_metadata, batc
     elif vector_db_metadata.vector_db_type == VectorDBType.REDIS:
         upsert_list = create_redis_source_chunk_dict(text_embeddings_list, batch_id, job_id, source_filename)
         return write_embeddings_to_redis(upsert_list, vector_db_metadata)
+    elif vector_db_metadata.vector_db_type == VectorDBType.LANCEDB:
+        upsert_list = create_lancedb_source_chunks(text_embeddings_list, batch_id, job_id, source_filename)
+        return write_embeddings_to_lancedb(upsert_list, batch_id)
     else:
         logging.error('Unsupported vector DB type: %s', vector_db_metadata.vector_db_type.value)
 
@@ -260,6 +265,59 @@ def write_embeddings_to_milvus(upsert_list, vector_db_metadata):
     logging.info(f"Successfully uploaded {vectors_uploaded} vectors to milvus")
     return vectors_uploaded
 
+def create_lancedb_source_chunks(text_embeddings_list, batch_id, job_id, source_filename):
+    upsert_list = []
+    for i, (source_text, embedding) in enumerate(text_embeddings_list):
+        upsert_list.append(
+            {
+                "id": generate_uuid_from_tuple((job_id, batch_id, i)),
+                "vector": embedding,
+                "source_text": source_text, 
+                "source_document": source_filename
+            }
+        )
+    return upsert_list
+
+def write_embeddings_to_lancedb(upsert_list, batch_id):
+    # right now only local connection, since its serverless and their cloud is in beta
+    batch = safe_db_operation(batch_service.get_batch, batch_id)
+    db = lancedb.connect(batch.vector_db_metadata.environment)
+    try:
+        table = db.open_table(batch.vector_db_metadata.index_name)
+    except FileNotFoundError as e:
+        logging.info(f"Table {batch.vector_db_metadata.index_name} does not exist in environment {batch.vector_db_metadata.environment}.")
+
+        if batch.embeddings_metadata.embeddings_type == EmbeddingsType.OPEN_AI:
+            schema = pa.schema(
+                [
+                    pa.field("id", pa.string()),
+                    pa.field("vector", pa.list_(pa.float32(), 1536)),
+                    pa.field("source_text", pa.string()),
+                    pa.field("source_document", pa.string()),
+                ])
+            table = db.create_table(batch.vector_db_metadata.index_name, schema=schema)
+            logging.info(f"Created table {batch.vector_db_metadata.index_name} in environment {batch.vector_db_metadata.environment}.")
+        else:
+            logging.error(f"Embeddings type {batch.embeddings_metadata.embeddings_type} not supported for LanceDB. Only Open AI")
+            return None
+
+    logging.info(f"Starting LanceDB upsert for {len(upsert_list)} vectors")
+
+    batch_size = config.PINECONE_BATCH_SIZE
+    vectors_uploaded = 0
+
+    for i in range(0,len(upsert_list), batch_size):
+        try:
+            table.add(data=upsert_list[i:i+batch_size])
+            vectors_uploaded += batch_size
+        except Exception as e:
+            logging.error('Error writing embeddings to lance db:', e)
+            return None
+    
+    logging.info(f"Successfully uploaded {vectors_uploaded} vectors to lance db")
+    return vectors_uploaded
+
+# TODO: refactor into utils
 def update_batch_and_job_status(job_id, batch_status, batch_id):
     try:
         if not job_id and batch_id:
