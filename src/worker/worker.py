@@ -15,6 +15,7 @@ import logging
 import worker.config as config
 import services.database.batch_service as batch_service
 import services.database.job_service as job_service
+import tiktoken
 from shared.chunk_strategy import ChunkStrategy
 from shared.embeddings_type import EmbeddingsType
 from shared.batch_status import BatchStatus
@@ -180,36 +181,41 @@ def validate_chunks(chunked_data, chunk_validation_url):
 
 def chunk_data_exact(data_chunks, chunk_size, chunk_overlap):
     data = "".join(data_chunks)
+    encoding = tiktoken.get_encoding("cl100k_base")
+    tokens = encoding.encode(data)
+
     chunks = []
-    for i in range(0, len(data), chunk_size - chunk_overlap):
-        chunks.append(data[i:i + chunk_size])
+    for i in range(0, len(tokens), chunk_size - chunk_overlap):
+        token_chunk = tokens[i:i + chunk_size]
+        chunk = encoding.decode(token_chunk)
+        chunks.append(chunk)
+
     return chunks
 
 def chunk_data_by_paragraph(data_chunks, chunk_size, overlap, bound=0.75):
     data = "".join(data_chunks)
+    encoding = tiktoken.get_encoding("cl100k_base")
     total_length = len(data)
-    chunks = []
     check_bound = int(bound * chunk_size)
+    paragraph_chunks = []
+    paragraphs = re.split('\n\n', data)
+    tokenized_paragraphs = [encoding.encode(paragraph) for paragraph in paragraphs]
     start_idx = 0
+    
+    while start_idx < len(tokenized_paragraphs):
+        current_tokens = []
+        while len(current_tokens) < check_bound and start_idx < len(tokenized_paragraphs):
+            current_tokens.extend(tokenized_paragraphs[start_idx])
+            start_idx += 1
+        if len(current_tokens) > chunk_size:
+            current_text = encoding.decode(current_tokens)
+            chunk = chunk_data_exact([current_text], chunk_size, overlap)
+            paragraph_chunks.extend(chunk)
+        else:
+            current_text = encoding.decode(current_tokens)
+            paragraph_chunks.append(current_text)
 
-    while start_idx < total_length:
-        # Set the end index to the minimum of start_idx + default_chunk_size or total_length
-        end_idx = min(start_idx + chunk_size, total_length)
-
-        # Find the next paragraph index within the current chunk and bound
-        next_paragraph_index = data.find('\n\n', start_idx + check_bound, end_idx)
-
-        # If a next paragraph index is found within the current chunk
-        if next_paragraph_index != -1:
-            # Update end_idx to include the paragraph delimiter
-            end_idx = next_paragraph_index + 2
-
-        chunks.append(data[start_idx:end_idx + overlap])
-
-        # Update start_idx to be the current end_idx
-        start_idx = end_idx
-
-    return chunks
+    return paragraph_chunks
 
 def chunk_by_sentence(data_chunks, chunk_size, overlap):
     # Split by periods, question marks, exclamation marks, and ellipses
@@ -218,14 +224,17 @@ def chunk_by_sentence(data_chunks, chunk_size, overlap):
     # The regular expression is used to find series of charaters that end with one the following chaacters (. ! ? ...)
     sentence_endings = r'(?<=[.!?…]) +'
     sentences = re.split(sentence_endings, data)
-    
+    encoding = tiktoken.get_encoding("cl100k_base")
+
     sentence_chunks = []
     for sentence in sentences:
-        if len(sentence) > chunk_size:
+        tokenized_sentence = encoding.encode(sentence)
+        if len(tokenized_sentence) > chunk_size:
             chunks = chunk_data_exact([sentence], chunk_size, overlap)
             sentence_chunks.extend(chunks)
         else:
             sentence_chunks.append(sentence)
+
     return sentence_chunks
 
 def create_upload_batches(batches, max_batch_size):
