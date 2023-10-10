@@ -159,36 +159,40 @@ class TestWorker(unittest.TestCase):
 
     def test_chunk_data_exact(self):
         # arrange
-        # 384 characters, should be 3 chunks, since the last chunk will be partial
-        data = ["thisistest"] * 38
-        data.append("test") 
+        # 2 tokens per instance, 384 total, should be 3 chunks. Last chunk should be partial, taking tokens 256 thru 384
+        # Each token in the given text is a four letter word, so there should be 4 times as many characters as tokens, resulting in 1024 for chunks 1 and 2, and 512 for the third
+        data = ["testtext"] * 192
 
         # act
         chunks = worker.chunk_data_exact(data, 256, 128)
 
         # assert
         self.assertEqual(len(chunks), 3)
-        self.assertEqual(len(chunks[2]), 128)
+        self.assertEqual(len(chunks[0]), 1024)
+        self.assertEqual(len(chunks[2]), 512)
 
     def test_chunk_paragraph(self):
-        data = ["This is an example paragraph.\n\n"] * 4
+        # We input our last paragraph manually because ending the text with a new paragraph character will create a 5th paragraph, which is empty 
+        data = ["This is an example paragraph. With a second example sentence.\n\n"] * 3
+        data.append("This is an example paragraph. With a second example sentence.")
         
-        chunks = worker.chunk_data_by_paragraph(data, chunk_size=35, overlap=0)
+        chunks = worker.chunk_data_by_paragraph(data, chunk_size=16, overlap=0)
 
         self.assertEqual(len(chunks), 4)
 
     def test_chunk_paragraph_overlap(self):
-        data = ["This is an example paragraph.\n\n"] * 2
+        data = ["This is an example paragraph. With a second example sentence.\n\n"]
+        data.append("This is an example paragraph. With a second example sentence")
 
-        chunks = worker.chunk_data_by_paragraph(data, chunk_size=35, overlap=15)
-
-        expected_overlap = 'This is an exam'
-        self.assertEqual(chunks[0][:15], expected_overlap)
+        chunks = worker.chunk_data_by_paragraph(data, chunk_size=10, overlap=2)
+        # these are the ninth and tenth tokens in the example
+        expected_overlap = ' second example'
+        self.assertEqual(chunks[1][:15], expected_overlap)
 
     def test_chunk_paragraph_bound(self):
         data = ["This is \n\n a very early paragraph."]
 
-        chunks = worker.chunk_data_by_paragraph(data, chunk_size=35, overlap=0, bound=0.75)
+        chunks = worker.chunk_data_by_paragraph(data, chunk_size=10, overlap=0, bound=0.5)
 
         self.assertEqual(len(chunks), 1)
 
@@ -202,9 +206,19 @@ class TestWorker(unittest.TestCase):
     def test_chunk_sentence_too_big(self):
         data = ["I am a sentence. I am a sentence but with a question? I am still a sentence! Can I consider myself a sentence... Blahblah Blahblah Blahblah Blahblah Blahblah Blahblah ."]
         
-        chunks = worker.chunk_by_sentence(data, chunk_size=50, overlap=0)
+        chunks = worker.chunk_by_sentence(data, chunk_size=10, overlap=0)
 
         self.assertEqual(len(chunks), 6)
+    
+    def test_chunk_sentence_overlap(self):
+        data = ["This is a sentence that needs to be longer so that we have enough words for the test"]
+
+        chunks = worker.chunk_by_sentence(data, chunk_size = 10, overlap = 2)
+
+        #these are the ninth and tenth tokens in the example
+        expected_overlap = ' longer so'
+        self.assertEqual(chunks[1][0:10], expected_overlap)
+
 
 
     def test_create_openai_batches(self):
