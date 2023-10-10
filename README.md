@@ -24,7 +24,7 @@
 
 VectorFlow is an open source, high throughput, fault tolerant vector embedding pipeline. With a simple API request, you can send raw data that will be chunked, embedded and stored in any vector database or returned back to you. VectorFlow is multi-modal and can ingest both textual and image data. 
 
-This current version is an MVP. We recommend using it with Kubernetes in production. Right now the system only supports uploading single files at a time, up to 25 MB. For text-based files, it supports TXT, PDF and DOCX. For image files, it support JPG, JPEG, and PNG. 
+This current version is an MVP. We recommend using it with Kubernetes in production. Right now the system only supports uploading single files at a time, up to 25 MB. For text-based files, it supports TXT, PDF, HTML and DOCX. For image files, it support JPG, JPEG, and PNG. 
 
 # Run it Locally
 With two simple commands you can set up VectorFlow locally:
@@ -47,15 +47,7 @@ The best way to run VectorFlow is via `docker compose`. If you are running this 
 
 ### 1) Set Environment Variables
 
-First create a folder in the root for all the environment variables:
-
-```
-mkdir env_scripts
-cd env_scripts
-touch env_vars.env
-```
-
-This creates a file called `env_vars.env` in the `env_scripts` folder to add all the environment variables mentioned below. You only need to set the `LOCAL_VECTOR_DB` variable if you are running qdrant, Milvus or Weaviate locally.  
+First create a folder, `env_scripts`, in the root for all the environment variables, then create `env_vars.env` in the `env_scripts` folder to add all the environment variables mentioned below. You only need to set the `LOCAL_VECTOR_DB` variable if you are running qdrant, Milvus or Weaviate locally.  
 
 ```
 INTERNAL_API_KEY=your-choice
@@ -134,7 +126,7 @@ To submit a `job` for embedding, make a `POST` request to the `/embed` endpoint 
         "hugging_face_model_name": "sentence-transformer-model-name-here"
     }'
     'VectorDBMetadata={
-        "vector_db_type": "PINECONE | QDRANT | WEAVIATE | MILVUS | REDIS",
+        "vector_db_type": "PINECONE | QDRANT | WEAVIATE | MILVUS | REDIS | LANCEDB",
         "index_name": "index_name",
         "environment": "env_name"
     }'

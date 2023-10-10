@@ -133,7 +133,7 @@ def s3_presigned_url():
             return jsonify({'message': f"Successfully added {batch_count} batches to the queue", 'JobID': job.id}), 200
         
         else:
-            return jsonify({'error': 'Uploaded file is not a TXT, PDF or DOCX file'}), 400
+            return jsonify({'error': 'Uploaded file is not a TXT, PDF, HTML or DOCX file'}), 400
     else:
         print('Failed to download file:', response.status_code, response.reason)
 
@@ -156,6 +156,10 @@ def process_file(file, vectorflow_request):
         file_content = "\n".join([document.text for document in documents])
         temp_file_path.unlink()
     
+    elif file.filename.endswith('.html'):
+        content = file.read().decode('utf-8')
+        file_content = repr(content)
+
     else:
         pdf_data = BytesIO(file.read())
         with fitz.open(stream=pdf_data, filetype='pdf') as doc:
@@ -337,7 +341,7 @@ def get_s3_file_name(pre_signed_url):
     return file_name
 
 def is_valid_file_type(file):
-    supported_types = ['.txt', '.docx', '.pdf', '.md']
+    supported_types = ['.txt', '.docx', '.pdf', '.md', '.html']
     for type in supported_types:
         if file.filename.endswith(type):
             return True
