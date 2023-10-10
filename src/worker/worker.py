@@ -153,7 +153,7 @@ def chunk_data(batch, source_data, job):
     elif batch.embeddings_metadata.chunk_strategy == ChunkStrategy.CUSTOM:
         try:
             from custom_chunker import chunker
-            chunker(source_data)
+            chunked_data = chunker(source_data)
         except ImportError:
             logging.error("Failed to import chunker from custom_chunker.py")
     
