@@ -149,6 +149,14 @@ def chunk_data(batch, source_data, job):
 
     elif batch.embeddings_metadata.chunk_strategy == ChunkStrategy.SENTENCE:
         chunked_data = chunk_by_sentence(source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
+    
+    elif batch.embeddings_metadata.chunk_strategy == ChunkStrategy.CUSTOM:
+        try:
+            from custom_chunker import chunker
+            chunker(source_data)
+        except ImportError:
+            logging.error("Failed to import chunker from custom_chunker.py")
+    
     else:
         chunked_data = chunk_data_exact(source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
 

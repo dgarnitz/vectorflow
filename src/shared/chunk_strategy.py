@@ -4,3 +4,4 @@ class ChunkStrategy(Enum):
     EXACT = 'exact'
     PARAGRAPH = 'paragraph'
     SENTENCE = 'sentence'
+    CUSTOM = 'custom'
