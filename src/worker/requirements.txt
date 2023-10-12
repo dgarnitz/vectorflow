@@ -19,8 +19,8 @@ frozenlist==1.4.0
 googleapis-common-protos==1.60.0
 greenlet==3.0.0
 grpc-gateway-protoc-gen-openapiv2==0.1.0
-grpcio==1.56.0
-grpcio-tools==1.48.2
+grpcio
+grpcio-tools
 h11==0.14.0
 h2==4.1.0
 hpack==4.0.0
