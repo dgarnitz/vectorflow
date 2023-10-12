@@ -188,11 +188,14 @@ def validate_chunks(chunked_data, chunk_validation_url):
         return None
 
 def chunk_data_exact(data_chunks, chunk_size, chunk_overlap):
+    # Encodes data as tokens for the purpose of counting. 
     data = "".join(data_chunks)
     encoding = tiktoken.get_encoding("cl100k_base")
     tokens = encoding.encode(data)
 
     chunks = []
+    # Tracks token position in the text and takes chunks of the appropriate size. Decodes token chunks to return the original text covered by the token chunk.
+    # Overlap is handled by the step size in the loop.
     for i in range(0, len(tokens), chunk_size - chunk_overlap):
         token_chunk = tokens[i:i + chunk_size]
         chunk = encoding.decode(token_chunk)
