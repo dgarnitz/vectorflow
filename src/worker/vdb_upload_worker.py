@@ -16,6 +16,7 @@ import uuid
 import weaviate
 import redis
 import lancedb
+import pymongo
 import pyarrow as pa
 import numpy as np
 import worker.config as config
@@ -73,8 +74,48 @@ def write_embeddings_to_vector_db(chunks, vector_db_metadata, batch_id, job_id):
     elif vector_db_metadata.vector_db_type == VectorDBType.LANCEDB:
         upsert_list = create_lancedb_source_chunks(text_embeddings_list, batch_id, job_id, source_filename)
         return write_embeddings_to_lancedb(upsert_list, batch_id)
+    elif vector_db_metadata.vector_db_type == VectorDBType.MONGODB:
+        upsert_list = create_mongodb_source_chunk_dict(text_embeddings_list, batch_id, job_id, source_filename)
+        return write_embeddings_to_mongodb(upsert_list, vector_db_metadata)
     else:
         logging.error('Unsupported vector DB type: %s', vector_db_metadata.vector_db_type.value)
+
+def create_mongodb_source_chunk_dict(text_embeddings_list, batch_id, job_id, source_filename):
+    upsert_list = []
+    for i, (source_text, embedding) in enumerate(text_embeddings_list):
+        upsert_list.append(
+            {"_id": generate_uuid_from_tuple((job_id, batch_id, i)), 
+            "values": embedding, 
+            "metadata": {"source_text": source_text, "source_document": source_filename}})
+    return upsert_list
+
+def write_embeddings_to_mongodb(upsert_list, vector_db_metadata):
+    mongo_conn_uri = os.getenv('VECTOR_DB_KEY')
+    mongo_client = pymongo.MongoClient(mongo_conn_uri)
+    db_name, collection = vector_db_metadata.index_name.split(".")
+    db = mongo_client[db_name]
+    index = db.get_collection(collection)
+
+    if collection not in db.list_collection_names():
+        logging.error(f"Index {collection} does not exist in environment {vector_db_metadata.environment}")
+        return None
+    
+    logging.info(f"Starting MongoDB upsert for {len(upsert_list)} vectors")
+
+    batch_size = config.PINECONE_BATCH_SIZE
+    vectors_uploaded = 0
+
+    for i in range(0,len(upsert_list), batch_size):
+        try:
+            upsert_response = index.insert_many(upsert_list[i:i+batch_size])
+            vectors_uploaded += len(upsert_list[i:i+batch_size])
+        except Exception as e:
+            logging.error('Error writing embeddings to Mongo:', e)
+            return None
+    
+    logging.info(f"Successfully uploaded {vectors_uploaded} vectors to MongoDB")
+    return vectors_uploaded
+
 
 def create_pinecone_source_chunk_dict(text_embeddings_list, batch_id, job_id, source_filename):
     upsert_list = []

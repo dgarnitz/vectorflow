@@ -10,3 +10,4 @@ class VectorDBType(Enum):
     PGVECTOR = 'pgvector'
     REDIS = 'redis'
     LANCEDB = 'lancedb'
+    MONGODB = 'mongodb'
