@@ -40,11 +40,13 @@ def embed(batch_id, batch_of_chunks_to_embed, vector_db_key):
         
         # does tokenization for you
         logging.info(f"Starting embedding with model: {model_name}")
-        embeddings = model.encode(batch_of_chunks_to_embed, normalize_embeddings=True)
+        chunk_list = [chunk['text'] for chunk in batch_of_chunks_to_embed]
+        embeddings = model.encode(chunk_list, normalize_embeddings=True)
         logging.info(f"Embedding complete with model: {model_name}")
         
         embeddings_list = embeddings.tolist()
-        text_embeddings_list = list(zip(batch_of_chunks_to_embed, embeddings_list))
+        for chunk, embedding in zip(batch_of_chunks_to_embed, embeddings_list):
+            chunk['vector'] = embedding
 
         batch = safe_db_operation(batch_service.get_batch, batch_id)
         job = safe_db_operation(job_service.get_job, batch.job_id)
@@ -52,7 +54,7 @@ def embed(batch_id, batch_of_chunks_to_embed, vector_db_key):
         safe_db_operation(batch_service.augment_minibatches_embedded, batch_id)
 
         if job.webhook_url and job.webhook_key:
-            response = send_embeddings_to_webhook(text_embeddings_list, job)
+            response = send_embeddings_to_webhook(batch_of_chunks_to_embed, job)
             if response.status_code == 200:
                 status = safe_db_operation(batch_service.update_batch_status_with_successful_minibatch, batch.id)
                 update_batch_and_job_status(batch.job_id, status, batch.id)
@@ -60,16 +62,16 @@ def embed(batch_id, batch_of_chunks_to_embed, vector_db_key):
                 update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
                 logging.error(f"Error sending embeddings to webhook. Status code: {response.status_code}")
         else:
-            upload_to_vector_db(batch_id, text_embeddings_list, vector_db_key)
+            upload_to_vector_db(batch_id, batch_of_chunks_to_embed, vector_db_key)
     except Exception as e:
         logging.error('Error embedding batch: %s', e)
 
         # TODO: Add retry logic and handle partial failure case
         update_batch_status(BatchStatus.FAILED, batch_id)
         
-def upload_to_vector_db(batch_id, text_embeddings_list, vector_db_key):
+def upload_to_vector_db(batch_id, batches_for_upload, vector_db_key):
     try:
-        serialized_data = json.dumps((batch_id, text_embeddings_list, vector_db_key))
+        serialized_data = json.dumps((batch_id, batches_for_upload, vector_db_key))
         publish_channel.basic_publish(exchange='',
                                       routing_key=os.getenv('VDB_UPLOAD_QUEUE'),
                                       body=serialized_data)

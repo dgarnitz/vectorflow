@@ -228,8 +228,8 @@ class TestWorker(unittest.TestCase):
 
         # assert
         self.assertEqual(len(chunks), 3)
-        self.assertEqual(len(chunks[0]), 1024)
-        self.assertEqual(len(chunks[2]), 512)
+        self.assertEqual(len(chunks[0]['text']), 1024)
+        self.assertEqual(len(chunks[2]['text']), 512)
 
     def test_chunk_paragraph(self):
         # We input our last paragraph manually because ending the text with a new paragraph character will create a 5th paragraph, which is empty 
@@ -247,7 +247,7 @@ class TestWorker(unittest.TestCase):
         chunks = worker.chunk_data_by_paragraph(data, chunk_size=10, overlap=2)
         # these are the ninth and tenth tokens in the example
         expected_overlap = ' second example'
-        self.assertEqual(chunks[1][:15], expected_overlap)
+        self.assertEqual(chunks[1]['text'][:15], expected_overlap)
 
     def test_chunk_paragraph_bound(self):
         data = ["This is \n\n a very early paragraph."]
@@ -277,16 +277,14 @@ class TestWorker(unittest.TestCase):
 
         #these are the ninth and tenth tokens in the example
         expected_overlap = ' longer so'
-        self.assertEqual(chunks[1][0:10], expected_overlap)
-
-
+        self.assertEqual(chunks[1]['text'][0:10], expected_overlap)
 
     def test_create_openai_batches(self):
         # arrange
         batches = ["test"] * config.MAX_OPENAI_EMBEDDING_BATCH_SIZE * 4
 
         # act
-        openai_batches = worker.create_upload_batches(batches, config.MAX_OPENAI_EMBEDDING_BATCH_SIZE)
+        openai_batches = worker.create_batches_for_embedding(batches, config.MAX_OPENAI_EMBEDDING_BATCH_SIZE)
 
         # assert
         self.assertEqual(len(openai_batches), 4)

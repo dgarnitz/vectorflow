@@ -34,14 +34,14 @@ from shared.utils import generate_uuid_from_tuple
 logging.basicConfig(filename='./vdb-upload-log.txt', level=logging.INFO)
 logging.basicConfig(filename='./vdb-upload-errors.txt', level=logging.ERROR)
 
-def upload_batch(batch_id, text_embeddings_list):
+def upload_batch(batch_id, chunks_with_embeddings):
     batch = safe_db_operation(batch_service.get_batch, batch_id)
     if batch.batch_status == BatchStatus.FAILED:
         safe_db_operation(batch_service.update_batch_retry_count, batch.id, batch.retries+1)
         logging.info(f"Retrying vector db upload of batch {batch.id}")
 
     batch = safe_db_operation(batch_service.get_batch, batch_id)
-    vectors_uploaded = write_embeddings_to_vector_db(text_embeddings_list, batch.vector_db_metadata, batch.id, batch.job_id)
+    vectors_uploaded = write_embeddings_to_vector_db(chunks_with_embeddings, batch.vector_db_metadata, batch.id, batch.job_id)
 
     if vectors_uploaded:
         status = safe_db_operation(batch_service.update_batch_status_with_successful_minibatch, batch.id)
@@ -49,7 +49,10 @@ def upload_batch(batch_id, text_embeddings_list):
     else:
         update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
 
-def write_embeddings_to_vector_db(text_embeddings_list, vector_db_metadata, batch_id, job_id):
+def write_embeddings_to_vector_db(chunks, vector_db_metadata, batch_id, job_id):
+    # NOTE: the legacy code expects a list of tuples, (text_chunk, embedding) of form (str, list[float])
+    text_embeddings_list = [(chunk['text'], chunk['vector']) for chunk in chunks]
+    
     job = safe_db_operation(job_service.get_job, job_id)
     source_filename = job.source_filename
     
@@ -338,7 +341,7 @@ def callback(ch, method, properties, body):
     # do these outside the try-catch so it can update the batch status if there's an error
     # if this parsing logic fails, the batch shouldn't be marked as failed
     data = json.loads(body)
-    batch_id, text_embeddings_list, vector_db_key = data
+    batch_id, chunks_with_embeddings, vector_db_key = data
 
     if vector_db_key:
         os.environ["VECTOR_DB_KEY"] = vector_db_key
@@ -347,7 +350,7 @@ def callback(ch, method, properties, body):
     
     try:
         logging.info("Batch retrieved successfully")
-        upload_batch(batch_id, text_embeddings_list)
+        upload_batch(batch_id, chunks_with_embeddings)
         logging.info("Batch processed successfully")
     except Exception as e:
         logging.error('Error processing batch: %s', e)
