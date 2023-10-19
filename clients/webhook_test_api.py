@@ -21,12 +21,12 @@ def receive_vectors():
     document_id = data.get('DocumentID')
     job_id = data.get('JobID')
 
-    # Assuming embeddings is a list of structures
+    # Assuming embeddings is a list of dictionaries
     # Convert the structure back to a tuple: (str, list[float])
     try:
-        embeddings = [(item[0], item[1]) for item in embeddings]
+        embeddings = [(item['text'], item['vector']) for item in embeddings]
     except (TypeError, IndexError):
-        print("Error here")
+        print(" #### ERROR HERE ####")
         return jsonify({"error": "Failed to parse embeddings"}), 400
 
     # Print the data

@@ -90,7 +90,7 @@ class TestVDBUploadWorker(unittest.TestCase):
     
     def test_create_pinecone_source_chunk_dict(self):
             # arrange
-            data = "thisistest" * 38 + "test"
+            data = "thisistest" * 116 + "test"
             chunks = worker.chunk_data_exact(data, 256, 128)
             text_embeddings_dict = [(chunk, [1.0, 2.0, 3.0, 4.0, 5.0]) for chunk in chunks]
             batch_id = 1

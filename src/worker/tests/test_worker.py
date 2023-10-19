@@ -286,7 +286,7 @@ class TestWorker(unittest.TestCase):
         batches = ["test"] * config.MAX_OPENAI_EMBEDDING_BATCH_SIZE * 4
 
         # act
-        openai_batches = worker.create_upload_batches(batches, config.MAX_OPENAI_EMBEDDING_BATCH_SIZE)
+        openai_batches = worker.create_batches_for_embedding(batches, config.MAX_OPENAI_EMBEDDING_BATCH_SIZE)
 
         # assert
         self.assertEqual(len(openai_batches), 4)

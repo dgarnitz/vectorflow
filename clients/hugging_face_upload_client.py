@@ -8,11 +8,10 @@ import json
 filepath = './api/tests/fixtures/test_medium_text.txt'
 url = "http://localhost:8000/embed"
 embedding_key = os.getenv("OPEN_AI_KEY")
-vector_db_key = os.getenv("QDRANT_KEY")
 embedding_type="HUGGING_FACE"
 vector_db_type = "QDRANT"
-index_name = "test-1536" # NOTE: this is not actually needed with the webhook
-testing_environment = os.getenv("TESTING_ENV")
+index_name = "test-384"
+testing_environment = "qdrant"
 internal_api_key = "test123"
 
 ##################
@@ -21,9 +20,7 @@ internal_api_key = "test123"
 
 headers = {
     "Authorization": internal_api_key,
-    "X-EmbeddingAPI-Key": embedding_key,
-    "X-VectorDB-Key": vector_db_key,
-    "X-Webhook-Key": "test-webhook-key",
+    "X-EmbeddingAPI-Key": embedding_key
 }
 
 data = {
@@ -37,10 +34,7 @@ data = {
         "vector_db_type": vector_db_type, 
         "index_name": index_name,
         "environment": testing_environment
-    }),
-    'DocumentID': "test-document-id",
-    'WebhookURL': 'http://host.docker.internal:6060/vectors',
-    'ChunkValidationURL': 'http://host.docker.internal:6060/validate',
+    })
 }
 
 files = {

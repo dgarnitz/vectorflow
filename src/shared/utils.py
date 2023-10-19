@@ -1,5 +1,6 @@
 import uuid
 import requests
+import json
 
 def generate_uuid_from_tuple(t, namespace_uuid='6ba7b810-9dad-11d1-80b4-00c04fd430c8'):
     namespace = uuid.UUID(namespace_uuid)
@@ -11,15 +12,14 @@ def generate_uuid_from_tuple(t, namespace_uuid='6ba7b810-9dad-11d1-80b4-00c04fd4
 def str_to_bool(value):
     return str(value).lower() in ["true", "1", "yes"]
 
-def send_embeddings_to_webhook(text_embeddings_list, job):
+def send_embeddings_to_webhook(embedded_chunks: list[dict], job):
     headers = {
         "X-Embeddings-Webhook-Key": job.webhook_key,
         "Content-Type": "application/json"
     }
-
-    # text_embeddings_list is list[(str, list[float])], should serialize automatically without json.dumps()
+    
     data = {
-        'Embeddings': text_embeddings_list,
+        'Embeddings': embedded_chunks,
         'DocumentID': job.document_id if (hasattr(job, 'document_id') and job.document_id) else "",
         'JobID': job.id
     }
