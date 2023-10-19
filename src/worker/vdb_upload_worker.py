@@ -86,19 +86,26 @@ def create_mongodb_source_chunk_dict(text_embeddings_list, batch_id, job_id, sou
         upsert_list.append(
             {"_id": generate_uuid_from_tuple((job_id, batch_id, i)), 
             "values": embedding, 
-            "metadata": {"source_text": source_text, "source_document": source_filename}})
+            "source_text": source_text,
+            "source_document": source_filename
+            })
     return upsert_list
 
 def write_embeddings_to_mongodb(upsert_list, vector_db_metadata):
     mongo_conn_uri = os.getenv('VECTOR_DB_KEY')
-    mongo_client = pymongo.MongoClient(mongo_conn_uri)
+    try:
+        mongo_client = pymongo.MongoClient(mongo_conn_uri)
+    except Exception as e:
+        logging.error(e)
+        return None
     db_name, collection = vector_db_metadata.index_name.split(".")
     db = mongo_client[db_name]
-    index = db.get_collection(collection)
 
     if collection not in db.list_collection_names():
-        logging.error(f"Index {collection} does not exist in environment {vector_db_metadata.environment}")
+        logging.error(f"Index {vector_db_metadata.index_name} does not exist in environment {vector_db_metadata.environment}")
         return None
+    
+    index = db.get_collection(collection)
     
     logging.info(f"Starting MongoDB upsert for {len(upsert_list)} vectors")
 
@@ -107,8 +114,9 @@ def write_embeddings_to_mongodb(upsert_list, vector_db_metadata):
 
     for i in range(0,len(upsert_list), batch_size):
         try:
-            upsert_response = index.insert_many(upsert_list[i:i+batch_size])
-            vectors_uploaded += len(upsert_list[i:i+batch_size])
+            upsert_batch = upsert_list[i:i+batch_size]
+            upsert_response = index.insert_many(upsert_batch)
+            vectors_uploaded += len(upsert_batch)
         except Exception as e:
             logging.error('Error writing embeddings to Mongo:', e)
             return None
