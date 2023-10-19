@@ -102,7 +102,7 @@ To use VectorFlow in a live system, make an HTTP request to your API's URL at po
 
 All requests require an HTTP Header with `Authorization` key which is the same as your `INTERNAL_API_KEY` env var that you defined before (see above). You must pass your vector database api key with the HTTP Header `X-VectorDB-Key` if you are running a connecting to a cloud-based instance of a vector DB, and the embedding api key with `X-EmbeddingAPI-Key` if you are using OpenAI. HuggingFace Sentence Transformer embeddings do not require an api key, but you must follow the above steps to run the container with the model you need. 
 
-VectorFlow currently supports Pinecone, Qdrant, Weaviate, and Milvus vector databases. 
+VectorFlow currently supports Pinecone, Qdrant, Weaviate, Milvus, Redis and LanceDB vector databases. 
 
 To check the status of a `job`, make a `GET` request to this endpoint: `/jobs/<int:job_id>/status`. The response will be in the form:
 
@@ -122,7 +122,7 @@ To submit a `job` for embedding, make a `POST` request to the `/embed` endpoint 
         "embeddings_type": "OPEN_AI | HUGGING_FACE | IMAGE",
         "chunk_size": 512,
         "chunk_overlap": 128,
-        "chunk_strategy": "EXACT | PARAGRAPH | SENTENCE",
+        "chunk_strategy": "EXACT | PARAGRAPH | SENTENCE | CUSTOM",
         "hugging_face_model_name": "sentence-transformer-model-name-here"
     }'
     'VectorDBMetadata={
@@ -146,9 +146,9 @@ You will get the following payload back:
 ### VectorFlow API Client
 The easiest way to use VectorFlow is with the our clients, located in `clients/` directory. There are several scripts, with different configurations for qickly uploading data. We recommmend starting with the `clients/standard_upload_client.py` - Running this script will submit a document to VectorFlow for embedding with Open AI ADA and upload to the local qdrant instance. You can change the values to match your configuration. 
 
-Note that the `TESTING_ENV` variable is the equivalent of the `enviroment` field in the `VectorDBMetadata`, which corresponds to an environment in Pincone, a class in Weaviate, a collection in qdrant, etc. 
+Note that the `TESTING_ENV` variable is the equivalent of the `environment` field in the `VectorDBMetadata`, which corresponds to an environment in Pincone, a class in Weaviate, a collection in qdrant, etc. 
 
-### Vector Database Schema Standard
+### Vector Database Standard Metadata Schema 
 VectorFlow enforces a standardized schema for uploading data to a vector store:
 ```
 id: string
@@ -157,20 +157,33 @@ source_document: string
 embeddings: float array
 ```
 
-The id can be used for deduplication and idempotency. Please note for Weaviate, the id is called `vectorflow_id`. We plan to support dynamically detected and/or configurable schemas down the road. 
+The id can be used for deduplication and idempotency. Please note for Weaviate, the id is called `vectorflow_id`. 
+
+We plan deprecicate this in the near futuer to support dynamically detected and/or configurable schemas down the road. 
+
+### Chunking Schema & Custom Chunking
+VectorFlow's built in chunkers count by token not by character. A `chunk` in vectorflow is a dictionary that has the following keys:
+```
+text: str
+vector: list[float]
+```
+
+You may run a custom chunker by adding a file, `custom_chunker.py`, with a method, `chunker(source_data: list[str])` to the `src/worker` directory prior to build the docker image for the worker. This chunker must return a list of `chunk` dictionaries that conform to the standard above. 
+
+You can add any keys you want to the `chunk` dictionary as long as its _JSON serializable_, meaning no custom classes or function, datetimes types or circular code references. You can use this custom chunk to then upload metadata to the vector DB with whatever schema you desire. 
 
 ### Raw Embeddings Webhook
-If you wish to use VectorFlow only for chunking and generating embeddings, pass a `WebhookURL` parameter in the body of the `/embed` request and a `X-Webhook-Key` as a header. VectorFlow assumes a webhook key is required for writing back to any endpoint. The embeddings are sent back along with the source chunks in tuple or lis of (source_chunk, embedding). This is sent as json with the following form:
+If you wish to use VectorFlow only for chunking and generating embeddings, pass a `WebhookURL` parameter in the body of the `/embed` request and a `X-Webhook-Key` as a header. VectorFlow assumes a webhook key is required for writing back to any endpoint. The embeddings are sent back along with the source chunks in the `chunk` dictionary outlined above. This is sent as json with the following form:
 ```
 {
-    'Embeddings': list[tuple(str, list[float])],
+    'Embeddings': list[dict],
     'DocumentID': str,
     'JobID': int
 }
 ```
 
 ### Chunk Validation Webhook
-If you wish to validate which chunks you wish to embed, pass a `ChunkValidationURL` parameter in the body of the `/embed` request. This will send the request with the following json payload, `{"chunks": chunked_data}`, where `chunked_data` is a list of strings. It will expected back json containing key `valid_chunks` with a list of valid chunks for embedding. This endpoint will timeout after 30 seconds by default but can be configured in the application code. 
+If you wish to validate which chunks you wish to embed, pass a `ChunkValidationURL` parameter in the body of the `/embed` request. This will send the request with the following json payload, `{"chunks": chunked_data}`, where `chunked_data` is a list of `chunk` dictionaries. It will expected back json containing key `valid_chunks` with a list of valid chunks for embedding. This endpoint will timeout after 30 seconds by default but can be configured in the application code. 
 
 ### S3 Endpoint
 VectorFlow is integrated with AWS s3. You can pass a pre-signed s3 URL in the body of the HTTP instead of a file. Use the form field `PreSignedURL` and hit the endpoint `/s3`. This endpoint has the same configuration and restrictions as the `/embed` endpoint. 
