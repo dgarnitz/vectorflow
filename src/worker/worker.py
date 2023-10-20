@@ -234,6 +234,17 @@ def chunk_data_exact(data_chunks, chunk_size, chunk_overlap):
 
     return chunks
 
+def chunk_data_exact_by_characters(data_chunks, chunk_size, chunk_overlap):
+    data = "".join(data_chunks)
+    chunks = []
+    for i in range(0, len(data), chunk_size - chunk_overlap):
+        text = data[i:i + chunk_size]
+        chunk_id = generate_uuid_from_tuple((text, i, "exact"))
+        chunk = {'text': text, 'chunk_id': chunk_id}
+        chunks.append(chunk)
+    
+    return chunks
+
 # TODO: this splits by two new lines - '\n\n' - but it should also account for paragraphs split by one - '\n
 def chunk_data_by_paragraph(data_chunks, chunk_size, overlap, bound=0.75):
     data = "".join(data_chunks)
