@@ -156,11 +156,20 @@ def chunk_data(batch, source_data, job):
     if batch.embeddings_metadata.chunk_strategy == ChunkStrategy.EXACT:
         chunked_data = chunk_data_exact(source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
 
+    elif batch.embeddings_metadata.chunk_strategy == ChunkStrategy.EXACT_BY_CHARACTERS:
+        chunked_data = chunk_data_exact_by_characters(source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
+
     elif batch.embeddings_metadata.chunk_strategy == ChunkStrategy.PARAGRAPH:
         chunked_data = chunk_data_by_paragraph(source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
 
+    elif batch.embeddings_metadata.chunk_strategy == ChunkStrategy.PARAGRAPH_BY_CHARACTERS:
+        chunked_data = chunk_data_by_paragraph_by_characters(source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
+
     elif batch.embeddings_metadata.chunk_strategy == ChunkStrategy.SENTENCE:
         chunked_data = chunk_by_sentence(source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
+
+    elif batch.embeddings_metadata.chunk_strategy == ChunkStrategy.SENTENCE_BY_CHARACTERS:
+        chunked_data = chunk_by_sentence_by_characters(source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
     
     elif batch.embeddings_metadata.chunk_strategy == ChunkStrategy.CUSTOM:
         try:
@@ -276,9 +285,38 @@ def chunk_data_by_paragraph(data_chunks, chunk_size, overlap, bound=0.75):
             current_text = encoding.decode(current_tokens)
             chunk_id = generate_uuid_from_tuple((current_text, start_idx, "exact"))
             chunk = {'text': current_text, 'chunk_id': chunk_id}
-            paragraph_chunks.append(current_text)
+            paragraph_chunks.append(chunk)
 
     return paragraph_chunks
+
+def chunk_data_by_paragraph_by_characters(data_chunks, chunk_size, overlap, bound=0.75):
+    data = "".join(data_chunks)
+    total_length = len(data)
+    chunks = []
+    check_bound = int(bound * chunk_size)
+    start_idx = 0
+
+    while start_idx < total_length:
+        # Set the end index to the minimum of start_idx + default_chunk_size or total_length
+        end_idx = min(start_idx + chunk_size, total_length)
+
+        # Find the next paragraph index within the current chunk and bound
+        next_paragraph_index = data.find('\n\n', start_idx + check_bound, end_idx)
+
+        # If a next paragraph index is found within the current chunk
+        if next_paragraph_index != -1:
+            # Update end_idx to include the paragraph delimiter
+            end_idx = next_paragraph_index + 2
+
+        text = data[start_idx:end_idx + overlap]
+        chunk_id = generate_uuid_from_tuple((text, start_idx, "exact"))
+        chunk = {'text': text, 'chunk_id': chunk_id}
+        chunks.append(chunk)
+
+        # Update start_idx to be the current end_idx
+        start_idx = end_idx
+
+    return chunks
 
 def chunk_by_sentence(data_chunks, chunk_size, overlap):
     # Split by periods, question marks, exclamation marks, and ellipses
@@ -294,6 +332,25 @@ def chunk_by_sentence(data_chunks, chunk_size, overlap):
         tokenized_sentence = encoding.encode(sentence)
         if len(tokenized_sentence) > chunk_size:
             chunks = chunk_data_exact([sentence], chunk_size, overlap)
+            sentence_chunks.extend(chunks)
+        else:
+            chunk_id = generate_uuid_from_tuple((sentence, i, "sentence"))
+            chunk = {'text': sentence, 'chunk_id': chunk_id}
+            sentence_chunks.append(chunk)
+
+    return sentence_chunks
+
+def chunk_by_sentence_by_characters(data_chunks, chunk_size, overlap):
+    # Split by periods, question marks, exclamation marks, and ellipses
+    data = "".join(data_chunks)
+    # The regular expression is used to find series of charaters that end with one the following chaacters (. ! ? ...)
+    sentence_endings = r'(?<=[.!?…]) +'
+    sentences = re.split(sentence_endings, data)
+
+    sentence_chunks: list[dict] = []
+    for i, sentence in enumerate(sentences):
+        if len(sentence) > chunk_size:
+            chunks = chunk_data_exact_by_characters([sentence], chunk_size, overlap)
             sentence_chunks.extend(chunks)
         else:
             chunk_id = generate_uuid_from_tuple((sentence, i, "sentence"))

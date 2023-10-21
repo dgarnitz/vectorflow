@@ -239,6 +239,7 @@ class TestWorker(unittest.TestCase):
         chunks = worker.chunk_data_by_paragraph(data, chunk_size=16, overlap=0)
 
         self.assertEqual(len(chunks), 4)
+        self.assertEqual(type(chunks[0]), dict)
 
     def test_chunk_paragraph_overlap(self):
         data = ["This is an example paragraph. With a second example sentence.\n\n"]
@@ -248,6 +249,7 @@ class TestWorker(unittest.TestCase):
         # these are the ninth and tenth tokens in the example
         expected_overlap = ' second example'
         self.assertEqual(chunks[1]['text'][:15], expected_overlap)
+        self.assertEqual(type(chunks[0]), dict)
 
     def test_chunk_paragraph_bound(self):
         data = ["This is \n\n a very early paragraph."]
@@ -255,6 +257,7 @@ class TestWorker(unittest.TestCase):
         chunks = worker.chunk_data_by_paragraph(data, chunk_size=10, overlap=0, bound=0.5)
 
         self.assertEqual(len(chunks), 1)
+        self.assertEqual(type(chunks[0]), dict)
 
     def test_chunk_sentence(self):
         data = ["I am a sentence. I am a sentence but with a question? I am still a sentence! Can I consider myself a sentence..."]
@@ -262,6 +265,7 @@ class TestWorker(unittest.TestCase):
         chunks = worker.chunk_by_sentence(data, chunk_size=50, overlap=0)
 
         self.assertEqual(len(chunks), 4)
+        self.assertEqual(type(chunks[0]), dict)
 
     def test_chunk_sentence_too_big(self):
         data = ["I am a sentence. I am a sentence but with a question? I am still a sentence! Can I consider myself a sentence... Blahblah Blahblah Blahblah Blahblah Blahblah Blahblah ."]
@@ -269,6 +273,7 @@ class TestWorker(unittest.TestCase):
         chunks = worker.chunk_by_sentence(data, chunk_size=10, overlap=0)
 
         self.assertEqual(len(chunks), 6)
+        self.assertEqual(type(chunks[0]), dict)
     
     def test_chunk_sentence_overlap(self):
         data = ["This is a sentence that needs to be longer so that we have enough words for the test"]
@@ -278,6 +283,7 @@ class TestWorker(unittest.TestCase):
         #these are the ninth and tenth tokens in the example
         expected_overlap = ' longer so'
         self.assertEqual(chunks[1]['text'][0:10], expected_overlap)
+        self.assertEqual(type(chunks[0]), dict)
 
     def test_create_openai_batches(self):
         # arrange
@@ -288,6 +294,53 @@ class TestWorker(unittest.TestCase):
 
         # assert
         self.assertEqual(len(openai_batches), 4)
+
+    def test_chunk_data_exact_by_characters(self):
+        # arrange
+        # 384 characters, should be 3 chunks, since the last chunk will be partial
+        data = ["thisistest"] * 38
+        data.append("test") 
+
+        # act
+        chunks = worker.chunk_data_exact_by_characters(data, 256, 128)
+
+        # assert
+        self.assertEqual(len(chunks), 3)
+        self.assertEqual(len(chunks[2]['text']), 128)
+        self.assertEqual(type(chunks[0]), dict)
+
+    def test_chunk_paragraph_by_characters(self):
+        data = ["This is an example paragraph.\n\n"] * 4
+
+        chunks = worker.chunk_data_by_paragraph_by_characters(data, chunk_size=35, overlap=0)
+
+        self.assertEqual(len(chunks), 4)
+        self.assertEqual(type(chunks[0]), dict)
+
+    def test_chunk_paragraph_by_characters_overlap(self):
+        data = ["This is an example paragraph.\n\n"] * 2
+
+        chunks = worker.chunk_data_by_paragraph_by_characters(data, chunk_size=35, overlap=15)
+
+        expected_overlap = 'This is an exam'
+        self.assertEqual(chunks[0]['text'][:15], expected_overlap)
+        self.assertEqual(type(chunks[0]), dict)
+
+    def test_chunk_paragraph_by_characters_bound(self):
+        data = ["This is \n\n a very early paragraph."]
+
+        chunks = worker.chunk_data_by_paragraph_by_characters(data, chunk_size=35, overlap=0, bound=0.75)
+
+        self.assertEqual(len(chunks), 1)
+        self.assertEqual(type(chunks[0]), dict)
+
+    def test_chunk_sentence_by_characters_too_big(self):
+        data = ["I am a sentence. I am a sentence but with a question? I am still a sentence! Can I consider myself a sentence... Blahblah Blahblah Blahblah Blahblah Blahblah Blahblah ."]
+
+        chunks = worker.chunk_by_sentence_by_characters(data, chunk_size=50, overlap=0)
+
+        self.assertEqual(len(chunks), 6)
+        self.assertEqual(type(chunks[0]), dict)
 
 if __name__ == '__main__':
     unittest.main()
