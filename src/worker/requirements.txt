@@ -21,8 +21,8 @@ frozenlist==1.4.0
 googleapis-common-protos==1.60.0
 greenlet==3.0.0
 grpc-gateway-protoc-gen-openapiv2==0.1.0
-grpcio==1.56.0
-grpcio-tools==1.48.2
+grpcio
+grpcio-tools
 h11==0.14.0
 h2==4.1.0
 hpack==4.0.0
@@ -30,7 +30,7 @@ httpcore==0.17.3
 httpx==0.24.1
 hyperframe==6.0.1
 idna==3.4
-lancedb==0.3.1
+lancedb
 loguru==0.7.0
 lz4==4.3.2
 Mako==1.2.4
@@ -51,7 +51,7 @@ pyarrow==13.0.0
 pycparser==2.21
 pydantic==2.1.1
 pydantic_core==2.4.0
-pylance==0.8.3
+pylance
 pymilvus==2.2.15
 pymongo==4.5.0
 python-dateutil==2.8.2

@@ -31,6 +31,7 @@ from pymilvus import Collection, connections
 from shared.embeddings_type import EmbeddingsType
 from shared.vector_db_type import VectorDBType
 from shared.utils import generate_uuid_from_tuple
+from urllib.parse import quote_plus
 
 logging.basicConfig(filename='./vdb-upload-log.txt', level=logging.INFO)
 logging.basicConfig(filename='./vdb-upload-errors.txt', level=logging.ERROR)
@@ -92,14 +93,19 @@ def create_mongodb_source_chunk_dict(text_embeddings_list, batch_id, job_id, sou
     return upsert_list
 
 def write_embeddings_to_mongodb(upsert_list, vector_db_metadata):
-    mongo_conn_uri = os.getenv('VECTOR_DB_KEY')
-    try:
-        mongo_client = pymongo.MongoClient(mongo_conn_uri)
-    except Exception as e:
-        logging.error(e)
-        return None
+    mongo_conn_uri = vector_db_metadata.environment
+    mongo_password = quote_plus(os.getenv('VECTOR_DB_KEY'))
+    mongo_conn_uri = mongo_conn_uri.replace("<password>", mongo_password)
+
+    mongo_client = pymongo.MongoClient(mongo_conn_uri)
     db_name, collection = vector_db_metadata.index_name.split(".")
     db = mongo_client[db_name]
+
+    try:
+        db.command("ping")
+    except Exception as e:
+        logging.error(f"Error connecting to MongoDB via python client: {e}")
+        return None
 
     if collection not in db.list_collection_names():
         logging.error(f"Index {vector_db_metadata.index_name} does not exist in environment {vector_db_metadata.environment}")
