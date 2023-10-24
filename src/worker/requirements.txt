@@ -10,8 +10,10 @@ cachetools==5.3.1
 certifi==2023.7.22
 cffi==1.15.1
 charset-normalizer==3.2.0
+click==8.1.7
 cryptography==41.0.3
 decorator==5.1.1
+deprecation==2.1.0
 dnspython==2.4.1
 environs==9.5.0
 exceptiongroup==1.1.2
@@ -51,6 +53,7 @@ pydantic==2.1.1
 pydantic_core==2.4.0
 pylance
 pymilvus==2.2.15
+pymongo==4.5.0
 python-dateutil==2.8.2
 python-dotenv==1.0.0
 pytz==2023.3
