@@ -23,6 +23,9 @@ def create_job(db: Session, request, source_filename: str):
 def get_job(db: Session, job_id: str):
     return db.query(Job).filter(Job.id == job_id).first()
 
+def get_jobs(db: Session, job_ids: list[int]):
+    return db.query(Job.id, Job.job_status).filter(Job.id.in_(job_ids)).all()
+
 def update_job_with_batch(db: Session, job_id: int, batch_status: str):
     job = db.query(Job).filter(Job.id == job_id).first()
     

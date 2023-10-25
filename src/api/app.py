@@ -79,12 +79,31 @@ def get_job_status(job_id):
     if not vectorflow_key or not auth.validate_credentials(vectorflow_key):
         return jsonify({'error': 'Invalid credentials'}), 401
     
-    with get_db() as db:
-        job = job_service.get_job(db, job_id)
-        if job:
-            return jsonify({'JobStatus': job.job_status.value}), 200
-        else:
-            return jsonify({'error': "Job not found"}), 404
+    job = safe_db_operation(job_service.get_job, job_id)
+    if job:
+        return jsonify({'JobStatus': job.job_status.value}), 200
+    else:
+        return jsonify({'error': "Job not found"}), 404
+        
+@app.route('/jobs/status', methods=['POST'])
+def get_job_statuses():
+    vectorflow_key = request.headers.get('Authorization')
+    if not vectorflow_key or not auth.validate_credentials(vectorflow_key):
+        return jsonify({'error': 'Invalid credentials'}), 401
+    
+    if not hasattr(request, 'json') or not request.json:
+        return jsonify({'error': 'Missing JSON body'}), 400
+    
+    job_ids = request.json.get('JobIDs')
+    if not job_ids:
+        return jsonify({'error': 'Missing JobIDs field'}), 400
+    
+    jobs = safe_db_operation(job_service.get_jobs, job_ids)
+    if jobs:
+        return jsonify({'Jobs': [{'JobID': job.id, 'JobStatus': job.job_status.value} for job in jobs]}), 200
+    else:
+        return jsonify({'error': "Jobs not found"}), 404
+    
     
 @app.route("/s3", methods=['POST'])
 def s3_presigned_url():
