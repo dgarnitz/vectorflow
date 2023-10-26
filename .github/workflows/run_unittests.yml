@@ -10,11 +10,10 @@ on:
 
 jobs:
   build:
-
     runs_on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11"]
+        python: ["3.9", "3.10", "3.11"]
      steps:
       - uses: actions/checkout@v4
       - name: Setup Python # Set Python version
