@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.9", "3.10", "3.11"]
 
     steps:
       - uses: actions/checkout@v4
@@ -21,13 +21,15 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       
-      #- name: Install dependencies - Api
-       # run: | 
-        #  python -m pip install --upgrade pip
-         # pip install -r src/api/requirements.txt
+      - name: Install dependencies - Api
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r src/api/requirements.txt
 
-     # - name: Run Api unittests
-     #   run: python -m unittest src.api.tests.test_app
+      - name: Run Api unittests
+        run: |
+          cd src
+          python -m unittest src.api.tests.test_app
 
       - name: Install depencies - Worker
         run: |
