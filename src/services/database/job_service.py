@@ -6,13 +6,13 @@ from shared.job_status import JobStatus
 
 def create_job(db: Session, request, source_filename: str):
     job = Job(source_filename = source_filename)
-    if request.webhook_url:
+    if hasattr(request, 'webhook_url') and request.webhook_url:
         job.webhook_url = request.webhook_url
-    if request.webhook_key:
+    if hasattr(request, 'webhook_key') and request.webhook_key:
         job.webhook_key = request.webhook_key
-    if request.document_id:
+    if hasattr(request, 'document_id') and request.document_id:
         job.document_id = request.document_id
-    if request.chunk_validation_url:
+    if hasattr(request, 'chunk_validation_url') and request.chunk_validation_url:
         job.chunk_validation_url = request.chunk_validation_url
 
     db.add(job)

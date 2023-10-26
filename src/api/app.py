@@ -5,12 +5,12 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
 import requests
-# magic requires lib magic to be installed on the system. If running on mac and an error occurs, run `brew install libmagic`
-import magic
+import magic # magic requires lib magic to be installed on the system. If running on mac and an error occurs, run `brew install libmagic`
 import json
 import fitz
 import base64
 import logging
+import threading
 from io import BytesIO
 import services.database.batch_service as batch_service
 import services.database.job_service as job_service
@@ -61,17 +61,80 @@ def embed():
     file.seek(0)
 
     if file_size > 25 * 1024 * 1024:
-        return jsonify({'error': 'File is too large. VectorFlow currently only supports 25 MB files or less. Larger file support coming soon.'}), 413
+        return jsonify({'error': 'File is too large. The /embed endpoint currently only supports 25 MB files or less. Please use /jobs for streaming large files or multiple files.'}), 413
     
     # empty filename means no file was selected
     if file.filename == '':
         return jsonify({'error': 'No selected file'}), 400
     
     if file and is_valid_file_type(file):
-        batch_count, job_id = process_file(file, vectorflow_request)
-        return jsonify({'message': f"Successfully added {batch_count} batches to the queue", 'JobID': job_id}), 200
+        job = safe_db_operation(job_service.create_job, vectorflow_request, file.filename)
+        batch_count = process_file(file, vectorflow_request, job.id)
+        return jsonify({'message': f"Successfully added {batch_count} batches to the queue", 'JobID': job.id}), 200
     else:
         return jsonify({'error': 'Uploaded file is not a TXT, PDF, Markdown or DOCX file'}), 400
+
+@app.route('/jobs', methods=['POST'])
+def create_jobs():
+     # TODO: add validator service
+    vectorflow_request = VectorflowRequest(request)
+    if not vectorflow_request.vectorflow_key or not auth.validate_credentials(vectorflow_request.vectorflow_key):
+        return jsonify({'error': 'Invalid credentials'}), 401
+ 
+    if not vectorflow_request.embeddings_metadata or not vectorflow_request.vector_db_metadata or (not vectorflow_request.vector_db_key and not os.getenv('LOCAL_VECTOR_DB')):
+        return jsonify({'error': 'Missing required fields'}), 400
+    
+    if vectorflow_request.embeddings_metadata.embeddings_type == EmbeddingsType.HUGGING_FACE and not vectorflow_request.embeddings_metadata.hugging_face_model_name:
+        return jsonify({'error': 'Hugging face embeddings models require a "hugging_face_model_name" in the "embeddings_metadata"'}), 400
+    
+    if vectorflow_request.webhook_url and not vectorflow_request.webhook_key:
+        return jsonify({'error': 'Webhook URL provided but no webhook key'}), 400
+    
+    if not hasattr(request, "files") or not request.files:
+        return jsonify({'error': 'No file part in the request'}), 400
+    
+    files = request.files.getlist('file')
+    successfully_uploaded_files = dict()
+    failed_uploads = []
+    empty_files_count = 0
+    duplicate_files_count = 0
+
+    for file in files:
+        # Check if a file is empty (no filename)
+        if file.filename == '':
+            empty_files_count += 1
+            continue
+        
+        if not is_valid_file_type(file):
+            failed_uploads.append(file.filename)
+            continue
+
+        if file.filename in successfully_uploaded_files:
+            duplicate_files_count += 1
+            continue
+
+        file_path = os.path.join("/Users/davidgarnitz/Documents/Programming/vectorflow/src", file.filename)
+        with open(file_path, 'wb') as f:
+            chunk_size = 4096  # You can adjust this size based on your needs
+            while True:
+                chunk = file.stream.read(chunk_size)
+                if len(chunk) == 0:
+                    break
+                f.write(chunk)
+                print(f"wrote a chunk to {file_path}")
+        
+        job = safe_db_operation(job_service.create_job, vectorflow_request, file.filename)
+        successfully_uploaded_files[file.filename] = job.id
+       
+        # Spawn a new thread for processing
+        thread = threading.Thread(target=process_file, args=(file, vectorflow_request, job.id))
+        thread.start()
+
+    return jsonify({'message': 'Files uploaded successfully!', 
+                    'successful_uploads': successfully_uploaded_files,
+                    'failed_uploads': failed_uploads,
+                    'empty_files_count': empty_files_count,
+                    'duplicate_files_count': duplicate_files_count}), 200
 
 @app.route('/jobs/<int:job_id>/status', methods=['GET'])
 def get_job_status(job_id):
@@ -102,8 +165,7 @@ def get_job_statuses():
     if jobs:
         return jsonify({'Jobs': [{'JobID': job.id, 'JobStatus': job.job_status.value} for job in jobs]}), 200
     else:
-        return jsonify({'error': "Jobs not found"}), 404
-    
+        return jsonify({'error': "Jobs not found"}), 404   
     
 @app.route("/s3", methods=['POST'])
 def s3_presigned_url():
@@ -156,7 +218,7 @@ def s3_presigned_url():
     else:
         print('Failed to download file:', response.status_code, response.reason)
 
-def process_file(file, vectorflow_request):
+def process_file(file, vectorflow_request, job_id):
     if file.filename.endswith('.txt'):
         file_content = file.read().decode('utf-8')
     
@@ -186,9 +248,8 @@ def process_file(file, vectorflow_request):
             for page in doc:
                 file_content += page.get_text()
 
-    job = safe_db_operation(job_service.create_job, vectorflow_request, file.filename)
-    batch_count = create_batches(file_content, job.id, vectorflow_request)
-    return batch_count, job.id
+    batch_count = create_batches(file_content, job_id, vectorflow_request)
+    return batch_count
 
 def create_batches(file_content, job_id, vectorflow_request):
     chunks = [chunk for chunk in split_file(file_content, vectorflow_request.lines_per_batch)]
@@ -280,7 +341,7 @@ def process_image(file, vectorflow_request):
     return job.id
 
 @app.route("/images/search", methods=['POST'])
-def search_image():
+def search_image_from_vdb():
     image_search_request = ImageSearchRequest._from_request(request)
     if not image_search_request.vectorflow_key or not auth.validate_credentials(image_search_request.vectorflow_key):
         return jsonify({'error': 'Invalid credentials'}), 401
@@ -308,7 +369,7 @@ def search_image():
     
     if file and (file.filename.endswith('.jpg') or file.filename.endswith('.jpeg') or file.filename.endswith('.png')):
         try:
-            response = search_image(file, image_search_request)
+            response = search_image_from_vdb(file, image_search_request)
 
             if response.status_code == 200:
                 response_json = response.json()
@@ -330,7 +391,7 @@ def search_image():
     else:
         return jsonify({'error': 'Uploaded file is not a JPG, JPEG, or PNG file'}), 400
     
-def search_image(file, image_search_request):
+def search_image_from_vdb(file, image_search_request):
     url = f"{os.getenv('IMAGE_SEARCH_URL')}/search"
     data = {
         'ImageSearchRequest': json.dumps(image_search_request.serialize()),
