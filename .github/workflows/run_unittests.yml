@@ -36,7 +36,8 @@ jobs:
 
       - name: Run Worker/Vdb_worker unittests
         run: |
-          python -m unittest src.worker.tests.test_worker
-          python -m unittest src.worker.tests.test_vdb_upload_worker
+          cd src
+          python -m unittest worker.tests.test_worker
+          python -m unittest worker.tests.test_vdb_upload_worker
 
       
