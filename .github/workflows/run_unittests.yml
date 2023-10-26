@@ -1,0 +1,43 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+
+name: Vectorflow_Unittests
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+
+jobs:
+  build:
+
+    runs_on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
+     steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python # Set Python version
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: Install dependencies - Api
+        run: | 
+          python -m pip install --upgrade pip
+          pip install -r @./src/api/requirements.txt
+
+      - name: Run Api unittests
+        run: python -m unittest src.api.tests.test_app
+
+      - name: Install depencies - Worker
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r @./src/worker/requirements.txt
+
+      - name: Run Worker/Vdb_worker unittests
+        run: |
+          python -m unittest src.worker.tests.test_worker
+          python -m unittest src.worker.tests.test_vdb_upload_worker
+
+      
