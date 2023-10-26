@@ -29,7 +29,7 @@ jobs:
       - name: Run Api unittests
         run: |
           cd src
-          python -m unittest src.api.tests.test_app
+          python -m unittest api.tests.test_app
 
       - name: Install depencies - Worker
         run: |
