@@ -26,7 +26,7 @@ jobs:
       - name: Install dependencies - Api
         run: | 
           python -m pip install --upgrade pip
-          pip install -r @./src/api/requirements.txt
+          pip install -r src/api/requirements.txt
 
       - name: Run Api unittests
         run: python -m unittest src.api.tests.test_app
@@ -34,7 +34,7 @@ jobs:
       - name: Install depencies - Worker
         run: |
           python -m pip install --upgrade pip
-          pip install -r @./src/worker/requirements.txt
+          pip install -r src/worker/requirements.txt
 
       - name: Run Worker/Vdb_worker unittests
         run: |
