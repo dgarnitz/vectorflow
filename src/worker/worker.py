@@ -10,7 +10,7 @@ import time
 import pika
 import json
 import openai
-import requests 
+import requests
 import logging
 import worker.config as config
 import services.database.batch_service as batch_service
@@ -21,7 +21,7 @@ from shared.embeddings_type import EmbeddingsType
 from shared.batch_status import BatchStatus
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from services.database.database import get_db, safe_db_operation
-from shared.job_status import JobStatus
+from shared.job_status import JobStatus, update_batch_and_job_status
 from shared.utils import send_embeddings_to_webhook, generate_uuid_from_tuple
 
 logging.basicConfig(filename='./worker-log.txt', level=logging.INFO)
@@ -36,7 +36,7 @@ def process_batch(batch_id, source_data):
     # TODO: update this logic once the batch creation logic is moved out of the API
     if job.job_status == JobStatus.NOT_STARTED or job.job_status == JobStatus.CREATING_BATCHES:
         safe_db_operation(job_service.update_job_status, job.id, JobStatus.PROCESSING_BATCHES)
-    
+
     if batch.batch_status == BatchStatus.NOT_STARTED:
         safe_db_operation(batch_service.update_batch_status, batch.id, BatchStatus.PROCESSING)
     else:
@@ -56,7 +56,7 @@ def process_batch(batch_id, source_data):
                     response = send_embeddings_to_webhook(embedded_chunks, job)
                     process_webhook_response(response, job.id, batch.id)
                 else:
-                    upload_to_vector_db(batch_id, embedded_chunks)  
+                    upload_to_vector_db(batch_id, embedded_chunks)
             else:
                 logging.error(f"Failed to get OPEN AI embeddings for batch {batch.id}. Adding batch to retry queue.")
                 update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
@@ -64,7 +64,7 @@ def process_batch(batch_id, source_data):
         except Exception as e:
             logging.error('Error embedding batch: %s', e)
             update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
-    
+
     elif embeddings_type == EmbeddingsType.HUGGING_FACE:
         try:
             embed_hugging_face_batch(batch, chunked_data)
@@ -95,7 +95,7 @@ def get_openai_embedding(chunks, attempts=5):
 def embed_openai_batch(batch, chunked_data):
     logging.info("Starting Open AI Embeddings")
     openai.api_key = os.getenv('EMBEDDING_API_KEY')
-    
+
     # Maximum number of items allowed in a batch by OpenAIs embedding API. There is also an 8191 token per item limit
     open_ai_batches = create_batches_for_embedding(chunked_data, max_batch_size=config.MAX_OPENAI_EMBEDDING_BATCH_SIZE)
     embedded_chunks: list[dict] = []
@@ -112,14 +112,14 @@ def embed_openai_batch(batch, chunked_data):
                 logging.error(f"Failed to get embedding for chunk {chunks}. Adding batch to retry queue.")
                 update_batch_status(batch.job_id, BatchStatus.Failed, batch.id)
                 return
-    
+
     logging.info("Open AI Embeddings completed successfully")
     return embedded_chunks
 
 def publish_to_embedding_queue(batch_id, batch_of_chunks: list[dict], model_name, attempts=5):
     for _ in range(attempts):
         try:
-            embedding_channel = connection.channel() 
+            embedding_channel = connection.channel()
             embedding_channel.queue_declare(queue=model_name)
 
             try:
@@ -137,7 +137,7 @@ def publish_to_embedding_queue(batch_id, batch_of_chunks: list[dict], model_name
         except pika.exceptions.AMQPConnectionError as e:
             logging.error('ERROR connecting to RabbitMQ, retrying now. See exception: %s', e)
             time.sleep(config.PIKA_RETRY_INTERVAL)
-    
+
     # TODO: implement logic to handle partial failures & retries
     with get_db() as db:
         batch_service.update_batch_status(db, batch_id, BatchStatus.FAILED)
@@ -146,9 +146,9 @@ def publish_to_embedding_queue(batch_id, batch_of_chunks: list[dict], model_name
 def embed_hugging_face_batch(batch, chunked_data):
     logging.info(f"Starting Hugging Face Embeddings with {batch.embeddings_metadata.hugging_face_model_name}")
     hugging_face_batches = create_batches_for_embedding(chunked_data, config.HUGGING_FACE_BATCH_SIZE)
-    
+
     safe_db_operation(batch_service.update_batch_minibatch_count, batch.id, len(hugging_face_batches))
-    
+
     for batch_of_chunks in hugging_face_batches:
         publish_to_embedding_queue(batch.id, batch_of_chunks, batch.embeddings_metadata.hugging_face_model_name)
 
@@ -170,7 +170,7 @@ def chunk_data(batch, source_data, job):
 
     elif batch.embeddings_metadata.chunk_strategy == ChunkStrategy.SENTENCE_BY_CHARACTERS:
         chunked_data = chunk_by_sentence_by_characters(source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
-    
+
     elif batch.embeddings_metadata.chunk_strategy == ChunkStrategy.CUSTOM:
         try:
             from custom_chunker import chunker
@@ -181,7 +181,7 @@ def chunk_data(batch, source_data, job):
         except ChunkedDataValidationError as e:
             logging.error("Failed to validate chunked data: %s", e)
             chunked_data = None
-    
+
     else:
         chunked_data = chunk_data_exact(source_data, batch.embeddings_metadata.chunk_size, batch.embeddings_metadata.chunk_overlap)
 
@@ -190,16 +190,16 @@ def chunk_data(batch, source_data, job):
 
     if not chunked_data:
         update_batch_and_job_status(batch.job_id, BatchStatus.FAILED, batch.id)
-        raise Exception("Failed to chunk data") 
+        raise Exception("Failed to chunk data")
     return chunked_data
 
 def validate_chunks(chunked_data, chunk_validation_url):
     try:
         response = requests.post(
-            chunk_validation_url, 
-            json={"chunks": chunked_data}, 
+            chunk_validation_url,
+            json={"chunks": chunked_data},
             headers={"Content-Type": "application/json"},
-            timeout=config.VALIDATION_TIMEOUT 
+            timeout=config.VALIDATION_TIMEOUT
         )
 
         if response.status_code == 200 and response.json()['valid_chunks']:
@@ -226,7 +226,7 @@ def validate_chunked_data(chunked_data):
             raise ChunkedDataValidationError("Each dictionary in chunked_data must have a 'text' key")
 
 def chunk_data_exact(data_chunks, chunk_size, chunk_overlap):
-    # Encodes data as tokens for the purpose of counting. 
+    # Encodes data as tokens for the purpose of counting.
     data = "".join(data_chunks)
     encoding = tiktoken.get_encoding("cl100k_base")
     tokens = encoding.encode(data)
@@ -251,31 +251,31 @@ def chunk_data_exact_by_characters(data_chunks, chunk_size, chunk_overlap):
         chunk_id = generate_uuid_from_tuple((text, i, "exact"))
         chunk = {'text': text, 'chunk_id': chunk_id}
         chunks.append(chunk)
-    
+
     return chunks
 
 # TODO: this splits by two new lines - '\n\n' - but it should also account for paragraphs split by one - '\n
 def chunk_data_by_paragraph(data_chunks, chunk_size, overlap, bound=0.75):
     data = "".join(data_chunks)
     encoding = tiktoken.get_encoding("cl100k_base")
-    
+
     # Ensure the paragraph character isn't searched outside of the bound
     check_bound = int(bound * chunk_size)
     paragraph_chunks = []
     paragraphs = re.split('\n\n', data)
     tokenized_paragraphs = [encoding.encode(paragraph) for paragraph in paragraphs]
     start_idx = 0
-    
+
     # iterate through each paragraph, adding them together until the length is within the bound
     # the bound being the minimum length in tokens that the paragraph(s) must have
     while start_idx < len(tokenized_paragraphs):
         current_tokens = []
-        
+
         # adding paragraphs until it is long enough to satisfy the bound
         while len(current_tokens) < check_bound and start_idx < len(tokenized_paragraphs):
             current_tokens.extend(tokenized_paragraphs[start_idx])
             start_idx += 1
-        
+
         # if the length is greater than the max chunk size, break it down into exact blocks
         if len(current_tokens) > chunk_size:
             current_text = encoding.decode(current_tokens)
@@ -366,10 +366,10 @@ def create_batches_for_embedding(chunks, max_batch_size):
 def update_batch_status(job_id, batch_status, batch_id):
     try:
         updated_batch_status = safe_db_operation(batch_service.update_batch_status, batch_id, batch_status)
-        logging.info(f"Status for batch {batch_id} as part of job {job_id} updated to {updated_batch_status}") 
+        logging.info(f"Status for batch {batch_id} as part of job {job_id} updated to {updated_batch_status}")
         if updated_batch_status == BatchStatus.FAILED:
             logging.info(f"Batch {batch_id} failed. Updating job status.")
-            update_batch_and_job_status(job_id, BatchStatus.FAILED, batch_id)     
+            update_batch_and_job_status(job_id, BatchStatus.FAILED, batch_id)
     except Exception as e:
         logging.error('Error updating batch status: %s', e)
 
@@ -393,25 +393,6 @@ def process_webhook_response(response, job_id, batch_id):
         if response.json() and response.json()['error']:
             logging.error("Error message: %s", response.json()['error'])
 
-# TODO: refactor into utils
-def update_batch_and_job_status(job_id, batch_status, batch_id):
-    try:
-        if not job_id and batch_id:
-            job = safe_db_operation(batch_service.get_batch, batch_id)
-            job_id = job.job_id
-        updated_batch_status = safe_db_operation(batch_service.update_batch_status, batch_id, batch_status)
-        job = safe_db_operation(job_service.update_job_with_batch, job_id, updated_batch_status)
-        if job.job_status == JobStatus.COMPLETED:
-            logging.info(f"Job {job_id} completed successfully")
-        elif job.job_status == JobStatus.PARTIALLY_COMPLETED:
-            logging.info(f"Job {job_id} partially completed. {job.batches_succeeded} out of {job.total_batches} batches succeeded")
-        elif job.job_status == JobStatus.FAILED:
-            logging.info(f"Job {job_id} failed. {job.batches_succeeded} out of {job.total_batches} batches succeeded")
-                
-    except Exception as e:
-        logging.error('Error updating job and batch status: %s', e)
-        safe_db_operation(job_service.update_job_status, job_id, JobStatus.FAILED)
-
 def callback(ch, method, properties, body):
     try:
         data = json.loads(body)
@@ -421,7 +402,7 @@ def callback(ch, method, properties, body):
             os.environ["VECTOR_DB_KEY"] = vector_db_key
         else:
             logging.info("No vector db key provided")
-        
+
         if embeddings_api_key:
             os.environ["EMBEDDING_API_KEY"] = embeddings_api_key
         else:
@@ -438,7 +419,7 @@ def callback(ch, method, properties, body):
 def start_connection():
     global publish_channel
     global connection
-    
+
     while True:
         try:
             credentials = pika.PlainCredentials(os.getenv('RABBITMQ_USERNAME'), os.getenv('RABBITMQ_PASSWORD'))
@@ -458,7 +439,7 @@ def start_connection():
 
             connection = pika.BlockingConnection(connection_params)
             consume_channel = connection.channel()
-            publish_channel = connection.channel() 
+            publish_channel = connection.channel()
 
             consume_queue_name = os.getenv('EMBEDDING_QUEUE')
             publish_queue_name = os.getenv('VDB_UPLOAD_QUEUE')
@@ -470,7 +451,7 @@ def start_connection():
 
             logging.info('Waiting for messages.')
             consume_channel.start_consuming()
-            
+
         except Exception as e:
             logging.error('ERROR connecting to RabbitMQ, retrying now. See exception: %s', e)
             time.sleep(config.PIKA_RETRY_INTERVAL) # Wait before retrying
