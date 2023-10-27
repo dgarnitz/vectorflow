@@ -26,6 +26,9 @@ def get_job(db: Session, job_id: str):
 def get_jobs(db: Session, job_ids: list[int]):
     return db.query(Job.id, Job.job_status).filter(Job.id.in_(job_ids)).all()
 
+# TODO: this needs to be refactored once the retries are put in place
+# right not this uses a count of batches processes vs. completed vs. total to determine status
+# but it probably needs to link to individual batches or decrement the count when a retry starts
 def update_job_with_batch(db: Session, job_id: int, batch_status: str):
     job = db.query(Job).filter(Job.id == job_id).first()
     

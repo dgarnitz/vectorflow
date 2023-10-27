@@ -20,7 +20,7 @@ class EmbeddingsMetadata(Base):
             'embeddings_type': self.embeddings_type.name if self.embeddings_type else None,
             'chunk_size': self.chunk_size,
             'chunk_overlap': self.chunk_overlap,
-            'chunk_strategy': self.chunk_strategy.value if self.chunk_strategy else None,
+            'chunk_strategy': self.chunk_strategy.name if self.chunk_strategy else None,
             'docker_image': self.docker_image,
             'hugging_face_model_name': self.hugging_face_model_name
         }
@@ -32,7 +32,18 @@ class EmbeddingsMetadata(Base):
             embeddings_type = EmbeddingsType[embeddings_metadata_dict['embeddings_type']], 
             chunk_size = embeddings_metadata_dict['chunk_size'] if 'chunk_size' in embeddings_metadata_dict else 512,
             chunk_overlap = embeddings_metadata_dict['chunk_overlap'] if 'chunk_overlap' in embeddings_metadata_dict else 256,
-            chunk_strategy = embeddings_metadata_dict['chunk_strategy'] if 'chunk_strategy' in embeddings_metadata_dict else ChunkStrategy.EXACT,
+            chunk_strategy = ChunkStrategy[embeddings_metadata_dict['chunk_strategy']] if 'chunk_strategy' in embeddings_metadata_dict else ChunkStrategy.EXACT,
+            docker_image = embeddings_metadata_dict['docker_image'] if 'docker_image' in embeddings_metadata_dict else None,
+            hugging_face_model_name = embeddings_metadata_dict['hugging_face_model_name'] if 'hugging_face_model_name' in embeddings_metadata_dict else None)
+        return embeddings_metadata
+    
+    @staticmethod
+    def _from_dict(embeddings_metadata_dict):
+        embeddings_metadata = EmbeddingsMetadata(
+            embeddings_type = EmbeddingsType[embeddings_metadata_dict['embeddings_type']], 
+            chunk_size = embeddings_metadata_dict['chunk_size'] if 'chunk_size' in embeddings_metadata_dict else 512,
+            chunk_overlap = embeddings_metadata_dict['chunk_overlap'] if 'chunk_overlap' in embeddings_metadata_dict else 256,
+            chunk_strategy = ChunkStrategy[embeddings_metadata_dict['chunk_strategy']] if 'chunk_strategy' in embeddings_metadata_dict else ChunkStrategy.EXACT,
             docker_image = embeddings_metadata_dict['docker_image'] if 'docker_image' in embeddings_metadata_dict else None,
             hugging_face_model_name = embeddings_metadata_dict['hugging_face_model_name'] if 'hugging_face_model_name' in embeddings_metadata_dict else None)
         return embeddings_metadata

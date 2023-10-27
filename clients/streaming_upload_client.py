@@ -1,6 +1,8 @@
 import requests
 import os
 import json
+import time
+from get_jobs_by_ids import get_jobs_by_id
 
 url = "http://localhost:8000/jobs"
 embedding_key = os.getenv("OPEN_AI_KEY")
@@ -49,3 +51,17 @@ print(response.status_code)
 response_json = response.json()
 print(response_json)
 
+if "successful_uploads" in response_json and len(response_json["successful_uploads"]) > 0:
+    jobs_ids = [v for _,v in response_json["successful_uploads"].items()]
+    
+    time.sleep(5) # wait for processing to complete 
+    get_jobs_by_id(jobs_ids)
+
+    time.sleep(5) # wait for processing to complete 
+    get_jobs_by_id(jobs_ids)
+
+    time.sleep(5) # wait for processing to complete 
+    get_jobs_by_id(jobs_ids)
+
+    time.sleep(5) # wait for processing to complete 
+    get_jobs_by_id(jobs_ids)

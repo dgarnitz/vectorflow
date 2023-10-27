@@ -19,7 +19,7 @@ from models.batch import Batch
 from api.auth import Auth
 from api.pipeline import Pipeline
 from services.database.database import get_db, safe_db_operation
-from api.vectorflow_request import VectorflowRequest
+from shared.vectorflow_request import VectorflowRequest
 from shared.embeddings_type import EmbeddingsType
 from docx import Document
 from shared.image_search_request import ImageSearchRequest
@@ -36,7 +36,7 @@ CORS(app)
 @app.route("/embed", methods=['POST'])
 def embed():
     # TODO: add validator service
-    vectorflow_request = VectorflowRequest(request)
+    vectorflow_request = VectorflowRequest._from_flask_request(request)
     if not vectorflow_request.vectorflow_key or not auth.validate_credentials(vectorflow_request.vectorflow_key):
         return jsonify({'error': 'Invalid credentials'}), 401
  
@@ -77,7 +77,7 @@ def embed():
 @app.route('/jobs', methods=['POST'])
 def create_jobs():
      # TODO: add validator service
-    vectorflow_request = VectorflowRequest(request)
+    vectorflow_request = VectorflowRequest._from_flask_request(request)
     if not vectorflow_request.vectorflow_key or not auth.validate_credentials(vectorflow_request.vectorflow_key):
         return jsonify({'error': 'Invalid credentials'}), 401
  
@@ -187,7 +187,7 @@ def get_job_statuses():
 @app.route("/s3", methods=['POST'])
 def s3_presigned_url():
     # TODO: add validator service
-    vectorflow_request = VectorflowRequest(request)
+    vectorflow_request = VectorflowRequest._from_flask_request(request)
     if not vectorflow_request.vectorflow_key or not auth.validate_credentials(vectorflow_request.vectorflow_key):
         return jsonify({'error': 'Invalid credentials'}), 401
     
@@ -294,7 +294,7 @@ def split_file(file_content, lines_per_chunk=1000):
 @app.route("/images", methods=['POST'])
 def upload_image():
     # TODO: add validator service
-    vectorflow_request = VectorflowRequest(request)
+    vectorflow_request = VectorflowRequest._from_flask_request(request)
     if not vectorflow_request.vectorflow_key or not auth.validate_credentials(vectorflow_request.vectorflow_key):
         return jsonify({'error': 'Invalid credentials'}), 401
  
@@ -446,7 +446,7 @@ def is_valid_file_type(file):
 
 def remove_from_minio(filename):
     client = create_minio_client()
-    client.remove_object("vectorflow", filename)
+    client.remove_object(os.getenv("MINIO_BUCKET"), filename)
 
 def upload_to_minio(file_path, filename):
     client = create_minio_client()
@@ -457,7 +457,7 @@ def upload_to_minio(file_path, filename):
     stream = StreamWrapper(lambda: file_data_generator(file_path))
 
     result = client.put_object(
-        "vectorflow", filename, stream, file_size
+        os.getenv("MINIO_BUCKET"), filename, stream, file_size
     )
     return result
 

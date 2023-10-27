@@ -73,6 +73,7 @@ Make sure you pull Rabbit MQ and Postgres into your local docker repo. We also r
 docker pull rabbitmq
 docker pull postgres
 docker pull qdrant/qdrant | docker pull milvusdb/milvus | docker pull semitechnologies/weaviate
+docker pull minio/minio
 ```
 
 Then run:

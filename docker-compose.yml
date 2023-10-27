@@ -50,6 +50,29 @@ services:
     networks:
       - vectorflow
 
+  minio:
+    image: minio/minio
+    container_name: minio
+    networks:
+      - vectorflow
+    ports:
+      - "9000:9000"
+      - '9001:9001'
+    env_file:
+      - ./env_scripts/env_vars.env
+    command: 'server /data --console-address ":9001"'
+
+  minio-init:
+    build:
+      context: ./src
+      dockerfile: scripts/Dockerfile.minio
+    env_file:
+      - ./env_scripts/env_vars.env
+    depends_on:
+      - minio
+    networks:
+      - vectorflow
+
   api:
     build:
       context: ./src
@@ -66,6 +89,8 @@ services:
       - db-init
       - rabbitmq
       - qdrant-init
+      - minio
+      - minio-init
     ports:
       - "8000:8000"
     command: ["bash", "/wait-for-it.sh", "rabbitmq:5672", "--", "gunicorn", "-w", "1", "-b", "0.0.0.0:8000", "api.app:app"]
