@@ -2,7 +2,7 @@ import requests
 import os
 import json
 
-url = "http://localhost:5000/jobs"
+url = "http://localhost:8000/jobs"
 embedding_key = os.getenv("OPEN_AI_KEY")
 internal_api_key = "test123"
 embedding_type="OPEN_AI"
@@ -31,8 +31,8 @@ data = {
 # Construct the multi-part form data payload
 multipart_form_data = [
     ('file',  ('test_pdf.pdf', open(file1_path, 'rb'), 'application/octet-stream')),
-    # ('file', (open(file2_path, 'rb'), 'application/octet-stream')),
-    # ('file', (open(file3_path, 'rb'), 'application/octet-stream'))
+    ('file', ('test_medium_text.txt', open(file2_path, 'rb'), 'application/octet-stream')),
+    ('file', ('test_medium_text.txt', open(file3_path, 'rb'), 'application/octet-stream'))
 ]
 
 headers = {

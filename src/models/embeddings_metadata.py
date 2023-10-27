@@ -20,7 +20,7 @@ class EmbeddingsMetadata(Base):
             'embeddings_type': self.embeddings_type.name if self.embeddings_type else None,
             'chunk_size': self.chunk_size,
             'chunk_overlap': self.chunk_overlap,
-            'chunk_strategy': self.chunk_strategy,
+            'chunk_strategy': self.chunk_strategy.value if self.chunk_strategy else None,
             'docker_image': self.docker_image,
             'hugging_face_model_name': self.hugging_face_model_name
         }

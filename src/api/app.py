@@ -10,7 +10,6 @@ import json
 import fitz
 import base64
 import logging
-import threading
 from io import BytesIO
 import services.database.batch_service as batch_service
 import services.database.job_service as job_service
@@ -27,6 +26,7 @@ from shared.image_search_request import ImageSearchRequest
 from urllib.parse import urlparse
 from pathlib import Path
 from llama_index import download_loader
+from services.minio.minio_service import create_minio_client
 
 auth = Auth()
 pipeline = Pipeline()
@@ -113,24 +113,41 @@ def create_jobs():
             duplicate_files_count += 1
             continue
 
-        file_path = os.path.join("/Users/davidgarnitz/Documents/Programming/vectorflow/src", file.filename)
+        temporary_storage_location = os.getenv('API_STORAGE_DIRECTORY')
+        file_path = os.path.join(temporary_storage_location, file.filename)
         with open(file_path, 'wb') as f:
-            chunk_size = 4096  # You can adjust this size based on your needs
+            chunk_size = 65536  # 64 KB
             while True:
                 chunk = file.stream.read(chunk_size)
                 if len(chunk) == 0:
                     break
                 f.write(chunk)
-                print(f"wrote a chunk to {file_path}")
-        
-        job = safe_db_operation(job_service.create_job, vectorflow_request, file.filename)
-        successfully_uploaded_files[file.filename] = job.id
-       
-        # Spawn a new thread for processing
-        thread = threading.Thread(target=process_file, args=(file, vectorflow_request, job.id))
-        thread.start()
+        try:
+            result = upload_to_minio(file_path, file.filename)
+            os.remove(file_path)
 
-    return jsonify({'message': 'Files uploaded successfully!', 
+            if not result:
+                failed_uploads.append(file.filename)
+                continue
+            
+            job = safe_db_operation(job_service.create_job, vectorflow_request, file.filename)
+            if not job:
+                remove_from_minio(file.filename)
+                continue
+       
+            data = (job.id, file.filename, vectorflow_request.serialize())
+            json_data = json.dumps(data)
+
+            pipeline.connect(queue=os.getenv('EXTRACTION_QUEUE'))
+            pipeline.add_to_queue(json_data, queue=os.getenv('EXTRACTION_QUEUE'))
+            pipeline.disconnect()
+
+            successfully_uploaded_files[file.filename] = job.id
+        except Exception as e:
+            print(f"Error uploading file {file.filename} to min.io, creating job or passing vectorflow request to message broker. \nError: {e}\n\n")
+            failed_uploads.append(file.filename)       
+
+    return jsonify({'message': 'Files processed', 
                     'successful_uploads': successfully_uploaded_files,
                     'failed_uploads': failed_uploads,
                     'empty_files_count': empty_files_count,
@@ -426,6 +443,39 @@ def is_valid_file_type(file):
         if file.filename.endswith(type):
             return True
     return False
+
+def remove_from_minio(filename):
+    client = create_minio_client()
+    client.remove_object("vectorflow", filename)
+
+def upload_to_minio(file_path, filename):
+    client = create_minio_client()
+
+    file_size = os.path.getsize(file_path)
+
+    # Wrap the generator with our StreamWrapper
+    stream = StreamWrapper(lambda: file_data_generator(file_path))
+
+    result = client.put_object(
+        "vectorflow", filename, stream, file_size
+    )
+    return result
+
+# generator used to stream
+def file_data_generator(file_path, chunk_size=65536):  # 64KB
+    with open(file_path, 'rb') as file:
+        while True:
+            data = file.read(chunk_size)
+            if not data:
+                break
+            yield data
+
+class StreamWrapper:
+    def __init__(self, generator_func):
+        self.generator = generator_func()
+
+    def read(self, *args):
+        return next(self.generator, b'')
 
 if __name__ == '__main__':
    app.run(host='0.0.0.0', debug=True)
