@@ -102,7 +102,7 @@ To use VectorFlow in a live system, make an HTTP request to your API's URL at po
 
 All requests require an HTTP Header with `Authorization` key which is the same as your `INTERNAL_API_KEY` env var that you defined before (see above). You must pass your vector database api key with the HTTP Header `X-VectorDB-Key` if you are running a connecting to a cloud-based instance of a vector DB, and the embedding api key with `X-EmbeddingAPI-Key` if you are using OpenAI. HuggingFace Sentence Transformer embeddings do not require an api key, but you must follow the above steps to run the container with the model you need. 
 
-VectorFlow currently supports Pinecone, Qdrant, Weaviate, Milvus, Redis and LanceDB vector databases. 
+VectorFlow currently supports Pinecone, Qdrant, Weaviate, Milvus, Redis, MongoDB and LanceDB vector databases. 
 
 To check the status of a `job`, make a `GET` request to this endpoint: `/jobs/<int:job_id>/status`. The response will be in the form:
 
@@ -126,7 +126,7 @@ To submit a `job` for embedding, make a `POST` request to the `/embed` endpoint 
         "hugging_face_model_name": "sentence-transformer-model-name-here"
     }'
     'VectorDBMetadata={
-        "vector_db_type": "PINECONE | QDRANT | WEAVIATE | MILVUS | REDIS | LANCEDB",
+        "vector_db_type": "PINECONE | QDRANT | WEAVIATE | MILVUS | REDIS | LANCEDB | MONGODB",
         "index_name": "index_name",
         "environment": "env_name"
     }'
@@ -142,6 +142,8 @@ You will get the following payload back:
     'JobID': job_id
 }
 ```
+
+If you are using MongoDB, please note that for the `environment` variable, you will need to pass your MongoDB connection URI, which you can find in your Atlas Console under `Database Deployments->Connect->Drivers`. Your URI should look like `mongodb+srv://<username>:<password>@cluster.mongodb.net/?retryWrites=true&w=majority`, where you will replace `<username>` with your username, and pass the string as the environment variable keeping `<password>` as is in the string. For the password, you pass it in the `X-VectorDB-Key` header option.
 
 ### VectorFlow API Client
 The easiest way to use VectorFlow is with the our clients, located in `clients/` directory. There are several scripts, with different configurations for qickly uploading data. We recommmend starting with the `clients/standard_upload_client.py` - Running this script will submit a document to VectorFlow for embedding with Open AI ADA and upload to the local qdrant instance. You can change the values to match your configuration. 
