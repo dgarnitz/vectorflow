@@ -35,6 +35,7 @@ class VectorflowRequest:
     def _from_dict(data_dict):
         vectorflow_request = VectorflowRequest()
         
+        # TODO: refactor this error handling. Python's ternary operator will still try to evaluate the else clause even if the if clause is true
         vectorflow_request.vectorflow_key = data_dict['vectorflow_key'] if 'vectorflow_key' in data_dict else None
         vectorflow_request.vector_db_key = data_dict['vector_db_key'] if 'vector_db_key' in data_dict else None
         vectorflow_request.embedding_api_key = data_dict['embedding_api_key'] if 'embedding_api_key' in data_dict else None

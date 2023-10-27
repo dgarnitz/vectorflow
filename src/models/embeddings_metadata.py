@@ -28,22 +28,43 @@ class EmbeddingsMetadata(Base):
     @staticmethod
     def _from_request(request):
         embeddings_metadata_dict = json.loads(request.form.get('EmbeddingsMetadata'))
+        
+        chunk_strategy_value = embeddings_metadata_dict.get('chunk_strategy')
+        if chunk_strategy_value:
+            try:
+                chunk_strategy = ChunkStrategy[chunk_strategy_value]
+            except KeyError:
+                chunk_strategy = ChunkStrategy.EXACT
+        else:
+            chunk_strategy = ChunkStrategy.EXACT
+
+        # TODO: refactor this error handling. Python's ternary operator will still try to evaluate the else clause even if the if clause is true
         embeddings_metadata = EmbeddingsMetadata(
             embeddings_type = EmbeddingsType[embeddings_metadata_dict['embeddings_type']], 
             chunk_size = embeddings_metadata_dict['chunk_size'] if 'chunk_size' in embeddings_metadata_dict else 512,
             chunk_overlap = embeddings_metadata_dict['chunk_overlap'] if 'chunk_overlap' in embeddings_metadata_dict else 256,
-            chunk_strategy = ChunkStrategy[embeddings_metadata_dict['chunk_strategy']] if 'chunk_strategy' in embeddings_metadata_dict else ChunkStrategy.EXACT,
+            chunk_strategy = chunk_strategy,
             docker_image = embeddings_metadata_dict['docker_image'] if 'docker_image' in embeddings_metadata_dict else None,
             hugging_face_model_name = embeddings_metadata_dict['hugging_face_model_name'] if 'hugging_face_model_name' in embeddings_metadata_dict else None)
         return embeddings_metadata
     
     @staticmethod
     def _from_dict(embeddings_metadata_dict):
+        chunk_strategy_value = embeddings_metadata_dict.get('chunk_strategy')
+        if chunk_strategy_value:
+            try:
+                chunk_strategy = ChunkStrategy[chunk_strategy_value]
+            except KeyError:
+                chunk_strategy = ChunkStrategy.EXACT
+        else:
+            chunk_strategy = ChunkStrategy.EXACT
+
+        # TODO: refactor this error handling. Python's ternary operator will still try to evaluate the else clause even if the if clause is true
         embeddings_metadata = EmbeddingsMetadata(
             embeddings_type = EmbeddingsType[embeddings_metadata_dict['embeddings_type']], 
             chunk_size = embeddings_metadata_dict['chunk_size'] if 'chunk_size' in embeddings_metadata_dict else 512,
             chunk_overlap = embeddings_metadata_dict['chunk_overlap'] if 'chunk_overlap' in embeddings_metadata_dict else 256,
-            chunk_strategy = ChunkStrategy[embeddings_metadata_dict['chunk_strategy']] if 'chunk_strategy' in embeddings_metadata_dict else ChunkStrategy.EXACT,
+            chunk_strategy = chunk_strategy,
             docker_image = embeddings_metadata_dict['docker_image'] if 'docker_image' in embeddings_metadata_dict else None,
             hugging_face_model_name = embeddings_metadata_dict['hugging_face_model_name'] if 'hugging_face_model_name' in embeddings_metadata_dict else None)
         return embeddings_metadata
