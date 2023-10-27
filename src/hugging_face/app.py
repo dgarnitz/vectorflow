@@ -18,6 +18,7 @@ from shared.batch_status import BatchStatus
 from services.database import job_service
 from shared.utils import send_embeddings_to_webhook
 from shared.job_status import JobStatus
+from utils import update_batch_and_job_status
 
 model = None
 publish_channel = None
@@ -25,7 +26,7 @@ publish_channel = None
 logging.basicConfig(filename='./hf-log.txt', level=logging.INFO)
 logging.basicConfig(filename='./hf-errors.txt', level=logging.ERROR)
 
-def embed(batch_id, batch_of_chunks_to_embed, vector_db_key): 
+def embed(batch_id, batch_of_chunks_to_embed, vector_db_key):
     global model
 
     try:
@@ -37,13 +38,13 @@ def embed(batch_id, batch_of_chunks_to_embed, vector_db_key):
                 logging.error("Error moving model to GPU. Staying on CPU. Error: %s", e)
         else:
             logging.info("CUDA not available. Model stays on CPU.")
-        
+
         # does tokenization for you
         logging.info(f"Starting embedding with model: {model_name}")
         chunk_list = [chunk['text'] for chunk in batch_of_chunks_to_embed]
         embeddings = model.encode(chunk_list, normalize_embeddings=True)
         logging.info(f"Embedding complete with model: {model_name}")
-        
+
         embeddings_list = embeddings.tolist()
         for chunk, embedding in zip(batch_of_chunks_to_embed, embeddings_list):
             chunk['vector'] = embedding
@@ -68,7 +69,7 @@ def embed(batch_id, batch_of_chunks_to_embed, vector_db_key):
 
         # TODO: Add retry logic and handle partial failure case
         update_batch_status(BatchStatus.FAILED, batch_id)
-        
+
 def upload_to_vector_db(batch_id, batches_for_upload, vector_db_key):
     try:
         serialized_data = json.dumps((batch_id, batches_for_upload, vector_db_key))
@@ -84,25 +85,9 @@ def update_batch_status(batch_status, batch_id):
     try:
         with get_db() as db:
             updated_batch_status = batch_service.update_batch_status(db, batch_id, batch_status)
-            logging.info(f"Batch {batch_id} status updated to {updated_batch_status}")      
+            logging.info(f"Batch {batch_id} status updated to {updated_batch_status}")
     except Exception as e:
         logging.error('Error updating batch status: %s', e)
-
-def update_batch_and_job_status(job_id, batch_status, batch_id):
-    try:
-        if not job_id and batch_id:
-            job = safe_db_operation(batch_service.get_batch, batch_id)
-            job_id = job.job_id
-        updated_batch_status = safe_db_operation(batch_service.update_batch_status, batch_id, batch_status)
-        job = safe_db_operation(job_service.update_job_with_batch, job_id, updated_batch_status)
-        if job.job_status == JobStatus.COMPLETED:
-            logging.info(f"Job {job_id} completed successfully")
-        elif job.job_status == JobStatus.PARTIALLY_COMPLETED:
-            logging.info(f"Job {job_id} partially completed. {job.batches_succeeded} out of {job.total_batches} batches succeeded")
-                
-    except Exception as e:
-        logging.error('Error updating job and batch status: %s', e)
-        safe_db_operation(job_service.update_job_status, job_id, JobStatus.FAILED)
 
 def get_args():
     parser = argparse.ArgumentParser(description="Run Flask app with specified model name")
@@ -123,7 +108,7 @@ def callback(ch, method, properties, body):
 def start_connection():
     global publish_channel
     global model_name
-    
+
     while True:
         try:
             credentials = pika.PlainCredentials(os.getenv('RABBITMQ_USERNAME'), os.getenv('RABBITMQ_PASSWORD'))
@@ -143,7 +128,7 @@ def start_connection():
 
             connection = pika.BlockingConnection(connection_params)
             consume_channel = connection.channel()
-            publish_channel = connection.channel() 
+            publish_channel = connection.channel()
 
             consume_queue_name = model_name
             publish_queue_name = os.getenv('VDB_UPLOAD_QUEUE')
@@ -155,12 +140,12 @@ def start_connection():
 
             logging.info('Waiting for messages.')
             consume_channel.start_consuming()
-            
+
         except Exception as e:
             logging.error('ERROR connecting to RabbitMQ, retrying now. See exception: %s', e)
             time.sleep(10) # Wait before retrying
 
-if __name__ == "__main__": 
+if __name__ == "__main__":
     args = get_args()
     model_name = args.model_name
     model = SentenceTransformer(model_name)
