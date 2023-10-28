@@ -19,6 +19,7 @@ jobs:
       INTERNAL_API_KEY: ${{ secrets.INTERNAL_API_KEY }}
       OPEN_AI_KEY: ${{ secrets.OPEN_AI_KEY }}
       QDRANT_KEY: ${{ secrets.QDRANT_KEY }}
+      LOCAL_VECTOR_DB: ${{ secrets.LOCAL_VECTOR_DB }}
       
     steps:
       - uses: actions/checkout@v4
