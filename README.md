@@ -113,6 +113,8 @@ All requests require an HTTP Header with `Authorization` key which is the same a
 
 VectorFlow currently supports Pinecone, Qdrant, Weaviate, Milvus, Redis, MongoDB and LanceDB vector databases. 
 
+If you are using MongoDB, please note that for the `environment` variable, you will need to pass your MongoDB connection URI, which you can find in your Atlas Console under `Database Deployments->Connect->Drivers`. Your URI should look like `mongodb+srv://<username>:<password>@cluster.mongodb.net/?retryWrites=true&w=majority`, where you will replace `<username>` with your username, and pass the string as the environment variable keeping `<password>` as is in the string. For the password, you pass it in the `X-VectorDB-Key` header option.
+
 #### Embed a Single File
 To submit a single file for embedding, make a `POST` request to the `/embed` endpoint with a file attached, the `'Content-Type: multipart/form-data'` header and the following payload:
 
