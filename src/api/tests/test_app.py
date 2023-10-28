@@ -25,13 +25,17 @@ class TestApp(unittest.TestCase):
             "X-EmbeddingAPI-Key": "test__embed_key"
         }
 
+    @patch('services.database.database.safe_db_operation')
+    @patch('services.database.job_service.create_job')
     @patch('api.app.process_file')
-    def test_embed_endpoint(self, mock_process_file):
-        mock_process_file.return_value = (2,1)
+    def test_embed_endpoint(self, mock_process_file, mock_create_job, mock_safe_db_operation):
+        mock_process_file.return_value = 2
         test_embeddings_metadata = EmbeddingsMetadata(embeddings_type=EmbeddingsType.OPEN_AI)
         test_vector_db_metadata = VectorDBMetadata(vector_db_type=VectorDBType.PINECONE, 
                                                    index_name="test_index", 
                                                    environment="test_environment")
+        mock_create_job.return_value = Job(id=1, job_status=JobStatus.NOT_STARTED)
+        mock_safe_db_operation.return_value = "test_db"
 
         with open('api/tests/fixtures/test_text.txt', 'rb') as data_file:
             response = self.client.post('/embed', 
@@ -111,12 +115,12 @@ class TestApp(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['error'], 'Hugging face embeddings models require a "hugging_face_model_name" in the "embeddings_metadata"')
 
-    @patch('services.database.database.get_db')
+    @patch('services.database.database.safe_db_operation')
     @patch('services.database.job_service.get_job')
-    def test_get_job_status_endpoint_no_job(self, mock_get_job, mock_get_db):
+    def test_get_job_status_endpoint_no_job(self, mock_get_job, mock_safe_db_operation):
         # arrange
         mock_get_job.return_value = None
-        mock_get_db.return_value = "test_db"
+        mock_safe_db_operation.return_value = "test_db"
 
         # act
         response = self.client.get('/jobs/1/status', headers=self.headers)
@@ -125,13 +129,13 @@ class TestApp(unittest.TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json['error'], 'Job not found')
     
-    @patch('services.database.database.get_db')
+    @patch('services.database.database.safe_db_operation')
     @patch('services.database.job_service.get_job')
-    def test_get_job_status_endpoint_job_exists(self, mock_get_job, mock_get_db):
+    def test_get_job_status_endpoint_job_exists(self, mock_get_job, mock_safe_db_operation):
         # arrange
         job = Job(id=1, job_status=JobStatus.NOT_STARTED)
         mock_get_job.return_value = job
-        mock_get_db.return_value = "test_db"
+        mock_safe_db_operation.return_value = "test_db"
 
         # act
         response = self.client.get(f"/jobs/{job.id}/status", headers=self.headers)

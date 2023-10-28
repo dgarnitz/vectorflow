@@ -130,7 +130,6 @@ def write_embeddings_to_mongodb(upsert_list, vector_db_metadata):
     logging.info(f"Successfully uploaded {vectors_uploaded} vectors to MongoDB")
     return vectors_uploaded
 
-
 def create_pinecone_source_chunk_dict(text_embeddings_list, batch_id, job_id, source_filename):
     upsert_list = []
     for i, (source_text, embedding) in enumerate(text_embeddings_list):
