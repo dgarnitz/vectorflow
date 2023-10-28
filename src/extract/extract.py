@@ -1,28 +1,27 @@
-import os
 import sys
+import os
 
 # this is needed to import classes from the API. it will be removed when the worker is refactored
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
-import json
 import logging
+import json
+import pika
 import ssl
 import time
-from io import BytesIO
-from pathlib import Path
-
 import fitz
-import pika
-from docx import Document
-from llama_index import download_loader
+from pathlib import Path
+from shared.job_status import JobStatus
+from shared.batch_status import BatchStatus
+from services.database.database import safe_db_operation
 from models.batch import Batch
 from services.database import batch_service, job_service
-from services.database.database import safe_db_operation
 from services.minio.minio_service import create_minio_client
-from shared.batch_status import BatchStatus
-from shared.job_status import JobStatus
+from docx import Document
+from io import BytesIO
+from llama_index import download_loader
 from shared.vectorflow_request import VectorflowRequest
-from utils import update_batch_and_job_status
+from util import update_batch_and_job_status
 
 logging.basicConfig(filename='./extract-log.txt', level=logging.INFO)
 logging.basicConfig(filename='./extract-error-log.txt', level=logging.ERROR)
