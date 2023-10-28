@@ -4,7 +4,7 @@ name: Vectorflow_Unittests
 on:
   pull_request:
     branches: [ "main" ]
-    types: ["created"]
+    types: ["opened", "edited"]
 
 
 jobs:
