@@ -27,9 +27,10 @@ VectorFlow is an open source, high throughput, fault tolerant vector embedding p
 This current version is an MVP. We recommend using it with Kubernetes in production. Right now the system only supports uploading single files at a time, up to 25 MB. For text-based files, it supports TXT, PDF, HTML and DOCX. For image files, it support JPG, JPEG, and PNG. 
 
 # Run it Locally
-With two simple commands you can set up VectorFlow locally:
+With three commands you can run VectorFlow locally:
 ```
 git clone https://github.com/dgarnitz/vectorflow.git
+cd vectorflow
 ./setup.sh
 ```
 
@@ -38,6 +39,8 @@ To start embedding documents, add your embedding and database keys to the `env_s
 source env_scrips/env_vars.sh
 python clients/standard_upload_client.py
 ```
+
+To upload multiple files at once, use the `clients/streaming_upload_client.py`
 
 Below is a more detailed description of how to manually set up and configure the system. Please note that the `setup` script will not create a development environment on your machine, it only sets up and runs the docker-compose. We do not advise using VectorFlow on Windows. 
 
@@ -61,13 +64,18 @@ RABBITMQ_HOST=rabbitmq
 EMBEDDING_QUEUE=embeddings
 VDB_UPLOAD_QUEUE=vdb-upload
 LOCAL_VECTOR_DB=qdrant | milvus | weaviate
+API_STORAGE_DIRECTORY=/tmp
+MINIO_ACCESS_KEY=minio99
+MINIO_SECRET_KEY=minio123
+MINIO_ENDPOINT=minio:9000
+MINIO_BUCKET=vectorflow
 ```
 
 You can choose a variable for `INTERNAL_API_KEY`, `POSTGRES_PASSWORD`, and `POSTGRES_DB`, but they must be set.
 
 ### 2) Run Docker-Compose
 
-Make sure you pull Rabbit MQ and Postgres into your local docker repo. We also recommend running a vector DB in locally, so make sure to pull the image of the one you are using. Our `docker-compose` file will spin up qdrant by default and create two index/collections. If you plan to run Milvus or Weaviate, you will have to configure them on your own. 
+Make sure you pull Rabbit MQ, Postgres, Min.io into your local docker repo. We also recommend running a vector DB in locally, so make sure to pull the image of the one you are using. Our `docker-compose` file will spin up qdrant by default and create two index/collections. If you plan to run Milvus or Weaviate, you will have to configure them on your own. 
 
 ```
 docker pull rabbitmq
@@ -83,7 +91,7 @@ docker-compose build --no-cache
 docker-compose up -d
 ```
 
-Note that the `db-init` container is running a script that sets up the database schema and will stop after the script completes.
+Note that the `init` containers are running a script that sets up the database schema, vector DB and Min.io object store. These containers stop after the script completes.
 
 ### 3) (optional) Configure Sentence Transformer open face models. 
 VectorFlow can run any Sentence Transformer model but the `docker-compose` file will not spin it up automatically. Either run `app.py --model_name your-sentence-transformer-model`, or build and run the docker image in `src/hugging_face` with:
@@ -105,15 +113,8 @@ All requests require an HTTP Header with `Authorization` key which is the same a
 
 VectorFlow currently supports Pinecone, Qdrant, Weaviate, Milvus, Redis, MongoDB and LanceDB vector databases. 
 
-To check the status of a `job`, make a `GET` request to this endpoint: `/jobs/<int:job_id>/status`. The response will be in the form:
-
-```
-{
-    'JobStatus': job_status.value
-}
-```
-
-To submit a `job` for embedding, make a `POST` request to the `/embed` endpoint with a file attached, the `'Content-Type: multipart/form-data'` header and the following payload:
+#### Embed a Single File
+To submit a single file for embedding, make a `POST` request to the `/embed` endpoint with a file attached, the `'Content-Type: multipart/form-data'` header and the following payload:
 
 ```
 {
@@ -135,7 +136,7 @@ To submit a `job` for embedding, make a `POST` request to the `/embed` endpoint 
 }
 ```
 
-You will get the following payload back:
+This will create a `job and you will get the following payload back:
 
 ```
 {
@@ -143,11 +144,59 @@ You will get the following payload back:
     'JobID': job_id
 }
 ```
+#### Embed Multiple Files At Once
+To submit multiple files for embedding, make a `POST` request to the `/jobs` endpoint. The payload is the same as for single file embedding except the way you attach multiple files is different:
 
-If you are using MongoDB, please note that for the `environment` variable, you will need to pass your MongoDB connection URI, which you can find in your Atlas Console under `Database Deployments->Connect->Drivers`. Your URI should look like `mongodb+srv://<username>:<password>@cluster.mongodb.net/?retryWrites=true&w=majority`, where you will replace `<username>` with your username, and pass the string as the environment variable keeping `<password>` as is in the string. For the password, you pass it in the `X-VectorDB-Key` header option.
+```
+{
+    'files=[
+        ('file',  ('test_pdf.pdf', open(file1_path, 'rb'), 'application/octet-stream')),
+        ('file', ('test_medium_text.txt', open(file2_path, 'rb'), 'application/octet-stream'))
+    ]'
+}
+```
+*NOTE:* You must `stream` the files to the endpoint, not send it as a conventional post request or it will fail. 
+
+This endpoint will create one `job` per file uploaded. You will get the following JSON payload back:
+
+```
+{   
+    'successful_uploads': successfully_uploaded_files,
+    'failed_uploads': failed_uploads,
+    'empty_files_count': empty_files_count,
+    'duplicate_files_count': duplicate_files_count
+}
+```
+
+Where `successfully_uploaded_files` is a list of tuples containing `(file name, job id)` and `failed_uploads` is a list of file names that failed to upload so you can retry them. 
+
+#### Get a Single Job Status
+To check the status of a `job`, make a `GET` request to this endpoint: `/jobs/<int:job_id>/status`. The response will be in the form:
+
+```
+{
+    'JobStatus': job_status
+}
+```
+
+#### Get Multiple Job Statuses
+To check the status of multiples `job`, make a `POST` request to this endpoint: `/jobs/status`. The request body will be in the form:
+
+```
+{
+    'JobIDs': job_ids
+}
+```
+
+and the response will be in the form
+```
+{
+    'Jobs': [{'JobID': job_id, 'JobStatus': job_status}, ...]}
+```
+There is an example in `clients/get_jobs_by_ids.py`.
 
 ### VectorFlow API Client
-The easiest way to use VectorFlow is with the our clients, located in `clients/` directory. There are several scripts, with different configurations for qickly uploading data. We recommmend starting with the `clients/standard_upload_client.py` - Running this script will submit a document to VectorFlow for embedding with Open AI ADA and upload to the local qdrant instance. You can change the values to match your configuration. 
+The easiest way to use VectorFlow is with the our clients, located in `clients/` directory. There are several scripts, with different configurations for qickly uploading data. We recommmend starting with the `clients/standard_upload_client.py` - Running this script will submit a single document to VectorFlow for embedding with Open AI ADA and upload to the local qdrant instance. You can change the values to match your configuration. To upload multiple files at once, use the `clients/streaming_upload_client.py`
 
 Note that the `TESTING_ENV` variable is the equivalent of the `environment` field in the `VectorDBMetadata`, which corresponds to an environment in Pincone, a class in Weaviate, a collection in qdrant, etc. 
 
@@ -251,7 +300,7 @@ We love feedback from the community. If you have an idea of how to make this pro
 
 Our roadmap is outlined in the section below and we would love help in building it out. Our open issues are a great place to start and can be viewed [here](https://github.com/dgarnitz/vectorflow/issues). If you want to work on something not listed there, we recommend you open an issue with a proposed approach in mind before submitting a PR.
 
-Please tag `dgarnitz` on all PRs and update the README to reflect your changes.
+Please tag `dgarnitz` on all PRs and *update the README* to reflect your changes.
 
 ### Testing
 
