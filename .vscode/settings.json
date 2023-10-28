@@ -1,7 +1,0 @@
-{
-    "[python]": {
-        "editor.formatOnSave": false
-    },
-    "ruff.fixAll": false,
-    "ruff.organizeImports": false
-}
