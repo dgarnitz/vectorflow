@@ -24,7 +24,7 @@
 
 VectorFlow is an open source, high throughput, fault tolerant vector embedding pipeline. With a simple API request, you can send raw data that will be chunked, embedded and stored in any vector database or returned back to you. VectorFlow is multi-modal and can ingest both textual and image data. 
 
-This current version is an MVP. We recommend using it with Kubernetes in production. Right now the system only supports uploading single files at a time, up to 25 MB. For text-based files, it supports TXT, PDF, HTML and DOCX. For image files, it support JPG, JPEG, and PNG. 
+This current version is an MVP. We recommend using it with Kubernetes in production. For text-based files, it supports TXT, PDF, HTML and DOCX. For image files, it support JPG, JPEG, and PNG. 
 
 # Run it Locally
 With three commands you can run VectorFlow locally:
@@ -146,6 +146,9 @@ This will create a `job and you will get the following payload back:
     'JobID': job_id
 }
 ```
+
+Right now this endpoint only supports uploading single files at a time, up to 25 MB due to timeout issues. Note that it may be deprecated.
+
 #### Embed Multiple Files At Once
 To submit multiple files for embedding, make a `POST` request to the `/jobs` endpoint. The payload is the same as for single file embedding except the way you attach multiple files is different:
 
