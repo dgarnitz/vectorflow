@@ -43,9 +43,15 @@ POSTGRES_HOST=postgres
 RABBITMQ_USERNAME=guest
 RABBITMQ_PASSWORD=guest
 RABBITMQ_HOST=rabbitmq
+EXTRACTION_QUEUE=extraction
 EMBEDDING_QUEUE=embeddings
 VDB_UPLOAD_QUEUE=vdb-upload
 LOCAL_VECTOR_DB=qdrant
+API_STORAGE_DIRECTORY=/tmp
+MINIO_ACCESS_KEY=minio99
+MINIO_SECRET_KEY=minio123
+MINIO_ENDPOINT=minio:9000
+MINIO_BUCKET=vectorflow
 EOL
 
 # Populate env_vars.sh file
@@ -59,9 +65,15 @@ export POSTGRES_HOST=postgres
 export RABBITMQ_USERNAME=guest
 export RABBITMQ_PASSWORD=guest
 export RABBITMQ_HOST=rabbitmq
+export EXTRACTION_QUEUE=extraction
 export EMBEDDING_QUEUE=embeddings
 export VDB_UPLOAD_QUEUE=vdb-upload
 export LOCAL_VECTOR_DB=qdrant
+export API_STORAGE_DIRECTORY=/tmp
+export MINIO_ACCESS_KEY=minio99
+export MINIO_SECRET_KEY=minio123
+export MINIO_ENDPOINT=minio:9000
+export MINIO_BUCKET=vectorflow
 
 # Optional keys for external services
 export OPEN_AI_KEY=your_open_ai_key
@@ -77,6 +89,7 @@ echo "Environment variables set. Pulling required Docker images."
 docker pull rabbitmq
 docker pull postgres
 docker pull qdrant/qdrant
+docker pull minio/minio
 
 echo "Building and running VectorFlow via docker-compose"
 

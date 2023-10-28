@@ -35,4 +35,4 @@ class Pipeline:
             )
 
     def add_to_queue(self, data, queue):
-        self.channel.basic_publish(exchange='', routing_key=queue, body=str(data))
+        self.channel.basic_publish(exchange='', routing_key=queue, body=data)

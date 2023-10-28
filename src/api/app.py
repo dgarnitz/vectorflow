@@ -5,8 +5,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
 import requests
-# magic requires lib magic to be installed on the system. If running on mac and an error occurs, run `brew install libmagic`
-import magic
+import magic # magic requires lib magic to be installed on the system. If running on mac and an error occurs, run `brew install libmagic`
 import json
 import fitz
 import base64
@@ -20,13 +19,14 @@ from models.batch import Batch
 from api.auth import Auth
 from api.pipeline import Pipeline
 from services.database.database import get_db, safe_db_operation
-from api.vectorflow_request import VectorflowRequest
+from shared.vectorflow_request import VectorflowRequest
 from shared.embeddings_type import EmbeddingsType
 from docx import Document
 from shared.image_search_request import ImageSearchRequest
 from urllib.parse import urlparse
 from pathlib import Path
 from llama_index import download_loader
+from services.minio.minio_service import create_minio_client
 
 auth = Auth()
 pipeline = Pipeline()
@@ -36,7 +36,7 @@ CORS(app)
 @app.route("/embed", methods=['POST'])
 def embed():
     # TODO: add validator service
-    vectorflow_request = VectorflowRequest(request)
+    vectorflow_request = VectorflowRequest._from_flask_request(request)
     if not vectorflow_request.vectorflow_key or not auth.validate_credentials(vectorflow_request.vectorflow_key):
         return jsonify({'error': 'Invalid credentials'}), 401
  
@@ -61,17 +61,97 @@ def embed():
     file.seek(0)
 
     if file_size > 25 * 1024 * 1024:
-        return jsonify({'error': 'File is too large. VectorFlow currently only supports 25 MB files or less. Larger file support coming soon.'}), 413
+        return jsonify({'error': 'File is too large. The /embed endpoint currently only supports 25 MB files or less. Please use /jobs for streaming large files or multiple files.'}), 413
     
     # empty filename means no file was selected
     if file.filename == '':
         return jsonify({'error': 'No selected file'}), 400
     
     if file and is_valid_file_type(file):
-        batch_count, job_id = process_file(file, vectorflow_request)
-        return jsonify({'message': f"Successfully added {batch_count} batches to the queue", 'JobID': job_id}), 200
+        job = safe_db_operation(job_service.create_job, vectorflow_request, file.filename)
+        batch_count = process_file(file, vectorflow_request, job.id)
+        return jsonify({'message': f"Successfully added {batch_count} batches to the queue", 'JobID': job.id}), 200
     else:
         return jsonify({'error': 'Uploaded file is not a TXT, PDF, Markdown or DOCX file'}), 400
+
+@app.route('/jobs', methods=['POST'])
+def create_jobs():
+     # TODO: add validator service
+    vectorflow_request = VectorflowRequest._from_flask_request(request)
+    if not vectorflow_request.vectorflow_key or not auth.validate_credentials(vectorflow_request.vectorflow_key):
+        return jsonify({'error': 'Invalid credentials'}), 401
+ 
+    if not vectorflow_request.embeddings_metadata or not vectorflow_request.vector_db_metadata or (not vectorflow_request.vector_db_key and not os.getenv('LOCAL_VECTOR_DB')):
+        return jsonify({'error': 'Missing required fields'}), 400
+    
+    if vectorflow_request.embeddings_metadata.embeddings_type == EmbeddingsType.HUGGING_FACE and not vectorflow_request.embeddings_metadata.hugging_face_model_name:
+        return jsonify({'error': 'Hugging face embeddings models require a "hugging_face_model_name" in the "embeddings_metadata"'}), 400
+    
+    if vectorflow_request.webhook_url and not vectorflow_request.webhook_key:
+        return jsonify({'error': 'Webhook URL provided but no webhook key'}), 400
+    
+    if not hasattr(request, "files") or not request.files:
+        return jsonify({'error': 'No file part in the request'}), 400
+    
+    files = request.files.getlist('file')
+    successfully_uploaded_files = dict()
+    failed_uploads = []
+    empty_files_count = 0
+    duplicate_files_count = 0
+
+    for file in files:
+        # Check if a file is empty (no filename)
+        if file.filename == '':
+            empty_files_count += 1
+            continue
+        
+        if not is_valid_file_type(file):
+            failed_uploads.append(file.filename)
+            continue
+
+        if file.filename in successfully_uploaded_files:
+            duplicate_files_count += 1
+            continue
+
+        temporary_storage_location = os.getenv('API_STORAGE_DIRECTORY')
+        file_path = os.path.join(temporary_storage_location, file.filename)
+        with open(file_path, 'wb') as f:
+            chunk_size = 65536  # 64 KB
+            while True:
+                chunk = file.stream.read(chunk_size)
+                if len(chunk) == 0:
+                    break
+                f.write(chunk)
+        try:
+            result = upload_to_minio(file_path, file.filename)
+            os.remove(file_path)
+
+            if not result:
+                failed_uploads.append(file.filename)
+                continue
+            
+            job = safe_db_operation(job_service.create_job, vectorflow_request, file.filename)
+            if not job:
+                remove_from_minio(file.filename)
+                continue
+       
+            data = (job.id, file.filename, vectorflow_request.serialize())
+            json_data = json.dumps(data)
+
+            pipeline.connect(queue=os.getenv('EXTRACTION_QUEUE'))
+            pipeline.add_to_queue(json_data, queue=os.getenv('EXTRACTION_QUEUE'))
+            pipeline.disconnect()
+
+            successfully_uploaded_files[file.filename] = job.id
+        except Exception as e:
+            print(f"Error uploading file {file.filename} to min.io, creating job or passing vectorflow request to message broker. \nError: {e}\n\n")
+            failed_uploads.append(file.filename)       
+
+    return jsonify({'message': 'Files processed', 
+                    'successful_uploads': successfully_uploaded_files,
+                    'failed_uploads': failed_uploads,
+                    'empty_files_count': empty_files_count,
+                    'duplicate_files_count': duplicate_files_count}), 200
 
 @app.route('/jobs/<int:job_id>/status', methods=['GET'])
 def get_job_status(job_id):
@@ -79,17 +159,35 @@ def get_job_status(job_id):
     if not vectorflow_key or not auth.validate_credentials(vectorflow_key):
         return jsonify({'error': 'Invalid credentials'}), 401
     
-    with get_db() as db:
-        job = job_service.get_job(db, job_id)
-        if job:
-            return jsonify({'JobStatus': job.job_status.value}), 200
-        else:
-            return jsonify({'error': "Job not found"}), 404
+    job = safe_db_operation(job_service.get_job, job_id)
+    if job:
+        return jsonify({'JobStatus': job.job_status.value}), 200
+    else:
+        return jsonify({'error': "Job not found"}), 404
+        
+@app.route('/jobs/status', methods=['POST'])
+def get_job_statuses():
+    vectorflow_key = request.headers.get('Authorization')
+    if not vectorflow_key or not auth.validate_credentials(vectorflow_key):
+        return jsonify({'error': 'Invalid credentials'}), 401
+    
+    if not hasattr(request, 'json') or not request.json:
+        return jsonify({'error': 'Missing JSON body'}), 400
+    
+    job_ids = request.json.get('JobIDs')
+    if not job_ids:
+        return jsonify({'error': 'Missing JobIDs field'}), 400
+    
+    jobs = safe_db_operation(job_service.get_jobs, job_ids)
+    if jobs:
+        return jsonify({'Jobs': [{'JobID': job.id, 'JobStatus': job.job_status.value} for job in jobs]}), 200
+    else:
+        return jsonify({'error': "Jobs not found"}), 404   
     
 @app.route("/s3", methods=['POST'])
 def s3_presigned_url():
     # TODO: add validator service
-    vectorflow_request = VectorflowRequest(request)
+    vectorflow_request = VectorflowRequest._from_flask_request(request)
     if not vectorflow_request.vectorflow_key or not auth.validate_credentials(vectorflow_request.vectorflow_key):
         return jsonify({'error': 'Invalid credentials'}), 401
     
@@ -137,7 +235,7 @@ def s3_presigned_url():
     else:
         print('Failed to download file:', response.status_code, response.reason)
 
-def process_file(file, vectorflow_request):
+def process_file(file, vectorflow_request, job_id):
     if file.filename.endswith('.txt'):
         file_content = file.read().decode('utf-8')
     
@@ -167,9 +265,8 @@ def process_file(file, vectorflow_request):
             for page in doc:
                 file_content += page.get_text()
 
-    job = safe_db_operation(job_service.create_job, vectorflow_request, file.filename)
-    batch_count = create_batches(file_content, job.id, vectorflow_request)
-    return batch_count, job.id
+    batch_count = create_batches(file_content, job_id, vectorflow_request)
+    return batch_count
 
 def create_batches(file_content, job_id, vectorflow_request):
     chunks = [chunk for chunk in split_file(file_content, vectorflow_request.lines_per_batch)]
@@ -197,7 +294,7 @@ def split_file(file_content, lines_per_chunk=1000):
 @app.route("/images", methods=['POST'])
 def upload_image():
     # TODO: add validator service
-    vectorflow_request = VectorflowRequest(request)
+    vectorflow_request = VectorflowRequest._from_flask_request(request)
     if not vectorflow_request.vectorflow_key or not auth.validate_credentials(vectorflow_request.vectorflow_key):
         return jsonify({'error': 'Invalid credentials'}), 401
  
@@ -261,7 +358,7 @@ def process_image(file, vectorflow_request):
     return job.id
 
 @app.route("/images/search", methods=['POST'])
-def search_image():
+def search_image_from_vdb():
     image_search_request = ImageSearchRequest._from_request(request)
     if not image_search_request.vectorflow_key or not auth.validate_credentials(image_search_request.vectorflow_key):
         return jsonify({'error': 'Invalid credentials'}), 401
@@ -289,7 +386,7 @@ def search_image():
     
     if file and (file.filename.endswith('.jpg') or file.filename.endswith('.jpeg') or file.filename.endswith('.png')):
         try:
-            response = search_image(file, image_search_request)
+            response = search_image_from_vdb(file, image_search_request)
 
             if response.status_code == 200:
                 response_json = response.json()
@@ -311,7 +408,7 @@ def search_image():
     else:
         return jsonify({'error': 'Uploaded file is not a JPG, JPEG, or PNG file'}), 400
     
-def search_image(file, image_search_request):
+def search_image_from_vdb(file, image_search_request):
     url = f"{os.getenv('IMAGE_SEARCH_URL')}/search"
     data = {
         'ImageSearchRequest': json.dumps(image_search_request.serialize()),
@@ -346,6 +443,39 @@ def is_valid_file_type(file):
         if file.filename.endswith(type):
             return True
     return False
+
+def remove_from_minio(filename):
+    client = create_minio_client()
+    client.remove_object(os.getenv("MINIO_BUCKET"), filename)
+
+def upload_to_minio(file_path, filename):
+    client = create_minio_client()
+
+    file_size = os.path.getsize(file_path)
+
+    # Wrap the generator with our StreamWrapper
+    stream = StreamWrapper(lambda: file_data_generator(file_path))
+
+    result = client.put_object(
+        os.getenv("MINIO_BUCKET"), filename, stream, file_size
+    )
+    return result
+
+# generator used to stream
+def file_data_generator(file_path, chunk_size=65536):  # 64KB
+    with open(file_path, 'rb') as file:
+        while True:
+            data = file.read(chunk_size)
+            if not data:
+                break
+            yield data
+
+class StreamWrapper:
+    def __init__(self, generator_func):
+        self.generator = generator_func()
+
+    def read(self, *args):
+        return next(self.generator, b'')
 
 if __name__ == '__main__':
    app.run(host='0.0.0.0', debug=True)

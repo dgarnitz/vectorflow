@@ -50,6 +50,49 @@ services:
     networks:
       - vectorflow
 
+  minio:
+    image: minio/minio
+    container_name: minio
+    networks:
+      - vectorflow
+    ports:
+      - "9000:9000"
+      - '9001:9001'
+    env_file:
+      - ./env_scripts/env_vars.env
+    command: 'server /data --console-address ":9001"'
+
+  minio-init:
+    build:
+      context: ./src
+      dockerfile: scripts/Dockerfile.minio
+    env_file:
+      - ./env_scripts/env_vars.env
+    depends_on:
+      - minio
+    networks:
+      - vectorflow
+
+  extractor:
+    build:
+      context: ./src
+      dockerfile: extract/Dockerfile
+    container_name: vectorflow_extractor
+    volumes:
+      - ./src/:/app
+    env_file:
+      - ./env_scripts/env_vars.env
+    networks:
+      - vectorflow
+    depends_on:
+      - postgres
+      - db-init
+      - rabbitmq
+      - qdrant-init
+      - minio
+      - minio-init
+    command: ["bash", "/wait-for-it.sh", "rabbitmq:5672", "--", "python", "extract.py"]
+
   api:
     build:
       context: ./src
@@ -66,6 +109,8 @@ services:
       - db-init
       - rabbitmq
       - qdrant-init
+      - minio
+      - minio-init
     ports:
       - "8000:8000"
     command: ["bash", "/wait-for-it.sh", "rabbitmq:5672", "--", "gunicorn", "-w", "1", "-b", "0.0.0.0:8000", "api.app:app"]
@@ -85,7 +130,7 @@ services:
       - postgres
       - db-init
       - rabbitmq
-      - qdrant-init
+      - extractor
     command: ["bash", "/wait-for-it.sh", "rabbitmq:5672", "--", "python", "worker.py"]
 
   vdb-upload-worker:
@@ -100,6 +145,7 @@ services:
     networks:
       - vectorflow
     depends_on:
+      - qdrant-init
       - worker
     command: ["bash", "/wait-for-it.sh", "rabbitmq:5672", "--", "python", "vdb_upload_worker.py"]
 
