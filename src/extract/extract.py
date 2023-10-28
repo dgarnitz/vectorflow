@@ -124,7 +124,7 @@ def create_batches(file_content, job_id, vectorflow_request):
             update_batch_and_job_status(batch.id, BatchStatus.FAILED) # TODO: add batch failure logic here
 
     return job.total_batches if job else None
-
+  
 def split_file(file_content, lines_per_chunk=1000):
     lines = file_content.splitlines()
     for i in range(0, len(lines), lines_per_chunk):
@@ -177,7 +177,6 @@ def start_connection():
 
             connection = pika.BlockingConnection(connection_params)
             consume_channel = connection.channel()
-            publish_channel = connection.channel()
 
             consume_queue_name = os.getenv('EXTRACTION_QUEUE')
             publish_queue_name = os.getenv('EMBEDDING_QUEUE')
