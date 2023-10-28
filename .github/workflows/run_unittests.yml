@@ -15,6 +15,11 @@ jobs:
       matrix:
         python-version: ["3.9", "3.10", "3.11"]
 
+    env:
+      INTERNAL_API_KEY: ${{ secrets.INTERNAL_API_KEY }}
+      OPEN_AI_KEY: ${{ secrets.OPEN_AI_KEY }}
+      QDRANT_KEY: ${{ secrets.QDRANT_KEY }}
+      
     steps:
       - uses: actions/checkout@v4
       - name: Setup Python # Set Python version
