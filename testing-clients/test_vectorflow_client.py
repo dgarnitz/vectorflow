@@ -8,42 +8,40 @@ import time
 from client.vectorflow import Vectorflow
 
 vectorflow = Vectorflow()
-
+vectorflow.embeddings_api_key = os.getenv("OPEN_AI_KEY")
 
 ##########################
 # Test Single File Embed #
 ##########################
 
-# filepath = './src/api/tests/fixtures/test_medium_text.txt'
-# response = vectorflow.embed(filepath)
-# if response.status_code == 500:
-#     exit(0)
+filepath = './src/api/tests/fixtures/test_medium_text.txt'
+response = vectorflow.embed(filepath)
+if response.status_code == 500:
+    exit(0)
 
-# response_json = response.json()
-# job_id = response_json['JobID']
-# print(f"Job ID: {job_id}")
+response_json = response.json()
+job_id = response_json['JobID']
+print(f"Job ID: {job_id}")
 
-# job_status = None
-# count = 0
-# while job_status != "COMPLETED" and job_status != "FAILED" and count < 10:
-#     print(f"fetching job status for job {job_id}")
-#     response = vectorflow.get_job_status(job_id)
-#     response_json = response.json()
-#     job_status = response_json['JobStatus']
-#     count += 1
-#     time.sleep(3)
+job_status = None
+count = 0
+while job_status != "COMPLETED" and job_status != "FAILED" and count < 10:
+    print(f"fetching job status for job {job_id}")
+    response = vectorflow.get_job_status(job_id)
+    response_json = response.json()
+    job_status = response_json['JobStatus']
+    count += 1
+    time.sleep(3)
 
-# print(f"Job status: {job_status}")
+print(f"Job status: {job_status}")
 
 ##########################
 # Test Streaming Upload ##
 ##########################
 paths = ['./src/api/tests/fixtures/test_pdf.pdf','./src/api/tests/fixtures/test_medium_text.txt','./src/api/tests/fixtures/test_medium_text.txt']
-# filenames = [os.path.basename(path) for path in paths]
-# files = zip(filenames, paths)
-
 response = vectorflow.upload(paths)
-print(response.status_code)
+if response.status_code == 500:
+    exit(0)
 
 response_json = response.json()
 print(response_json)
