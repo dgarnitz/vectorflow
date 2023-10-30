@@ -1,3 +1,4 @@
+import os
 import requests
 import json
 from client.embeddings_metadata_client import EmbeddingsMetadataClient
@@ -36,17 +37,20 @@ class Vectorflow:
         }
         return {k: v for k, v in data.items() if v is not None}
 
-    def upload(self, files_to_upload: list[tuple[str, str]], base_url: str = "http://localhost:8000"):
+    def upload(self, file_paths: list[str], base_url: str = "http://localhost:8000"):
         url = base_url + "/jobs"
         data = self.serialize()
         headers = self.generate_headers()
-        multipart_form_data = [('file', (filename, open(filepath, 'rb'), 'application/octet-stream')) for filename, filepath in files_to_upload]
+        multipart_form_data = [('file', (os.path.basename(filepath), open(filepath, 'rb'), 'application/octet-stream')) for filepath in file_paths]
 
-        print(f"embedding {len(files_to_upload)} documents at {url}")
+        print(f"embedding {len(file_paths)} documents at {url}")
         response = requests.post(url, files=multipart_form_data, headers=headers, stream=True, data=data)
 
-        if response.status_code != 200:
-            print(f"Error: {response.error}")
+        if response.status_code == 500:
+            print(response.text)
+        elif response.status_code >= 400 and response.status_code < 500:
+            response_json = response.json()
+            print(f"Error: {response_json['error']}")
 
         return response
     
@@ -63,8 +67,11 @@ class Vectorflow:
         print(f"retrieving job statuses for {len(job_ids)} jobs at {url}")
         response = requests.post(url, headers=headers, json=data)
 
-        if response.status_code != 200:
-            print(f"Error: {response.error}")
+        if response.status_code == 500:
+            print(response.text)
+        elif response.status_code >= 400 and response.status_code < 500:
+            response_json = response.json()
+            print(f"Error: {response_json['error']}")
         
         return response
     
