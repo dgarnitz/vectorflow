@@ -34,15 +34,22 @@ cd vectorflow
 ./setup.sh
 ```
 
-To start embedding documents, add your embedding and database keys to the `env_scrips/env_vars.sh` script that was generated and set the `filepath` variable in `clients/standard_upload_client.py` to point to the file you want to embed. Then run:
+#### Embed Documents with Client
+To start embedding documents locally, [install the VectorFlow Client python library](https://pypi.org/project/vectorflow-client/)
 ```
-source env_scrips/env_vars.sh
-python clients/standard_upload_client.py
+pip install vectorflow-client
+```
+then run the following
+```
+vectorflow = Vectorflow()
+vectorflow.embeddings_api_key = os.getenv("OPEN_AI_KEY")
+paths = ['path_to_your_file']
+response = vectorflow.upload(paths)
 ```
 
-To upload multiple files at once, use the `clients/streaming_upload_client.py`
+for more instructions see the `README.md` in the `client` directory.
 
-Below is a more detailed description of how to manually set up and configure the system. Please note that the `setup` script will not create a development environment on your machine, it only sets up and runs the docker-compose. We do not advise using VectorFlow on Windows. 
+See the appendix for details on how to use the `testing_clients` scripts.
 
 ## Docker-Compose
 
@@ -198,12 +205,7 @@ and the response will be in the form
 {
     'Jobs': [{'JobID': job_id, 'JobStatus': job_status}, ...]}
 ```
-There is an example in `clients/get_jobs_by_ids.py`.
-
-### VectorFlow API Client
-The easiest way to use VectorFlow is with the our clients, located in `clients/` directory. There are several scripts, with different configurations for qickly uploading data. We recommmend starting with the `clients/standard_upload_client.py` - Running this script will submit a single document to VectorFlow for embedding with Open AI ADA and upload to the local qdrant instance. You can change the values to match your configuration. To upload multiple files at once, use the `clients/streaming_upload_client.py`
-
-Note that the `TESTING_ENV` variable is the equivalent of the `environment` field in the `VectorDBMetadata`, which corresponds to an environment in Pincone, a class in Weaviate, a collection in qdrant, etc. 
+There is an example in `testing_clients/get_jobs_by_ids.py`.
 
 ### Vector Database Standard Metadata Schema 
 VectorFlow enforces a standardized schema for uploading data to a vector store:
@@ -244,6 +246,63 @@ If you wish to validate which chunks you wish to embed, pass a `ChunkValidationU
 
 ### S3 Endpoint
 VectorFlow is integrated with AWS s3. You can pass a pre-signed s3 URL in the body of the HTTP instead of a file. Use the form field `PreSignedURL` and hit the endpoint `/s3`. This endpoint has the same configuration and restrictions as the `/embed` endpoint. 
+
+# Contributing
+
+We love feedback from the community. If you have an idea of how to make this project better, we encourage you to open an issue or join our Discord. Please tag `dgarnitz` and `danmeier2`.
+
+Our roadmap is outlined in the section below and we would love help in building it out. Our open issues are a great place to start and can be viewed [here](https://github.com/dgarnitz/vectorflow/issues). If you want to work on something not listed there, we recommend you open an issue with a proposed approach in mind before submitting a PR.
+
+Please tag `dgarnitz` on all PRs and *update the README* to reflect your changes.
+
+### Testing
+
+When submitting a PR, please add units tests to cover the functionality you have added. Please re-run existing tests to ensure there are no regressive bugs. Run from the `src` directory. To run an individual test use:
+
+```
+python -m unittest module.tests.test_file.TestClass.test_method
+```
+
+To run all the tests in the file use: 
+```
+python -m unittest module.tests.test_file
+```
+
+For end-to-end testing, it is recommend to build and run using the docker-compose, but take down the container you are altering and run it locally on your development machine. This will avoid the need to constantly rebuild the images and re-run the containers. Make sure to change the environment variables in your development machine terminal to the correct values (i.e. `localhost` instead of `rabbitmq` or `postgres`) so that the docker containers can communicate with your development machine. Once it works locally you can perform a final test with everything in docker-compose.
+
+### Verifying
+Please verify that all changes work with docker-compose before opening a PR. 
+
+We also recommend you add verification evidence, such as screenshots, that show that your code works in an end to end flow. 
+
+
+# Roadmap
+
+- [ ] Support for multi-file, directory data ingestion from sources such as Salesforce, Google Drive, etc
+- [ ] Retry mechanism
+- [ ] Langchain & Llama Index integrations
+- [ ] Support callbacks for writing object metadata to a separate store
+- [ ] Dynamically configurable vector DB schemas
+- [ ] Deduplication capabilities
+- [ ] Vector version control
+- [ ] "Smart" chunker
+- [ ] "Smart" metadata extractor
+
+# Appendix
+
+## Embed with Testing Scripts
+One easy way to use VectorFlow is with the our testing clients, located in `testing_clients/` directory. There are several scripts, with different configurations for qickly uploading data. We recommmend starting with the `testing_clients/standard_upload_client.py` - Running this script will submit a single document to VectorFlow for embedding with Open AI ADA and upload to the local qdrant instance. You can change the values to match your configuration. To upload multiple files at once, use the `testing_clients/streaming_upload_client.py`
+
+Note that the `TESTING_ENV` variable is the equivalent of the `environment` field in the `VectorDBMetadata`, which corresponds to an environment in Pincone, a class in Weaviate, a collection in qdrant, etc. 
+The `testing_clients` directory has sample scripts you can follow to run vectorflow. Add your embedding and database keys to the `env_scrips/env_vars.sh` script that was generated and set the `filepath` variable in `testing_clients/standard_upload_client.py` to point to the file you want to embed. Then run:
+```
+source env_scrips/env_vars.sh
+python clients/standard_upload_client.py
+```
+
+To upload multiple files at once, use the `testing_clients/streaming_upload_client.py`
+
+See above for a more detailed description of how to manually set up and configure the system. Please note that the `setup` script will not create a development environment on your machine, it only sets up and runs the docker-compose. We do not advise using VectorFlow on Windows. 
 
 ## Image Embedding & Similarity Search
 VectorFlow can embed images using the [Image2Vec library](https://github.com/christiansafka/img2vec). It will create a 512 dimensional vector by default from any image. You can also perform a Top-K image similarity search. 
@@ -298,44 +357,3 @@ where `match`` objects are defined as:
     "metadata": {"source_document" : str}
 }
 ```
-
-# Contributing
-
-We love feedback from the community. If you have an idea of how to make this project better, we encourage you to open an issue or join our Discord. Please tag `dgarnitz` and `danmeier2`.
-
-Our roadmap is outlined in the section below and we would love help in building it out. Our open issues are a great place to start and can be viewed [here](https://github.com/dgarnitz/vectorflow/issues). If you want to work on something not listed there, we recommend you open an issue with a proposed approach in mind before submitting a PR.
-
-Please tag `dgarnitz` on all PRs and *update the README* to reflect your changes.
-
-### Testing
-
-When submitting a PR, please add units tests to cover the functionality you have added. Please re-run existing tests to ensure there are no regressive bugs. Run from the `src` directory. To run an individual test use:
-
-```
-python -m unittest module.tests.test_file.TestClass.test_method
-```
-
-To run all the tests in the file use: 
-```
-python -m unittest module.tests.test_file
-```
-
-For end-to-end testing, it is recommend to build and run using the docker-compose, but take down the container you are altering and run it locally on your development machine. This will avoid the need to constantly rebuild the images and re-run the containers. Make sure to change the environment variables in your development machine terminal to the correct values (i.e. `localhost` instead of `rabbitmq` or `postgres`) so that the docker containers can communicate with your development machine. Once it works locally you can perform a final test with everything in docker-compose.
-
-### Verifying
-Please verify that all changes work with docker-compose before opening a PR. 
-
-We also recommend you add verification evidence, such as screenshots, that show that your code works in an end to end flow. 
-
-
-# Roadmap
-
-- [ ] Support for multi-file, directory data ingestion from sources such as Salesforce, Google Drive, etc
-- [ ] Retry mechanism
-- [ ] Langchain & Llama Index integrations
-- [ ] Support callbacks for writing object metadata to a separate store
-- [ ] Dynamically configurable vector DB schemas
-- [ ] Deduplication capabilities
-- [ ] Vector version control
-- [ ] "Smart" chunker
-- [ ] "Smart" metadata extractor
