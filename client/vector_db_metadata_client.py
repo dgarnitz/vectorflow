@@ -1,4 +1,4 @@
-from shared.vector_db_type import VectorDBType
+from src.shared.vector_db_type import VectorDBType
 
 class VectorDBMetadataClient:
 
@@ -12,9 +12,11 @@ class VectorDBMetadataClient:
         self.collection = collection
 
     def serialize(self):
-        return {
+        data = {
             'vector_db_type': self.vector_db_type.name if self.vector_db_type else None,
             'index_name': self.index_name,
             'environment': self.environment,
             'collection': self.collection
         }
+
+        return {k: v for k, v in data.items() if v is not None}

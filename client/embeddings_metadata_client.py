@@ -1,8 +1,8 @@
-from shared.embeddings_type import EmbeddingsType
-from shared.chunk_strategy import ChunkStrategy
+from src.shared.embeddings_type import EmbeddingsType
+from src.shared.chunk_strategy import ChunkStrategy
 
 class EmbeddingsMetadataClient:
-    def __init(self, embeddings_type: EmbeddingsType = EmbeddingsType.OPEN_AI, 
+    def __init__(self, embeddings_type: EmbeddingsType = EmbeddingsType.OPEN_AI, 
                chunk_size: int = 256, 
                chunk_overlap: int = 128, 
                chunk_strategy: ChunkStrategy = ChunkStrategy.EXACT, 
@@ -16,7 +16,7 @@ class EmbeddingsMetadataClient:
         self.hugging_face_model_name = hugging_face_model_name
 
     def serialize(self):
-        return {
+        data = {
             'embeddings_type': self.embeddings_type.name if self.embeddings_type else None,
             'chunk_size': self.chunk_size,
             'chunk_overlap': self.chunk_overlap,
@@ -24,4 +24,6 @@ class EmbeddingsMetadataClient:
             'docker_image': self.docker_image,
             'hugging_face_model_name': self.hugging_face_model_name
         }
+
+        return {k: v for k, v in data.items() if v is not None}
     
