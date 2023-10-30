@@ -9,3 +9,4 @@ deploy/
 dist/
 build/
 vectorflow_ai.egg-info/
+*.egg-info/
