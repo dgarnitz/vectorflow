@@ -16,7 +16,7 @@ jobs:
         python-version: ["3.9", "3.10"]
 
     env:
-      LOCAL_VECTOR_DB: ${{ secrets.LOCAL_VECTOR_DB }}
+      LOCAL_VECTOR_DB: ${{ qdrant }}
       
     steps:
       - uses: actions/checkout@v4
