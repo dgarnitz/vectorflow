@@ -1,5 +1,5 @@
 
-name: Vectorflow_Unittests
+name: Unittests
 
 on:
   pull_request:
@@ -8,8 +8,8 @@ on:
 
 
 jobs:
-  build:
-
+  unittests:
+    name: Unit Tests
     runs-on: ubuntu-latest
     strategy:
       matrix:

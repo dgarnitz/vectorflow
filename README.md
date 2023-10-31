@@ -35,19 +35,21 @@ cd vectorflow
 ```
 
 #### Embed Documents with Client
-To start embedding documents locally, [install the VectorFlow Client python library](https://pypi.org/project/vectorflow-client/)
+To start embedding documents locally, [install the VectorFlow Client python library](https://pypi.org/project/vectorflow-client/) in your python application's virtual environment. 
 ```
 pip install vectorflow-client
 ```
 then run the following
 ```
+from vectorflow-client.client.vectorflow import Vectorflow
+
 vectorflow = Vectorflow()
 vectorflow.embeddings_api_key = os.getenv("OPEN_AI_KEY")
-paths = ['path_to_your_file']
+paths = ['path_to_your_file1', 'path_to_your_file2', ...]
 response = vectorflow.upload(paths)
 ```
 
-for more instructions see the `README.md` in the `client` directory.
+You do **not** need to clone the VectorFlow repo to utilize the client functionality via pip. For more instructions see the `README.md` in the `client` directory.
 
 See the appendix for details on how to use the `testing_clients` scripts.
 
