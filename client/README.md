@@ -1,15 +1,12 @@
 # VectorFlow Python Client
 Use this Python client to embed documents with VectorFlow and check on the status of those embeddings. 
 
-
-
-
 ### How to Use
 The client has 2 methods for uploading documents to embed and 2 for checking statuses, listed below. All four methods return a python `response` object from the python `requests` library. You must parse the response using the `.json()` method. 
 
 #### Initialize
 ```
-from client.vectorflow import Vectorflow
+from vectorflow-client.client.vectorflow import Vectorflow
 
 vectorflow = Vectorflow()
 vectorflow.embedding_api_key = "YOUR_OPEN_AI_KEY"

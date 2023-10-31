@@ -1,5 +1,5 @@
 
-name: Vectorflow_Unittests
+name: Unittests
 
 on:
   pull_request:
@@ -8,12 +8,9 @@ on:
 
 
 jobs:
-  build:
-
+  unittests:
+    name: Unit Tests
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.9", "3.10"]
 
     env:
       LOCAL_VECTOR_DB: qdrant 
@@ -23,7 +20,7 @@ jobs:
       - name: Setup Python # Set Python version
         uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: 3.9
       
       - name: Install dependencies - Api
         run: |

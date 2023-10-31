@@ -1,22 +1,18 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 # Read the content of your README file
-with open("README.md", "r", encoding="utf-8") as fh:
+with open("./client/README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
-    name="vectorflow-ai",
-    version="0.1.1",  # Update version as needed
+    name="vectorflow-client",
+    version="0.0.5",
+    packages=find_packages(where="client") + ["shared"],
+    package_dir={"": "client", "shared": "src/shared"},
     install_requires=[
-        # No dependencies right now since this is only for setting up docker-compose
+        'requests==2.31.0'
     ],
-    entry_points={
-        'console_scripts': [
-            'vectorflow=vectorflow:main',
-        ],
-    },
-    py_modules=["vectorflow"],
-    include_package_data=True,  # This ensures non-python files (like your setup.sh) are included
+    include_package_data=True,  # This is the line that reads the MANIFEST.in
     long_description=long_description,
-    long_description_content_type="text/markdown",  # This is important! It tells PyPI the README is in Markdown
+    long_description_content_type="text/markdown",
 )
