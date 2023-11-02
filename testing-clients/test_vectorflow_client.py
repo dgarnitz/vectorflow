@@ -5,7 +5,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
 import time
-from client.vectorflow import Vectorflow
+from client.src.vectorflow_client.vectorflow import Vectorflow
 
 vectorflow = Vectorflow()
 vectorflow.embeddings_api_key = os.getenv("OPEN_AI_KEY")

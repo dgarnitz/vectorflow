@@ -1,8 +1,8 @@
-from src.shared.vector_db_type import VectorDBType
+from .vector_db_type_client import VectorDBTypeClient
 
 class VectorDBMetadataClient:
 
-    def __init__(self, vector_db_type: VectorDBType = VectorDBType.QDRANT, 
+    def __init__(self, vector_db_type: VectorDBTypeClient = VectorDBTypeClient.QDRANT, 
                index_name: str = "test-1536", 
                environment: str = "qdrant", 
                collection: str = None):
