@@ -1,8 +1,8 @@
 import os
 import requests
 import json
-from client.embeddings_metadata_client import EmbeddingsMetadataClient
-from client.vector_db_metadata_client import VectorDBMetadataClient
+from .embeddings_metadata_client import EmbeddingsMetadataClient
+from .vector_db_metadata_client import VectorDBMetadataClient
 
 class Vectorflow:
     def __init__(self, embeddings_metadata: EmbeddingsMetadataClient = None, 

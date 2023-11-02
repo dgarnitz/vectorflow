@@ -1,0 +1,26 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "vectorflow_client"
+version = "0.0.6"
+authors = [
+  { name="David Garnitz", email="david@getvectorflow.com" },
+]
+description = "Use this Python client to embed documents with VectorFlow, an open source, high throughput, production ready vector embedding pipeline."
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "requests ~=2.31.0",
+]
+
+[project.urls]
+"Client Homepage" = "https://github.com/dgarnitz/vectorflow/tree/main/client"
+"VectorFlow Homepage" = "https://github.com/dgarnitz/vectorflow"
+"Issues & Bugs" = "https://github.com/dgarnitz/vectorflow/issues"
