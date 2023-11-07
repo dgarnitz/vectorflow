@@ -10,3 +10,4 @@ dist/
 build/
 vectorflow_ai.egg-info/
 *.egg-info/
+src/api/config.json
