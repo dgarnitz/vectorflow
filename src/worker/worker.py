@@ -5,7 +5,6 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
 import re
-import ssl
 import time
 import pika
 import json
@@ -24,6 +23,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from services.database.database import get_db, safe_db_operation
 from shared.job_status import JobStatus
 from shared.utils import send_embeddings_to_webhook, generate_uuid_from_tuple
+from services.rabbitmq.rabbit_service import create_connection_params
 
 logging.basicConfig(filename='./worker-log.txt', level=logging.INFO)
 logging.basicConfig(filename='./worker-errors.txt', level=logging.ERROR)
@@ -435,23 +435,6 @@ def callback(ch, method, properties, body):
         logging.error('Error processing batch: %s', e)
 
     ch.basic_ack(delivery_tag=method.delivery_tag)
-
-def create_connection_params():
-    credentials = pika.PlainCredentials(os.getenv('RABBITMQ_USERNAME'), os.getenv('RABBITMQ_PASSWORD'))
-
-    connection_params = pika.ConnectionParameters(
-        host=os.getenv('RABBITMQ_HOST'),
-        credentials=credentials,
-        port=os.getenv('RABBITMQ_PORT'),
-        heartbeat=600,
-        ssl_options=pika.SSLOptions(ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)),
-        virtual_host="/"
-    ) if os.getenv('RABBITMQ_PORT') == "5671" else pika.ConnectionParameters(
-        host=os.getenv('RABBITMQ_HOST'),
-        credentials=credentials,
-        heartbeat=600,
-    )
-    return connection_params
 
 def start_connection(max_retries=5, retry_delay=5):
     global publish_channel
