@@ -13,7 +13,7 @@ from posthog import Posthog
 logging.basicConfig(filename='./api-log.txt', level=logging.INFO)
 logging.basicConfig(filename='./api-errors.txt', level=logging.ERROR)
 
-posthog = Posthog('phc_i5oDgA9SAZzBIeEFVZcFxGUVIoWWcYPsBnZaJqd06yk', host='https://app.posthog.com') 
+posthog = Posthog(project_api_key='phc_E2V9rY1esOWV6el6WjfGSiwhTj49YFXe8vHv1rcgx9E', host='https://eu.posthog.com')
 
 def get_user_id():
     config_file = os.path.join(os.getenv("API_STORAGE_DIRECTORY"), "config.json")
@@ -29,16 +29,18 @@ def get_user_id():
         json.dump({"user_id": user_id}, f)
     return user_id
 
-def send_telemetry(event_name, vectorflow_request, filename):
+def send_telemetry(event_name, vectorflow_request):
+        if os.getenv("TELEMETRY_DISABLED"):
+            return
+        
         user_id = get_user_id()
         current_time = datetime.datetime.now()
         properties = {
-            "filename": filename,
-            "vector_db_type": vectorflow_request.vector_db_metadata.vector_db_type,
-            "embeddings_type": vectorflow_request.embeddings_metadata.embeddings_type,
+            "vector_db_type": vectorflow_request.vector_db_metadata.vector_db_type.value,
+            "embeddings_type": vectorflow_request.embeddings_metadata.embeddings_type.value,
             "chunk_size": vectorflow_request.embeddings_metadata.chunk_size,
             "chunk_overlap": vectorflow_request.embeddings_metadata.chunk_overlap,
-            "chunk_strategy": vectorflow_request.embeddings_metadata.chunk_strategy,
+            "chunk_strategy": vectorflow_request.embeddings_metadata.chunk_strategy.value,
             "time": current_time.strftime('%m/%d/%Y')
         }
 

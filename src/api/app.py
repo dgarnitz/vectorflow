@@ -74,7 +74,7 @@ def embed():
     if file and is_valid_file_type(file):
         job = safe_db_operation(job_service.create_job, vectorflow_request, file.filename)
         batch_count = process_file(file, vectorflow_request, job.id)
-        send_telemetry("SINGLE_FILE_UPLOAD_SUCCESS", vectorflow_request, file.filename)
+        send_telemetry("SINGLE_FILE_UPLOAD_SUCCESS", vectorflow_request)
 
         return jsonify({'message': f"Successfully added {batch_count} batches to the queue", 'JobID': job.id}), 200
     else:
@@ -149,7 +149,7 @@ def create_jobs():
             pipeline.disconnect()
 
             successfully_uploaded_files[file.filename] = job.id
-            send_telemetry("MULTI_FILE_UPLOAD_SUCCESS", vectorflow_request, file.filename)
+            send_telemetry("MULTI_FILE_UPLOAD_SUCCESS", vectorflow_request)
         except Exception as e:
             print(f"Error uploading file {file.filename} to min.io, creating job or passing vectorflow request to message broker. \nError: {e}\n\n")
             failed_uploads.append(file.filename)       
