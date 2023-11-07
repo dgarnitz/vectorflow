@@ -25,7 +25,7 @@ class TestApp(unittest.TestCase):
             "X-EmbeddingAPI-Key": "test__embed_key"
         }
 
-    @patch('api.posthog.send_telemetry')
+    @patch('api.app.send_telemetry')
     @patch('services.database.database.safe_db_operation')
     @patch('services.database.job_service.create_job')
     @patch('api.app.process_file')
