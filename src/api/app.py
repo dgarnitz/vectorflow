@@ -27,11 +27,15 @@ from urllib.parse import urlparse
 from pathlib import Path
 from llama_index import download_loader
 from services.minio.minio_service import create_minio_client
+from api.posthog import send_telemetry
 
 auth = Auth()
 pipeline = Pipeline()
 app = Flask(__name__)
-CORS(app) 
+CORS(app)
+
+logging.basicConfig(filename='./api-log.txt', level=logging.INFO)
+logging.basicConfig(filename='./api-errors.txt', level=logging.ERROR)
 
 @app.route("/embed", methods=['POST'])
 def embed():
@@ -70,6 +74,8 @@ def embed():
     if file and is_valid_file_type(file):
         job = safe_db_operation(job_service.create_job, vectorflow_request, file.filename)
         batch_count = process_file(file, vectorflow_request, job.id)
+        send_telemetry("SINGLE_FILE_UPLOAD_SUCCESS", vectorflow_request)
+
         return jsonify({'message': f"Successfully added {batch_count} batches to the queue", 'JobID': job.id}), 200
     else:
         return jsonify({'error': 'Uploaded file is not a TXT, PDF, Markdown or DOCX file'}), 400
@@ -143,6 +149,7 @@ def create_jobs():
             pipeline.disconnect()
 
             successfully_uploaded_files[file.filename] = job.id
+            send_telemetry("MULTI_FILE_UPLOAD_SUCCESS", vectorflow_request)
         except Exception as e:
             print(f"Error uploading file {file.filename} to min.io, creating job or passing vectorflow request to message broker. \nError: {e}\n\n")
             failed_uploads.append(file.filename)       

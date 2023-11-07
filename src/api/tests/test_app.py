@@ -25,10 +25,11 @@ class TestApp(unittest.TestCase):
             "X-EmbeddingAPI-Key": "test__embed_key"
         }
 
+    @patch('api.app.send_telemetry')
     @patch('services.database.database.safe_db_operation')
     @patch('services.database.job_service.create_job')
     @patch('api.app.process_file')
-    def test_embed_endpoint(self, mock_process_file, mock_create_job, mock_safe_db_operation):
+    def test_embed_endpoint(self, mock_process_file, mock_create_job, mock_safe_db_operation, mock_send_telemetry):
         mock_process_file.return_value = 2
         test_embeddings_metadata = EmbeddingsMetadata(embeddings_type=EmbeddingsType.OPEN_AI)
         test_vector_db_metadata = VectorDBMetadata(vector_db_type=VectorDBType.PINECONE, 

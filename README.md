@@ -249,6 +249,12 @@ If you wish to validate which chunks you wish to embed, pass a `ChunkValidationU
 ### S3 Endpoint
 VectorFlow is integrated with AWS s3. You can pass a pre-signed s3 URL in the body of the HTTP instead of a file. Use the form field `PreSignedURL` and hit the endpoint `/s3`. This endpoint has the same configuration and restrictions as the `/embed` endpoint. 
 
+### Telemetry
+VectorFlow uses PostHog to anonymously collect data about usage. This does not collect any personally identifiable information. If you want to disable it though, add the following enviroment variable to your `env_vars.env`:
+```
+TELEMETRY_DISABLED=True
+```
+
 # Contributing
 
 We love feedback from the community. If you have an idea of how to make this project better, we encourage you to open an issue or join our Discord. Please tag `dgarnitz` and `danmeier2`.
