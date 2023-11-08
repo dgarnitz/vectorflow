@@ -23,26 +23,27 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from services.database.database import get_db, safe_db_operation
 from shared.job_status import JobStatus
 from shared.utils import send_embeddings_to_webhook, generate_uuid_from_tuple
-from services.rabbitmq.rabbit_service import create_connection_params
+from services.rabbitmq.rabbit_service import create_connection_params, publish_message_to_retry_queue
 
 logging.basicConfig(filename='./worker-log.txt', level=logging.INFO)
 logging.basicConfig(filename='./worker-errors.txt', level=logging.ERROR)
 publish_channel = None
 connection = None
+consume_channel = None
 
-def process_batch(batch_id, source_data):
+def process_batch(batch_id, source_data, vector_db_key, embeddings_api_key):
     batch = safe_db_operation(batch_service.get_batch, batch_id)
     job = safe_db_operation(job_service.get_job, batch.job_id)
 
-    # TODO: update this logic once the batch creation logic is moved out of the API
+    # NOTE: it can be either because the /embed endpoint sckips the extractor
     if job.job_status == JobStatus.NOT_STARTED or job.job_status == JobStatus.CREATING_BATCHES:
         safe_db_operation(job_service.update_job_status, job.id, JobStatus.PROCESSING_BATCHES)
     
     if batch.batch_status == BatchStatus.NOT_STARTED:
         safe_db_operation(batch_service.update_batch_status, batch.id, BatchStatus.PROCESSING)
     else:
-        safe_db_operation( batch_service.update_batch_retry_count, batch.id, batch.retries+1)
-        logging.info(f"Retrying batch {batch.id}")
+        safe_db_operation(batch_service.update_batch_retry_count, batch.id, batch.retries+1)
+        logging.info(f"Retrying batch {batch.id} on job {batch.job_id}.\nAttempt {batch.retries} of {config.MAX_BATCH_RETRIES}")
 
     batch = safe_db_operation(batch_service.get_batch, batch_id)
     chunked_data: list[dict] = chunk_data(batch, source_data, job)
@@ -60,7 +61,14 @@ def process_batch(batch_id, source_data):
                     upload_to_vector_db(batch_id, embedded_chunks)  
             else:
                 logging.error(f"Failed to get OPEN AI embeddings for batch {batch.id}. Adding batch to retry queue.")
-                update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
+                update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id, batch.retries)
+                
+                if batch.retries < config.MAX_BATCH_RETRIES:
+                    logging.info(f"Adding Batch {batch.id} of job {batch.job_id} to retry queue.\nCurrent attempt {batch.retries} of {config.MAX_BATCH_RETRIES}")
+                    json_data = json.dumps((batch_id, source_data, vector_db_key, embeddings_api_key))
+                    publish_message_to_retry_queue(consume_channel, os.getenv('EMBEDDING_QUEUE'), json_data)
+                else:
+                    logging.error(f"Max retries reached for batch {batch.id} for job {batch.job_id}.\nBATCH will be marked permanent as FAILED.")
 
         except Exception as e:
             logging.error('Error embedding batch: %s', e)
@@ -111,8 +119,7 @@ def embed_openai_batch(batch, chunked_data):
                     embedded_chunks.append(chunk)
             else:
                 logging.error(f"Failed to get Open AI embedding for chunk. Adding batch to retry queue.")
-                update_batch_status(batch.job_id, BatchStatus.Failed, batch.id)
-                return
+                return None
     
     logging.info("Open AI Embeddings completed successfully")
     return embedded_chunks
@@ -364,11 +371,12 @@ def create_batches_for_embedding(chunks, max_batch_size):
     embedding_batches = [chunks[i:i + max_batch_size] for i in range(0, len(chunks), max_batch_size)]
     return embedding_batches
 
-def update_batch_status(job_id, batch_status, batch_id):
+# TODO: update this to account for retries
+def update_batch_status(job_id, batch_status, batch_id, retries = None):
     try:
         updated_batch_status = safe_db_operation(batch_service.update_batch_status, batch_id, batch_status)
         logging.info(f"Status for batch {batch_id} as part of job {job_id} updated to {updated_batch_status}") 
-        if updated_batch_status == BatchStatus.FAILED:
+        if updated_batch_status == BatchStatus.FAILED and retries == config.MAX_BATCH_RETRIES:
             logging.info(f"Batch {batch_id} failed. Updating job status.")
             update_batch_and_job_status(job_id, BatchStatus.FAILED, batch_id)     
     except Exception as e:
@@ -429,7 +437,7 @@ def callback(ch, method, properties, body):
             logging.info("No embeddings api key provided")
 
         logging.info("Batch retrieved successfully")
-        process_batch(batch_id, source_data)
+        process_batch(batch_id, source_data, vector_db_key, embeddings_api_key)
         logging.info("Batch processing finished. Check status BatchStatus for results")
     except Exception as e:
         logging.error('Error processing batch: %s', e)
@@ -439,6 +447,7 @@ def callback(ch, method, properties, body):
 def start_connection(max_retries=5, retry_delay=5):
     global publish_channel
     global connection
+    global consume_channel
 
     for attempt in range(max_retries):
         try:
