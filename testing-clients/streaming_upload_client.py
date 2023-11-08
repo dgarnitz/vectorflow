@@ -5,7 +5,7 @@ import time
 from get_jobs_by_ids import get_jobs_by_id
 
 url = "http://localhost:8000/jobs"
-embedding_key = os.getenv("OPEN_AI_KEY") + "123"
+embedding_key = os.getenv("OPEN_AI_KEY")
 internal_api_key = "test123"
 embedding_type="OPEN_AI"
 vector_db_type = "QDRANT"

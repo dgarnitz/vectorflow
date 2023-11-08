@@ -73,6 +73,13 @@ def process_batch(batch_id, source_data, vector_db_key, embeddings_api_key):
         except Exception as e:
             logging.error('Error embedding batch: %s', e)
             update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
+
+            if batch.retries < config.MAX_BATCH_RETRIES:
+                logging.info(f"Adding Batch {batch.id} of job {batch.job_id} to retry queue.\nCurrent attempt {batch.retries} of {config.MAX_BATCH_RETRIES}")
+                json_data = json.dumps((batch_id, source_data, vector_db_key, embeddings_api_key))
+                publish_message_to_retry_queue(consume_channel, os.getenv('EMBEDDING_QUEUE'), json_data)
+            else:
+                logging.error(f"Max retries reached for batch {batch.id} for job {batch.job_id}.\nBATCH will be marked permanent as FAILED.")
     
     elif embeddings_type == EmbeddingsType.HUGGING_FACE:
         try:
@@ -80,9 +87,16 @@ def process_batch(batch_id, source_data, vector_db_key, embeddings_api_key):
         except Exception as e:
             logging.error('Error embedding batch: %s', e)
             update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
+
+            if batch.retries < config.MAX_BATCH_RETRIES:
+                logging.info(f"Adding Batch {batch.id} of job {batch.job_id} to retry queue.\nCurrent attempt {batch.retries} of {config.MAX_BATCH_RETRIES}")
+                json_data = json.dumps((batch_id, source_data, vector_db_key, embeddings_api_key))
+                publish_message_to_retry_queue(consume_channel, os.getenv('EMBEDDING_QUEUE'), json_data)
+            else:
+                logging.error(f"Max retries reached for batch {batch.id} for job {batch.job_id}.\nBATCH will be marked permanent as FAILED.")
     else:
         logging.error('Unsupported embeddings type: %s', embeddings_type.value)
-        update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
+        update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id, bypass_retries=True)      
 
 # NOTE: this method will embed mulitple chunks (a list of strings) at once and return a list of lists of floats (a list of embeddings)
 # NOTE: this assumes that the embedded chunks are returned in the same order the raw chunks were sent
@@ -102,7 +116,7 @@ def get_openai_embedding(chunks, attempts=5):
     return batch_of_text_chunks, None
 
 def embed_openai_batch(batch, chunked_data):
-    logging.info("Starting Open AI Embeddings")
+    logging.info(f"Starting Open AI Embeddings for batch {batch.id} of job {batch.job_id}")
     openai.api_key = os.getenv('EMBEDDING_API_KEY')
     
     # Maximum number of items allowed in a batch by OpenAIs embedding API. There is also an 8191 token per item limit
@@ -371,12 +385,12 @@ def create_batches_for_embedding(chunks, max_batch_size):
     embedding_batches = [chunks[i:i + max_batch_size] for i in range(0, len(chunks), max_batch_size)]
     return embedding_batches
 
-# TODO: update this to account for retries
-def update_batch_status(job_id, batch_status, batch_id, retries = None):
+# TODO: refactor into utils
+def update_batch_status(job_id, batch_status, batch_id, retries = None, bypass_retries=False):
     try:
         updated_batch_status = safe_db_operation(batch_service.update_batch_status, batch_id, batch_status)
         logging.info(f"Status for batch {batch_id} as part of job {job_id} updated to {updated_batch_status}") 
-        if updated_batch_status == BatchStatus.FAILED and retries == config.MAX_BATCH_RETRIES:
+        if updated_batch_status == BatchStatus.FAILED and (retries == config.MAX_BATCH_RETRIES or bypass_retries):
             logging.info(f"Batch {batch_id} failed. Updating job status.")
             update_batch_and_job_status(job_id, BatchStatus.FAILED, batch_id)     
     except Exception as e:

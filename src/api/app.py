@@ -10,6 +10,7 @@ import json
 import fitz
 import base64
 import logging
+import copy
 from io import BytesIO
 import services.database.batch_service as batch_service
 import services.database.job_service as job_service
@@ -74,7 +75,9 @@ def embed():
     if file and is_valid_file_type(file):
         job = safe_db_operation(job_service.create_job, vectorflow_request, file.filename)
         batch_count = process_file(file, vectorflow_request, job.id)
-        send_telemetry("SINGLE_FILE_UPLOAD_SUCCESS", vectorflow_request)
+
+        vectorflow_request_copy = copy.deepcopy(vectorflow_request)
+        send_telemetry("SINGLE_FILE_UPLOAD_SUCCESS", vectorflow_request_copy)
 
         return jsonify({'message': f"Successfully added {batch_count} batches to the queue", 'JobID': job.id}), 200
     else:
