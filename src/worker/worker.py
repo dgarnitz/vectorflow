@@ -5,7 +5,6 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
 import re
-import ssl
 import time
 import pika
 import json
@@ -16,6 +15,7 @@ import worker.config as config
 import services.database.batch_service as batch_service
 import services.database.job_service as job_service
 import tiktoken
+from pika.exceptions import AMQPConnectionError
 from shared.chunk_strategy import ChunkStrategy
 from shared.embeddings_type import EmbeddingsType
 from shared.batch_status import BatchStatus
@@ -23,25 +23,27 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from services.database.database import get_db, safe_db_operation
 from shared.job_status import JobStatus
 from shared.utils import send_embeddings_to_webhook, generate_uuid_from_tuple
+from services.rabbitmq.rabbit_service import create_connection_params, publish_message_to_retry_queue
 
 logging.basicConfig(filename='./worker-log.txt', level=logging.INFO)
 logging.basicConfig(filename='./worker-errors.txt', level=logging.ERROR)
 publish_channel = None
 connection = None
+consume_channel = None
 
-def process_batch(batch_id, source_data):
+def process_batch(batch_id, source_data, vector_db_key, embeddings_api_key):
     batch = safe_db_operation(batch_service.get_batch, batch_id)
     job = safe_db_operation(job_service.get_job, batch.job_id)
 
-    # TODO: update this logic once the batch creation logic is moved out of the API
+    # NOTE: it can be either because the /embed endpoint sckips the extractor
     if job.job_status == JobStatus.NOT_STARTED or job.job_status == JobStatus.CREATING_BATCHES:
         safe_db_operation(job_service.update_job_status, job.id, JobStatus.PROCESSING_BATCHES)
     
     if batch.batch_status == BatchStatus.NOT_STARTED:
         safe_db_operation(batch_service.update_batch_status, batch.id, BatchStatus.PROCESSING)
     else:
-        safe_db_operation( batch_service.update_batch_retry_count, batch.id, batch.retries+1)
-        logging.info(f"Retrying batch {batch.id}")
+        safe_db_operation(batch_service.update_batch_retry_count, batch.id, batch.retries+1)
+        logging.info(f"Retrying batch {batch.id} on job {batch.job_id}.\nAttempt {batch.retries} of {config.MAX_BATCH_RETRIES}")
 
     batch = safe_db_operation(batch_service.get_batch, batch_id)
     chunked_data: list[dict] = chunk_data(batch, source_data, job)
@@ -59,11 +61,25 @@ def process_batch(batch_id, source_data):
                     upload_to_vector_db(batch_id, embedded_chunks)  
             else:
                 logging.error(f"Failed to get OPEN AI embeddings for batch {batch.id}. Adding batch to retry queue.")
-                update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
+                update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id, batch.retries)
+                
+                if batch.retries < config.MAX_BATCH_RETRIES:
+                    logging.info(f"Adding Batch {batch.id} of job {batch.job_id} to retry queue.\nCurrent attempt {batch.retries} of {config.MAX_BATCH_RETRIES}")
+                    json_data = json.dumps((batch_id, source_data, vector_db_key, embeddings_api_key))
+                    publish_message_to_retry_queue(consume_channel, os.getenv('EMBEDDING_QUEUE'), json_data)
+                else:
+                    logging.error(f"Max retries reached for batch {batch.id} for job {batch.job_id}.\nBATCH will be marked permanent as FAILED.")
 
         except Exception as e:
             logging.error('Error embedding batch: %s', e)
             update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
+
+            if batch.retries < config.MAX_BATCH_RETRIES:
+                logging.info(f"Adding Batch {batch.id} of job {batch.job_id} to retry queue.\nCurrent attempt {batch.retries} of {config.MAX_BATCH_RETRIES}")
+                json_data = json.dumps((batch_id, source_data, vector_db_key, embeddings_api_key))
+                publish_message_to_retry_queue(consume_channel, os.getenv('EMBEDDING_QUEUE'), json_data)
+            else:
+                logging.error(f"Max retries reached for batch {batch.id} for job {batch.job_id}.\nBATCH will be marked permanent as FAILED.")
     
     elif embeddings_type == EmbeddingsType.HUGGING_FACE:
         try:
@@ -71,9 +87,16 @@ def process_batch(batch_id, source_data):
         except Exception as e:
             logging.error('Error embedding batch: %s', e)
             update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
+
+            if batch.retries < config.MAX_BATCH_RETRIES:
+                logging.info(f"Adding Batch {batch.id} of job {batch.job_id} to retry queue.\nCurrent attempt {batch.retries} of {config.MAX_BATCH_RETRIES}")
+                json_data = json.dumps((batch_id, source_data, vector_db_key, embeddings_api_key))
+                publish_message_to_retry_queue(consume_channel, os.getenv('EMBEDDING_QUEUE'), json_data)
+            else:
+                logging.error(f"Max retries reached for batch {batch.id} for job {batch.job_id}.\nBATCH will be marked permanent as FAILED.")
     else:
         logging.error('Unsupported embeddings type: %s', embeddings_type.value)
-        update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
+        update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id, bypass_retries=True)      
 
 # NOTE: this method will embed mulitple chunks (a list of strings) at once and return a list of lists of floats (a list of embeddings)
 # NOTE: this assumes that the embedded chunks are returned in the same order the raw chunks were sent
@@ -93,7 +116,7 @@ def get_openai_embedding(chunks, attempts=5):
     return batch_of_text_chunks, None
 
 def embed_openai_batch(batch, chunked_data):
-    logging.info("Starting Open AI Embeddings")
+    logging.info(f"Starting Open AI Embeddings for batch {batch.id} of job {batch.job_id}")
     openai.api_key = os.getenv('EMBEDDING_API_KEY')
     
     # Maximum number of items allowed in a batch by OpenAIs embedding API. There is also an 8191 token per item limit
@@ -109,9 +132,8 @@ def embed_openai_batch(batch, chunked_data):
                     chunk['vector'] = embedding['embedding']
                     embedded_chunks.append(chunk)
             else:
-                logging.error(f"Failed to get embedding for chunk {chunks}. Adding batch to retry queue.")
-                update_batch_status(batch.job_id, BatchStatus.Failed, batch.id)
-                return
+                logging.error(f"Failed to get Open AI embedding for chunk. Adding batch to retry queue.")
+                return None
     
     logging.info("Open AI Embeddings completed successfully")
     return embedded_chunks
@@ -363,11 +385,12 @@ def create_batches_for_embedding(chunks, max_batch_size):
     embedding_batches = [chunks[i:i + max_batch_size] for i in range(0, len(chunks), max_batch_size)]
     return embedding_batches
 
-def update_batch_status(job_id, batch_status, batch_id):
+# TODO: refactor into utils
+def update_batch_status(job_id, batch_status, batch_id, retries = None, bypass_retries=False):
     try:
         updated_batch_status = safe_db_operation(batch_service.update_batch_status, batch_id, batch_status)
         logging.info(f"Status for batch {batch_id} as part of job {job_id} updated to {updated_batch_status}") 
-        if updated_batch_status == BatchStatus.FAILED:
+        if updated_batch_status == BatchStatus.FAILED and (retries == config.MAX_BATCH_RETRIES or bypass_retries):
             logging.info(f"Batch {batch_id} failed. Updating job status.")
             update_batch_and_job_status(job_id, BatchStatus.FAILED, batch_id)     
     except Exception as e:
@@ -428,37 +451,24 @@ def callback(ch, method, properties, body):
             logging.info("No embeddings api key provided")
 
         logging.info("Batch retrieved successfully")
-        process_batch(batch_id, source_data)
+        process_batch(batch_id, source_data, vector_db_key, embeddings_api_key)
         logging.info("Batch processing finished. Check status BatchStatus for results")
     except Exception as e:
         logging.error('Error processing batch: %s', e)
 
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
-def start_connection():
+def start_connection(max_retries=5, retry_delay=5):
     global publish_channel
     global connection
-    
-    while True:
+    global consume_channel
+
+    for attempt in range(max_retries):
         try:
-            credentials = pika.PlainCredentials(os.getenv('RABBITMQ_USERNAME'), os.getenv('RABBITMQ_PASSWORD'))
-
-            connection_params = pika.ConnectionParameters(
-                host=os.getenv('RABBITMQ_HOST'),
-                credentials=credentials,
-                port=os.getenv('RABBITMQ_PORT'),
-                heartbeat=600,
-                ssl_options=pika.SSLOptions(ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)),
-                virtual_host="/"
-            ) if os.getenv('RABBITMQ_PORT') == "5671" else pika.ConnectionParameters(
-                host=os.getenv('RABBITMQ_HOST'),
-                credentials=credentials,
-                heartbeat=600,
-            )
-
+            connection_params = create_connection_params()
             connection = pika.BlockingConnection(connection_params)
             consume_channel = connection.channel()
-            publish_channel = connection.channel() 
+            publish_channel = connection.channel()
 
             consume_queue_name = os.getenv('EMBEDDING_QUEUE')
             publish_queue_name = os.getenv('VDB_UPLOAD_QUEUE')
@@ -470,10 +480,26 @@ def start_connection():
 
             logging.info('Waiting for messages.')
             consume_channel.start_consuming()
-            
+            return  # If successful, exit the function
+
+        except AMQPConnectionError as e:
+            logging.error('AMQP Connection Error: %s', e)
         except Exception as e:
-            logging.error('ERROR connecting to RabbitMQ, retrying now. See exception: %s', e)
-            time.sleep(config.PIKA_RETRY_INTERVAL) # Wait before retrying
+            logging.error('Unexpected error: %s', e)
+        finally:
+            if connection and not connection.is_closed:
+                connection.close()
+
+        logging.info('Retrying to connect in %s seconds (Attempt %s/%s)', retry_delay, attempt + 1, max_retries)
+        time.sleep(retry_delay)
+
+    raise Exception('Failed to connect after {} attempts'.format(max_retries))
 
 if __name__ == "__main__":
-    start_connection()
+    while True:
+        try:
+            start_connection()
+        except Exception as e:
+            logging.error('Error in start_connection: %s', e)
+            logging.info('Restarting start_connection after encountering an error.')
+            time.sleep(config.PIKA_RETRY_INTERVAL)

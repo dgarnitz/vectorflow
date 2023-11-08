@@ -44,7 +44,7 @@ class TestWorker(unittest.TestCase):
         mock_safe_db_operation.return_value = "test_db"
 
         # act
-        worker.process_batch(batch.id, source_data)
+        worker.process_batch(batch.id, source_data, "fake_vdb_key", "fake_embedding_key")
 
         # assert
         mock_embed_openai_batch.assert_called_once_with(batch, chunked_data)
@@ -85,7 +85,7 @@ class TestWorker(unittest.TestCase):
         mock_safe_db_operation.return_value = "test_db"
 
         # act
-        worker.process_batch(batch.id, source_data)
+        worker.process_batch(batch.id, source_data, "fake_vdb_key", "fake_embedding_key")
 
         # assert
         mock_embed_hugging_face_batch.assert_called_once_with(batch, chunked_data)
@@ -113,7 +113,7 @@ class TestWorker(unittest.TestCase):
         # arrange
         source_data = "source_data"
         job = Job(id=1, webhook_url="test_webhook_url", job_status=JobStatus.NOT_STARTED)
-        batch = Batch(id=1, job_id=1, batch_status=BatchStatus.NOT_STARTED, embeddings_metadata=EmbeddingsMetadata(embeddings_type=EmbeddingsType.OPEN_AI))
+        batch = Batch(id=1, job_id=1, retries=config.MAX_BATCH_RETRIES, batch_status=BatchStatus.NOT_STARTED, embeddings_metadata=EmbeddingsMetadata(embeddings_type=EmbeddingsType.OPEN_AI))
         chunked_data = ["test"]
         mock_chunk_data.return_value = chunked_data
         mock_embed_openai_batch.return_value = None
@@ -122,11 +122,11 @@ class TestWorker(unittest.TestCase):
         mock_safe_db_operation.return_value = "test_db"
 
         # act
-        worker.process_batch(batch.id, source_data)
+        worker.process_batch(batch.id, source_data, "fake_vdb_key", "fake_embedding_key")
 
         # assert
         mock_embed_openai_batch.assert_called_once_with(batch, chunked_data)
-        mock_update_batch_and_job_status.assert_called_with(batch.job_id, BatchStatus.FAILED, batch.id)
+        mock_update_batch_and_job_status.assert_called_with(batch.job_id, BatchStatus.FAILED, batch.id, 3)
         mock_upload_to_vector_db.assert_not_called()
 
     @patch('worker.worker.chunk_data')
@@ -152,7 +152,7 @@ class TestWorker(unittest.TestCase):
         # arrange
         source_data = "source_data"
         job = Job(id=1, webhook_url="test_webhook_url", job_status=JobStatus.NOT_STARTED)
-        batch = Batch(id=1, job_id=1, batch_status=BatchStatus.NOT_STARTED, embeddings_metadata=EmbeddingsMetadata(embeddings_type=EmbeddingsType.OPEN_AI))
+        batch = Batch(id=1, job_id=1, retries=config.MAX_BATCH_RETRIES, batch_status=BatchStatus.NOT_STARTED, embeddings_metadata=EmbeddingsMetadata(embeddings_type=EmbeddingsType.OPEN_AI))
         chunked_data = ["test"]
         mock_chunk_data.return_value = chunked_data
 
@@ -163,7 +163,7 @@ class TestWorker(unittest.TestCase):
         mock_safe_db_operation.return_value = "test_db"
 
         # act
-        worker.process_batch(batch.id, source_data)
+        worker.process_batch(batch.id, source_data, "fake_vdb_key", "fake_embedding_key")
 
         # assert
         mock_embed_openai_batch.assert_called_once_with(batch, chunked_data)
@@ -193,7 +193,7 @@ class TestWorker(unittest.TestCase):
         # arrange
         source_data = "source_data" * 100
         job = Job(id=1, chunk_validation_url="test_validation_url", job_status=JobStatus.NOT_STARTED)
-        batch = Batch(id=1, job_id=1, batch_status=BatchStatus.NOT_STARTED, 
+        batch = Batch(id=1, job_id=1, batch_status=BatchStatus.NOT_STARTED, retries=config.MAX_BATCH_RETRIES,
                       embeddings_metadata=EmbeddingsMetadata(embeddings_type=EmbeddingsType.OPEN_AI,
                                                              chunk_size=256,
                                                              chunk_overlap=128,
@@ -207,7 +207,7 @@ class TestWorker(unittest.TestCase):
 
         # act & assert
         with self.assertRaises(Exception) as context:
-            worker.process_batch(batch.id, source_data)
+            worker.process_batch(batch.id, source_data, "fake_vdb_key", "fake_embedding_key")
         
         # you can add an additional check for the exception message if necessary
         self.assertEqual(str(context.exception), "Failed to chunk data")
