@@ -51,6 +51,9 @@ spec:
               hostPort: 5432
               protocol: TCP
           resources: {}
+          volumeMounts:
+          - name: postgres-storage
+            mountPath: /var/lib/postgresql/data
       volumes:
       - name: postgres-storage
         persistentVolumeClaim:
