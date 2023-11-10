@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-init
+  namespace: vectorflow
+spec:
+  template:
+    spec:
+      containers:
+      - name: minio-init
+        image: vectorflow-minio-init
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: MINIO_ACCESS_KEY
+            valueFrom:
+              configMapKeyRef:
+                key: MINIO_ACCESS_KEY
+                name: config-map
+          - name: MINIO_BUCKET
+            valueFrom:
+              configMapKeyRef:
+                key: MINIO_BUCKET
+                name: config-map
+          - name: MINIO_ENDPOINT
+            valueFrom:
+              configMapKeyRef:
+                key: MINIO_ENDPOINT
+                name: config-map
+          - name: MINIO_SECRET_KEY
+            valueFrom:
+              configMapKeyRef:
+                key: MINIO_SECRET_KEY
+                name: config-map
+      restartPolicy: Never
+  backoffLimit: 1

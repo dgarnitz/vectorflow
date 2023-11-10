@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-init
+  namespace: vectorflow
+spec:
+  template:
+    spec:
+      containers:
+      - name: db-init
+        image: vectorflow-db-init
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: POSTGRES_DB
+            valueFrom:
+              configMapKeyRef:
+                key: POSTGRES_DB
+                name: config-map
+          - name: POSTGRES_HOST
+            valueFrom:
+              configMapKeyRef:
+                key: POSTGRES_HOST
+                name: config-map
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              configMapKeyRef:
+                key: POSTGRES_PASSWORD
+                name: config-map
+          - name: POSTGRES_USERNAME
+            valueFrom:
+              configMapKeyRef:
+                key: POSTGRES_USERNAME
+                name: config-map
+      restartPolicy: Never
+  backoffLimit: 1

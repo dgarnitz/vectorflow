@@ -1,0 +1,26 @@
+apiVersion: v1
+data:
+  API_STORAGE_DIRECTORY: /tmp
+  EMBEDDING_QUEUE: embeddings
+  EXTRACTION_QUEUE: extraction
+  INTERNAL_API_KEY: test123
+  LOCAL_VECTOR_DB: qdrant
+  MINIO_ACCESS_KEY: minio99
+  MINIO_BUCKET: vectorflow
+  MINIO_ENDPOINT: minio:9000
+  MINIO_SECRET_KEY: minio123
+  POSTGRES_DB: vectorflow
+  POSTGRES_HOST: postgres
+  POSTGRES_PASSWORD: password
+  POSTGRES_USERNAME: postgres
+  RABBITMQ_HOST: rabbitmq
+  RABBITMQ_PASSWORD: guest
+  RABBITMQ_USERNAME: guest
+  TELEMETRY_DISABLED: "True"
+  VDB_UPLOAD_QUEUE: vdb-upload
+kind: ConfigMap
+metadata:
+  labels:
+    io.kompose.service: config-map
+  name: config-map
+  namespace: vectorflow

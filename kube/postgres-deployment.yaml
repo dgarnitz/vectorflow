@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert --out kube
+    kompose.version: 1.31.2 (HEAD)
+  labels:
+    io.kompose.service: postgres
+  name: postgres
+  namespace: vectorflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: postgres
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert --out kube
+        kompose.version: 1.31.2 (HEAD)
+      labels:
+        io.kompose.network/vectorflow: "true"
+        io.kompose.service: postgres
+    spec:
+      containers:
+        - env:
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  key: POSTGRES_DB
+                  name: config-map
+            - name: POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  key: POSTGRES_HOST
+                  name: config-map
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  key: POSTGRES_PASSWORD
+                  name: config-map
+            - name: POSTGRES_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  key: POSTGRES_USERNAME
+                  name: config-map
+          image: postgres
+          name: postgres
+          ports:
+            - containerPort: 5432
+              hostPort: 5432
+              protocol: TCP
+          resources: {}
+          volumeMounts:
+          - name: postgres-storage
+            mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: postgres-pvc
+      restartPolicy: Always
+status: {}

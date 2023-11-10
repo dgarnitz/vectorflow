@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: qdrant-init
+  namespace: vectorflow
+spec:
+  template:
+    spec:
+      containers:
+      - name: qdrant-init
+        image: vectorflow-qdrant-init
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: LOCAL_VECTOR_DB
+            valueFrom:
+              configMapKeyRef:
+                key: LOCAL_VECTOR_DB
+                name: config-map
+      restartPolicy: Never
+  backoffLimit: 1

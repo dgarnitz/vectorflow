@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert --out kube
+    kompose.version: 1.31.2 (HEAD)
+  labels:
+    io.kompose.service: rabbitmq
+  name: rabbitmq
+  namespace: vectorflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: rabbitmq
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert --out kube
+        kompose.version: 1.31.2 (HEAD)
+      labels:
+        io.kompose.network/vectorflow: "true"
+        io.kompose.service: rabbitmq
+    spec:
+      containers:
+        - image: rabbitmq:management
+          name: rabbitmq
+          ports:
+            - containerPort: 5672
+              hostPort: 5672
+              protocol: TCP
+            - containerPort: 15672
+              hostPort: 15672
+              protocol: TCP
+          resources: {}
+      restartPolicy: Always
+status: {}

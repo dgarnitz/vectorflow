@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert --out kube
+    kompose.version: 1.31.2 (HEAD)
+  labels:
+    io.kompose.service: minio
+  name: minio
+  namespace: vectorflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: minio
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert --out kube
+        kompose.version: 1.31.2 (HEAD)
+      labels:
+        io.kompose.network/vectorflow: "true"
+        io.kompose.service: minio
+    spec:
+      containers:
+        - args:
+            - server
+            - /minio-storage
+            - --console-address
+            - :9001
+          env:
+          - name: MINIO_ACCESS_KEY
+            valueFrom:
+              configMapKeyRef:
+                key: MINIO_ACCESS_KEY
+                name: config-map
+          - name: MINIO_BUCKET
+            valueFrom:
+              configMapKeyRef:
+                key: MINIO_BUCKET
+                name: config-map
+          - name: MINIO_ENDPOINT
+            valueFrom:
+              configMapKeyRef:
+                key: MINIO_ENDPOINT
+                name: config-map
+          - name: MINIO_SECRET_KEY
+            valueFrom:
+              configMapKeyRef:
+                key: MINIO_SECRET_KEY
+                name: config-map
+          image: minio/minio
+          name: minio
+          ports:
+            - containerPort: 9000
+              hostPort: 9000
+              protocol: TCP
+            - containerPort: 9001
+              hostPort: 9001
+              protocol: TCP
+          resources: {}
+          # Mount the volume into the pod - this is different from postgres
+          # Minio generally recommends using locally-attached volumes 
+          # see example: https://raw.githubusercontent.com/minio/docs/master/source/extra/examples/minio-dev.yaml
+          # and here: https://github.com/kubernetes/examples/blob/master/staging/storage/minio/minio-standalone-deployment.yaml
+          volumeMounts:
+          - name: minio-storage # must match the volume name, below
+            mountPath: "/minio-storage"
+      volumes:
+      - name: minio-storage
+        persistentVolumeClaim:
+          claimName: minio-pvc
+      restartPolicy: Always
+status: {}

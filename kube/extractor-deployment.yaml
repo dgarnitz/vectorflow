@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert --out kube
+    kompose.version: 1.31.2 (HEAD)
+  labels:
+    io.kompose.service: extractor
+  name: extractor
+  namespace: vectorflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: extractor
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert --out kube
+        kompose.version: 1.31.2 (HEAD)
+      labels:
+        io.kompose.network/vectorflow: "true"
+        io.kompose.service: extractor
+    spec:
+      containers:
+        - args:
+            - bash
+            - /wait-for-it.sh
+            - rabbitmq:5672
+            - --
+            - python
+            - extract.py
+          env:
+          - name: EXTRACTION_QUEUE
+            valueFrom:
+              configMapKeyRef:
+                key: EXTRACTION_QUEUE
+                name: config-map
+          - name: EMBEDDING_QUEUE
+            valueFrom:
+              configMapKeyRef:
+                key: EMBEDDING_QUEUE
+                name: config-map
+          - name: MINIO_ACCESS_KEY
+            valueFrom:
+              configMapKeyRef:
+                key: MINIO_ACCESS_KEY
+                name: config-map
+          - name: MINIO_BUCKET
+            valueFrom:
+              configMapKeyRef:
+                key: MINIO_BUCKET
+                name: config-map
+          - name: MINIO_ENDPOINT
+            valueFrom:
+              configMapKeyRef:
+                key: MINIO_ENDPOINT
+                name: config-map
+          - name: MINIO_SECRET_KEY
+            valueFrom:
+              configMapKeyRef:
+                key: MINIO_SECRET_KEY
+                name: config-map
+          - name: POSTGRES_DB
+            valueFrom:
+              configMapKeyRef:
+                key: POSTGRES_DB
+                name: config-map
+          - name: POSTGRES_HOST
+            valueFrom:
+              configMapKeyRef:
+                key: POSTGRES_HOST
+                name: config-map
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              configMapKeyRef:
+                key: POSTGRES_PASSWORD
+                name: config-map
+          - name: POSTGRES_USERNAME
+            valueFrom:
+              configMapKeyRef:
+                key: POSTGRES_USERNAME
+                name: config-map
+          - name: RABBITMQ_HOST
+            valueFrom:
+              configMapKeyRef:
+                key: RABBITMQ_HOST
+                name: config-map
+          - name: RABBITMQ_PASSWORD
+            valueFrom:
+              configMapKeyRef:
+                key: RABBITMQ_PASSWORD
+                name: config-map
+          - name: RABBITMQ_USERNAME
+            valueFrom:
+              configMapKeyRef:
+                key: RABBITMQ_USERNAME
+                name: config-map
+          image: vectorflow_extractor
+          name: extractor
+          imagePullPolicy: IfNotPresent
+          resources: {}
+      restartPolicy: Always
+status: {}
