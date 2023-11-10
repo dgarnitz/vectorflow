@@ -1,5 +1,14 @@
 #!/bin/bash
 
+echo "Loading images into minikube. This will take a few minutes"
+minikube image load vectorflow_api
+minikube image load vectorflow_worker
+minikube image load vectorflow_extractor
+minikube image load vectorflow_vdb_upload_worker
+minikube image load vectorflow-db-init
+minikube image load vectorflow-minio-init
+minikube image load vectorflow-qdrant-init
+
 echo "Creating namespace..."
 kubectl apply -f kube/vectorflow-namespace.yaml
 
