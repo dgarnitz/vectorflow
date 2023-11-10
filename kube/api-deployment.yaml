@@ -7,6 +7,7 @@ metadata:
   labels:
     io.kompose.service: api
   name: api
+  namespace: vectorflow
 spec:
   replicas: 1
   selector:

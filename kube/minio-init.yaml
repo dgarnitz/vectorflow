@@ -2,6 +2,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: minio-init
+  namespace: vectorflow
 spec:
   template:
     spec:

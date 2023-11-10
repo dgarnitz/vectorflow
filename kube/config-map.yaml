@@ -23,3 +23,4 @@ metadata:
   labels:
     io.kompose.service: config-map
   name: config-map
+  namespace: vectorflow
