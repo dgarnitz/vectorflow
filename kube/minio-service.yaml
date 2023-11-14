@@ -9,7 +9,6 @@ metadata:
   name: minio
   namespace: vectorflow
 spec:
-  type: LoadBalancer
   ports:
     - name: "9000"
       port: 9000
