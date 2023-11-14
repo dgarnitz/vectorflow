@@ -114,7 +114,9 @@ Note that the Sentence Transformer models can be large and take several minutes 
 
 ## Using VectorFlow
 
-To use VectorFlow in a live system, make an HTTP request to your API's URL at port 8000 - for example, `localhost:8000` from your development machine, or `vectorflow_api:8000` from within another docker container.
+The best way to use VectorFlow is with the python client. 
+
+To use VectorFlow for development, make an HTTP request to your API's URL - for example, `localhost:8000` from your development machine, or `vectorflow_api:8000` from within another docker container.
 
 ### Request & Response Payload
 

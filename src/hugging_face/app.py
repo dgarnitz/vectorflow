@@ -18,6 +18,8 @@ from shared.batch_status import BatchStatus
 from services.database import job_service
 from shared.utils import send_embeddings_to_webhook
 from shared.job_status import JobStatus
+from services.rabbitmq.rabbit_service import create_connection_params
+from pika.exceptions import AMQPConnectionError
 
 model = None
 publish_channel = None
@@ -120,27 +122,13 @@ def callback(ch, method, properties, body):
 
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
-def start_connection():
+def start_connection(max_retries=5, retry_delay=5):
     global publish_channel
     global model_name
     
-    while True:
+    for attempt in range(max_retries):
         try:
-            credentials = pika.PlainCredentials(os.getenv('RABBITMQ_USERNAME'), os.getenv('RABBITMQ_PASSWORD'))
-
-            connection_params = pika.ConnectionParameters(
-                host=os.getenv('RABBITMQ_HOST'),
-                credentials=credentials,
-                port=os.getenv('RABBITMQ_PORT'),
-                heartbeat=600,
-                ssl_options=pika.SSLOptions(ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)),
-                virtual_host="/"
-            ) if os.getenv('RABBITMQ_PORT') == "5671" else pika.ConnectionParameters(
-                host=os.getenv('RABBITMQ_HOST'),
-                credentials=credentials,
-                heartbeat=600,
-            )
-
+            connection_params = create_connection_params()
             connection = pika.BlockingConnection(connection_params)
             consume_channel = connection.channel()
             publish_channel = connection.channel() 
@@ -155,13 +143,28 @@ def start_connection():
 
             logging.info('Waiting for messages.')
             consume_channel.start_consuming()
+            return  # If successful, exit the function
             
+        except AMQPConnectionError as e:
+            logging.error('AMQP Connection Error: %s', e)
         except Exception as e:
-            logging.error('ERROR connecting to RabbitMQ, retrying now. See exception: %s', e)
-            time.sleep(10) # Wait before retrying
+            logging.error('Unexpected error: %s', e)
+        finally:
+            if connection and not connection.is_closed:
+                connection.close()
+
+        logging.info('Retrying to connect in %s seconds (Attempt %s/%s)', retry_delay, attempt + 1, max_retries)
+        time.sleep(retry_delay)
 
 if __name__ == "__main__": 
     args = get_args()
     model_name = args.model_name
     model = SentenceTransformer(model_name)
-    start_connection()
+    while True:
+        try:
+            start_connection()
+
+        except Exception as e:
+            logging.error('Error in start_connection: %s', e)
+            logging.info('Restarting start_connection after encountering an error.')
+            time.sleep(10)

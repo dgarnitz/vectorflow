@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hugging-face
+  namespace: vectorflow
+  labels:
+    app: hugging-face
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hugging-face
+  strategy: {}
+  template:
+    metadata:
+        labels:
+          io.kompose.network/vectorflow: "true"
+          app: hugging-face
+    spec:
+      containers:
+        - args:
+            - bash
+            - /wait-for-it.sh
+            - rabbitmq:5672
+            - --
+            - python
+            - app.py 
+            - --model_name # this is currently failing, not read in due to weird way the script runs
+            - "BAAI/bge-small-en"
+          env:
+          - name: VDB_UPLOAD_QUEUE
+            valueFrom:
+              configMapKeyRef:
+                key: VDB_UPLOAD_QUEUE
+                name: config-map
+          - name: POSTGRES_DB
+            valueFrom:
+              configMapKeyRef:
+                key: POSTGRES_DB
+                name: config-map
+          - name: POSTGRES_HOST
+            valueFrom:
+              configMapKeyRef:
+                key: POSTGRES_HOST
+                name: config-map
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              configMapKeyRef:
+                key: POSTGRES_PASSWORD
+                name: config-map
+          - name: POSTGRES_USERNAME
+            valueFrom:
+              configMapKeyRef:
+                key: POSTGRES_USERNAME
+                name: config-map
+          - name: RABBITMQ_HOST
+            valueFrom:
+              configMapKeyRef:
+                key: RABBITMQ_HOST
+                name: config-map
+          - name: RABBITMQ_PASSWORD
+            valueFrom:
+              configMapKeyRef:
+                key: RABBITMQ_PASSWORD
+                name: config-map
+          - name: RABBITMQ_USERNAME
+            valueFrom:
+              configMapKeyRef:
+                key: RABBITMQ_USERNAME
+                name: config-map
+          image: vectorflow_hf
+          name: hugging-face
+          imagePullPolicy: IfNotPresent
+          resources: {}
+      restartPolicy: Always
+status: {}

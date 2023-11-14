@@ -5,7 +5,7 @@ import json
 #####################
 # Testing Variables #
 #####################
-filepath = './api/tests/fixtures/test_medium_text.txt'
+filepath = 'src/api/tests/fixtures/test_medium_text.txt'
 url = "http://localhost:8000/embed"
 embedding_key = os.getenv("OPEN_AI_KEY")
 embedding_type="HUGGING_FACE"
