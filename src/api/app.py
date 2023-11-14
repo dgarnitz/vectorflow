@@ -278,7 +278,8 @@ def process_file(file, vectorflow_request, job_id):
     batch_count = create_batches(file_content, job_id, vectorflow_request)
     return batch_count
 
-def create_batches(file_content, job_id, vectorflow_request):
+def create_batches(file_content, job_id, vectorflow_request_original):
+    vectorflow_request = copy.deepcopy(vectorflow_request_original)
     chunks = [chunk for chunk in split_file(file_content, vectorflow_request.lines_per_batch)]
     
     batches = [Batch(job_id=job_id, embeddings_metadata=vectorflow_request.embeddings_metadata, vector_db_metadata=vectorflow_request.vector_db_metadata) for _ in chunks]

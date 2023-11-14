@@ -17,7 +17,7 @@ COPY services /app/services
 # install requirements
 RUN pip install --no-cache-dir -r /app/hugging_face/requirements.txt
 
-# Set the working directory to /app/worker, as 'worker.py' is here
+# Set the working directory to /app/hugging_face, as 'app.py' is here
 WORKDIR /app/hugging_face
 
 # Run worker.py when the container launches
