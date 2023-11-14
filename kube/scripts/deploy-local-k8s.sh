@@ -1,15 +1,15 @@
 #!/bin/bash
 
-echo "Building images from src/ directory. This will take a few minutes"
-cd src/
-docker build --no-cache --file api/Dockerfile -t vectorflow_api:latest .
-docker build --no-cache --file worker/Dockerfile -t vectorflow_worker:latest .
-docker build --no-cache --file worker/Dockerfile.vdb-upload-worker -t vectorflow_vdb_upload_worker:latest .
-docker build --no-cache --file extractor/Dockerfile -t vectorflow_extractor:latest .
-docker build --no-cache --file scripts/Dockerfile -t vectorflow-db-init:latest .
-docker build --no-cache --file scripts/Dockerfile.minio -t vectorflow-minio-init:latest .
-docker build --no-cache --file scripts/Dockerfile.local-qdrant -t vectorflow-qdrant-init:latest .
-cd ..
+# echo "Building images from src/ directory. This will take a few minutes"
+# cd src/
+# docker build --no-cache --file api/Dockerfile -t vectorflow_api:latest .
+# docker build --no-cache --file worker/Dockerfile -t vectorflow_worker:latest .
+# docker build --no-cache --file worker/Dockerfile.vdb-upload-worker -t vectorflow_vdb_upload_worker:latest .
+# docker build --no-cache --file extractor/Dockerfile -t vectorflow_extractor:latest .
+# docker build --no-cache --file scripts/Dockerfile -t vectorflow-db-init:latest .
+# docker build --no-cache --file scripts/Dockerfile.minio -t vectorflow-minio-init:latest .
+# docker build --no-cache --file scripts/Dockerfile.local-qdrant -t vectorflow-qdrant-init:latest .
+# cd ..
 
 echo "Loading images into minikube. This will take a few minutes"
 minikube image load vectorflow_api
