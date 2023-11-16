@@ -9,6 +9,7 @@ metadata:
   name: qdrant
   namespace: vectorflow
 spec:
+  type: LoadBalancer
   ports:
     - name: "6333"
       port: 6333
