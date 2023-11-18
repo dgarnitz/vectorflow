@@ -80,7 +80,7 @@ def embed():
         vectorflow_request_copy = copy.deepcopy(vectorflow_request)
         send_telemetry("SINGLE_FILE_UPLOAD_SUCCESS", vectorflow_request_copy)
 
-        logging.INFO(f"{datetime.now()} Successfully created job {job.id} for file {file.filename}")
+        logging.info(f"{datetime.now()} Successfully created job {job.id} for file {file.filename}")
         return jsonify({'message': f"Successfully added {batch_count} batches to the queue", 'JobID': job.id}), 200
     else:
         return jsonify({'error': 'Uploaded file is not a TXT, PDF, Markdown or DOCX file'}), 400
@@ -154,7 +154,7 @@ def create_jobs():
             pipeline.disconnect()
 
             successfully_uploaded_files[file.filename] = job.id
-            logging.INFO(f"{datetime.now()} Successfully created job {job.id} for file {file.filename}")
+            logging.info(f"{datetime.now()} Successfully created job {job.id} for file {file.filename}")
         except Exception as e:
             print(f"Error uploading file {file.filename} to min.io, creating job or passing vectorflow request to message broker. \nError: {e}\n\n")
             failed_uploads.append(file.filename)       
