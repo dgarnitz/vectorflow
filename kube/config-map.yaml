@@ -16,6 +16,7 @@ data:
   RABBITMQ_HOST: rabbitmq
   RABBITMQ_PASSWORD: guest
   RABBITMQ_USERNAME: guest
+  RETRY_QUEUE: retry
   TELEMETRY_DISABLED: "True"
   VDB_UPLOAD_QUEUE: vdb-upload
 kind: ConfigMap

@@ -67,6 +67,7 @@ export RABBITMQ_PASSWORD=guest
 export RABBITMQ_HOST=rabbitmq
 export EXTRACTION_QUEUE=extraction
 export EMBEDDING_QUEUE=embeddings
+export RETRY_QUEUE=retry
 export VDB_UPLOAD_QUEUE=vdb-upload
 export LOCAL_VECTOR_DB=qdrant
 export API_STORAGE_DIRECTORY=/tmp
