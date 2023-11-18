@@ -29,6 +29,7 @@ from pathlib import Path
 from llama_index import download_loader
 from services.minio.minio_service import create_minio_client
 from api.posthog import send_telemetry
+from datetime import datetime
 
 auth = Auth()
 pipeline = Pipeline()
@@ -79,6 +80,7 @@ def embed():
         vectorflow_request_copy = copy.deepcopy(vectorflow_request)
         send_telemetry("SINGLE_FILE_UPLOAD_SUCCESS", vectorflow_request_copy)
 
+        logging.info(f"{datetime.now()} Successfully created job {job.id} for file {file.filename}")
         return jsonify({'message': f"Successfully added {batch_count} batches to the queue", 'JobID': job.id}), 200
     else:
         return jsonify({'error': 'Uploaded file is not a TXT, PDF, Markdown or DOCX file'}), 400
@@ -152,11 +154,12 @@ def create_jobs():
             pipeline.disconnect()
 
             successfully_uploaded_files[file.filename] = job.id
-            send_telemetry("MULTI_FILE_UPLOAD_SUCCESS", vectorflow_request)
+            logging.info(f"{datetime.now()} Successfully created job {job.id} for file {file.filename}")
         except Exception as e:
             print(f"Error uploading file {file.filename} to min.io, creating job or passing vectorflow request to message broker. \nError: {e}\n\n")
             failed_uploads.append(file.filename)       
 
+    send_telemetry("MULTI_FILE_UPLOAD_SUCCESS", vectorflow_request)
     return jsonify({'message': 'Files processed', 
                     'successful_uploads': successfully_uploaded_files,
                     'failed_uploads': failed_uploads,

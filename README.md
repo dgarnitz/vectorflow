@@ -260,7 +260,12 @@ TELEMETRY_DISABLED=True
 ## Kubernetes
 You can run VectorFlow locally in Kubernetes with minikube using `./kube/scripts/deploy-local-k8s.sh`, which will apply all the yaml files located in `kube/`. This script will not work if you have not installed docker, minikube and kubectl. 
 
-This script will first build the images locally, then transfer them into minikube. 
+This script will first build the images locally, then transfer them into minikube. If you want to check what images are available in minikube, run the following:
+
+```
+eval $(minikube docker-env)
+docker images
+```
 
 You will need to run `minikube tunnel` to access the resources located in the cluster from your development machine. The setup script will load the images from your local docker context into minikube's. 
 

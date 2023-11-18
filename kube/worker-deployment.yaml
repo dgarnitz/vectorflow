@@ -42,6 +42,11 @@ spec:
               configMapKeyRef:
                 key: EMBEDDING_QUEUE
                 name: config-map
+          - name: RETRY_QUEUE
+            valueFrom:
+              configMapKeyRef:
+                key: RETRY_QUEUE
+                name: config-map
           - name: VDB_UPLOAD_QUEUE
             valueFrom:
               configMapKeyRef:

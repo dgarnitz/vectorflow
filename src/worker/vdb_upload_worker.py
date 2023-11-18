@@ -31,8 +31,8 @@ from urllib.parse import quote_plus
 from services.rabbitmq.rabbit_service import create_connection_params
 from pika.exceptions import AMQPConnectionError
 
-logging.basicConfig(filename='./vdb-upload-log.txt', level=logging.INFO)
-logging.basicConfig(filename='./vdb-upload-errors.txt', level=logging.ERROR)
+logging.basicConfig(filename='./vdb-log.txt', level=logging.INFO)
+logging.basicConfig(filename='./vdb-errors.txt', level=logging.ERROR)
 
 def upload_batch(batch_id, chunks_with_embeddings):
     batch = safe_db_operation(batch_service.get_batch, batch_id)
