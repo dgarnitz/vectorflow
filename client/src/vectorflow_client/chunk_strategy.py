@@ -1,6 +1,6 @@
 from enum import Enum
 
-class ChunkStrategyClient(Enum):
+class ChunkStrategy(Enum):
     EXACT = 'exact'
     EXACT_BY_CHARACTERS = 'exact_by_characters'
     PARAGRAPH = 'paragraph'

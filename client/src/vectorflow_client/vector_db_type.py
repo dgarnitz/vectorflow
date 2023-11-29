@@ -1,6 +1,6 @@
 from enum import Enum
 
-class VectorDBTypeClient(Enum):
+class VectorDBType(Enum):
     PINECONE = 'pinecone'
     WEAVIATE = 'weaviate'
     MILVUS = 'milvus'
