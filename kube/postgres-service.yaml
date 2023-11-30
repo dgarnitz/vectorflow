@@ -9,6 +9,7 @@ metadata:
   name: postgres
   namespace: vectorflow
 spec:
+  type: LoadBalancer
   ports:
     - name: "5432"
       port: 5432

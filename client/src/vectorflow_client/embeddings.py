@@ -1,11 +1,11 @@
-from .embeddings_type_client import EmbeddingsTypeClient
-from .chunk_strategy_client import ChunkStrategyClient
+from .embeddings_type import EmbeddingsType
+from .chunk_strategy import ChunkStrategy
 
-class EmbeddingsMetadataClient:
-    def __init__(self, embeddings_type: EmbeddingsTypeClient = EmbeddingsTypeClient.OPEN_AI, 
+class Embeddings:
+    def __init__(self, embeddings_type: EmbeddingsType = EmbeddingsType.OPEN_AI, 
                chunk_size: int = 256, 
                chunk_overlap: int = 128, 
-               chunk_strategy: ChunkStrategyClient = ChunkStrategyClient.EXACT, 
+               chunk_strategy: ChunkStrategy = ChunkStrategy.EXACT, 
                docker_image: str = None, 
                hugging_face_model_name: str = None):
         self.embeddings_type = embeddings_type

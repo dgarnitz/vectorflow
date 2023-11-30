@@ -1,12 +1,13 @@
 import os
 import requests
 import json
-from .embeddings_metadata_client import EmbeddingsMetadataClient
-from .vector_db_metadata_client import VectorDBMetadataClient
+from .embeddings import Embeddings
+from .vector_db import VectorDB
+from .response import Response
 
 class Vectorflow:
-    def __init__(self, embeddings_metadata: EmbeddingsMetadataClient = None, 
-                vector_db_metadata: VectorDBMetadataClient = None,
+    def __init__(self, embeddings: Embeddings = None, 
+                vector_db: VectorDB = None,
                 vector_db_key: str = None,
                 embedding_api_key: str = None,
                 webhook_url: str = None,
@@ -15,8 +16,8 @@ class Vectorflow:
                 document_id: str = None,
                 chunk_validation_url: str = None,               
                 internal_api_key: str = "test123"):
-        self.embeddings_metadata = embeddings_metadata if embeddings_metadata else EmbeddingsMetadataClient()
-        self.vector_db_metadata = vector_db_metadata if vector_db_metadata else VectorDBMetadataClient()
+        self.embeddings = embeddings if embeddings else Embeddings()
+        self.vector_db = vector_db if vector_db else VectorDB()
         self.webhook_url = webhook_url
         self.lines_per_batch = lines_per_batch
         self.webhook_key = webhook_key
@@ -28,8 +29,8 @@ class Vectorflow:
 
     def serialize(self):
         data = {
-            'EmbeddingsMetadata': json.dumps(self.embeddings_metadata.serialize()),
-            'VectorDBMetadata': json.dumps(self.vector_db_metadata.serialize()),
+            'EmbeddingsMetadata': json.dumps(self.embeddings.serialize()),
+            'VectorDBMetadata': json.dumps(self.vector_db.serialize()),
             'WebhookURL': self.webhook_url,
             'LinesPerBatch': self.lines_per_batch,
             'DocumentID': self.document_id,
@@ -48,11 +49,13 @@ class Vectorflow:
 
         if response.status_code == 500:
             print(response.text)
-        elif response.status_code >= 400 and response.status_code < 500:
-            response_json = response.json()
+            return Response(error=response.text, status_code=response.status_code)
+        
+        response_json = response.json()
+        if response.status_code >= 400 and response.status_code < 500:
             print(f"Error: {response_json['error']}")
 
-        return response
+        return Response.from_json(response_json, response.status_code)
     
     def get_job_statuses(self, job_ids: list[int], base_url: str = "http://localhost:8000"):
         url = base_url + "/jobs/status"
@@ -69,11 +72,13 @@ class Vectorflow:
 
         if response.status_code == 500:
             print(response.text)
-        elif response.status_code >= 400 and response.status_code < 500:
-            response_json = response.json()
-            print(f"Error: {response_json['error']}")
+            return Response(error=response.text, status_code=response.status_code)
         
-        return response
+        response_json = response.json()
+        if response.status_code >= 400 and response.status_code < 500:
+            print(f"Error: {response_json['error']}")
+
+        return Response.from_json(response_json, response.status_code)
     
     def embed(self, filepath, base_url: str = "http://localhost:8000"):
         url = base_url + "/embed"
@@ -89,11 +94,13 @@ class Vectorflow:
 
         if response.status_code == 500:
             print(response.text)
-        elif response.status_code >= 400 and response.status_code < 500:
-            response_json = response.json()
+            return Response(error=response.text, status_code=response.status_code)
+        
+        response_json = response.json()
+        if response.status_code >= 400 and response.status_code < 500:
             print(f"Error: {response_json['error']}")
 
-        return response
+        return Response.from_json(response_json, response.status_code)
 
     def get_job_status(self, job_id, base_url: str = "http://localhost:8000"):
         url = base_url + "/jobs/" + str(job_id) + "/status"
@@ -106,11 +113,13 @@ class Vectorflow:
 
         if response.status_code == 500:
             print(response.text)
-        elif response.status_code >= 400 and response.status_code < 500:
-            response_json = response.json()
+            return Response(error=response.text, status_code=response.status_code)
+        
+        response_json = response.json()
+        if response.status_code >= 400 and response.status_code < 500:
             print(f"Error: {response_json['error']}")
 
-        return response
+        return Response.from_json(response_json, response.status_code)
     
     def generate_headers(self):
         headers = {
