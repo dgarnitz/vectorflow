@@ -60,3 +60,32 @@ vectorflow.vector_db.vector_db_type = VectorDBType.PINECONE
 vectorflow.vector_db.environment = "us-east-1-aws"
 vectorflow.vector_db.index_name = "test"
 ```
+
+## Chunk Enhancer
+The VectorFlow Client also features a RAG chunk enhancer. It works by passing it a list of chunks, the original source document and a use case describing the kind of searches you will run. It then adds extra relevant contextual information to the end of each chunk based on the use case to help facilitate better similarity searches. 
+
+### Usage
+
+```
+from vectorflow_client.chunk_enhancer import ChunkEnhancer
+import fitz
+
+usecase = """
+I am reviewing academic papers about search and evaluation techniques for large language models to try to utilize them more effectively.
+I want to supplement my existing knowledge with state of the art techniques and see if I can apply them to my own work.
+I will want to compare and contrast different techniques.
+I will also want to learn about the detail technical workings of these, including at a mathematical level.
+The purpose of this sytem is to help me while conducting both research and building real world applications using large language models.
+"""
+
+enhancer = ChunkEnhancer(usecase=usecase, openai_api_key="your-key")
+
+doc = fitz.open("paper.pdf")
+pdf_text = ""
+for page in doc:
+  pdf_text += page.get_text()
+
+chunk1 = pdf_text[:2048]
+chunks = [chunk1]
+enhanced_chunks = enhancer.enhance_chunks(chunks, pdf_text)
+```
