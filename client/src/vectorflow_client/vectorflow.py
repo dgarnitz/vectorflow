@@ -15,7 +15,8 @@ class Vectorflow:
                 webhook_key: str = None,
                 document_id: str = None,
                 chunk_validation_url: str = None,               
-                internal_api_key: str = "test123"):
+                internal_api_key: str = "test123",
+                base_url = "http://localhost:8000"):
         self.embeddings = embeddings if embeddings else Embeddings()
         self.vector_db = vector_db if vector_db else VectorDB()
         self.webhook_url = webhook_url
@@ -26,7 +27,7 @@ class Vectorflow:
         self.vector_db_key = vector_db_key
         self.embeddings_api_key = embedding_api_key
         self.internal_api_key = internal_api_key
-        self.base_url = "http://localhost:8000"
+        self.base_url = base_url
 
     def serialize(self):
         data = {
