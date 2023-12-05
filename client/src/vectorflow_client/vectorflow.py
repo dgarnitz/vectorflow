@@ -26,6 +26,7 @@ class Vectorflow:
         self.vector_db_key = vector_db_key
         self.embeddings_api_key = embedding_api_key
         self.internal_api_key = internal_api_key
+        self.base_url = "http://localhost:8000"
 
     def serialize(self):
         data = {
@@ -38,8 +39,8 @@ class Vectorflow:
         }
         return {k: v for k, v in data.items() if v is not None}
 
-    def upload(self, file_paths: list[str], base_url: str = "http://localhost:8000"):
-        url = base_url + "/jobs"
+    def upload(self, file_paths: list[str]):
+        url = self.base_url + "/jobs"
         data = self.serialize()
         headers = self.generate_headers()
         multipart_form_data = [('file', (os.path.basename(filepath), open(filepath, 'rb'), 'application/octet-stream')) for filepath in file_paths]
@@ -57,8 +58,8 @@ class Vectorflow:
 
         return Response.from_json(response_json, response.status_code)
     
-    def get_job_statuses(self, job_ids: list[int], base_url: str = "http://localhost:8000"):
-        url = base_url + "/jobs/status"
+    def get_job_statuses(self, job_ids: list[int]):
+        url = self.base_url + "/jobs/status"
         headers = {
             "Authorization": self.internal_api_key,
         }
@@ -80,8 +81,8 @@ class Vectorflow:
 
         return Response.from_json(response_json, response.status_code)
     
-    def embed(self, filepath, base_url: str = "http://localhost:8000"):
-        url = base_url + "/embed"
+    def embed(self, filepath):
+        url = self.base_url + "/embed"
         data = self.serialize()
         headers = self.generate_headers()
 
@@ -102,8 +103,8 @@ class Vectorflow:
 
         return Response.from_json(response_json, response.status_code)
 
-    def get_job_status(self, job_id, base_url: str = "http://localhost:8000"):
-        url = base_url + "/jobs/" + str(job_id) + "/status"
+    def get_job_status(self, job_id):
+        url = self.base_url + "/jobs/" + str(job_id) + "/status"
         headers = {
             "Authorization": self.internal_api_key,
         }

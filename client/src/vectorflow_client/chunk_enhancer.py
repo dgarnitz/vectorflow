@@ -17,6 +17,7 @@ class ChunkEnhancer:
         self.number_of_questions = number_of_questions
         self.model = model
         self.posthog = Posthog(project_api_key='phc_E2V9rY1esOWV6el6WjfGSiwhTj49YFXe8vHv1rcgx9E', host='https://eu.posthog.com')
+        self.verbose = True
 
         # chunk enhancement
         self.enhancement_system_prompt = "You are a helpful assistant."
@@ -144,7 +145,9 @@ class ChunkEnhancer:
         )
 
         json_response = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
-        print(f"Adding the following information to the end of thechunk:\n{json_response['enhancements']}")
+        if self.verbose:
+            print(f"Adding the following information to the end of thechunk:\n{json_response['enhancements']}\n")
+        
         return json_response
     
     def generate_questions_from_usecase(self):
@@ -259,6 +262,10 @@ class ChunkEnhancer:
         json_response = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
         return json_response 
     
+    # TODO: this hardcodes an approximate token to character ratio of 1:3. This is a ballpark estiamte 
+    # designed for a proof of concept but it is note accurate and will cause errors
+    # this temporary fix was implemented because the tiktoken decode method was introducing invisible, 
+    # unexpected tokens into the output, which was causing the openai api to return strange results
     def extract_for_token_limit(self, document, questions):
         encoding = tiktoken.encoding_for_model(self.model)
         question_string = ",".join(questions)
@@ -274,11 +281,9 @@ class ChunkEnhancer:
             token_limit = 32768
 
         remaining_tokens = token_limit - (questions_count + user_prompt_count + system_prompt_count + extra_count)
-        document_encoding = encoding.encode(document)
         if len(encoding.encode(document)) <= remaining_tokens:
             return document
         
-        #return encoding.decode(document_encoding[:remaining_tokens])
         return document[:remaining_tokens*3]
     
     def summarize(self, document):
@@ -292,6 +297,7 @@ class ChunkEnhancer:
 
             ### Summary:
             """
+        
         user_prompt = summary_prompt.format(document=extracted_document)
         completion = self.client.chat.completions.create(
             model=self.model,
@@ -326,6 +332,9 @@ class ChunkEnhancer:
         )
 
         json_response = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
+        if self.verbose:
+            print(f"Added following summary chunk:\n{json_response['summary']}\n")
+
         return json_response
     
     def get_whole_document_context(self, document):
