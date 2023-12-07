@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "vectorflow_client"
-version = "0.0.10"
+version = "0.0.11"
 authors = [
   { name="David Garnitz", email="david@getvectorflow.com" },
 ]
