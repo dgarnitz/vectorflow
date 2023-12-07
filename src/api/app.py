@@ -456,7 +456,21 @@ def is_valid_file_type(file):
     for type in supported_types:
         if file.filename.endswith(type):
             return True
-    return False
+        
+    # Try to detect .txt files by content
+    try:
+        # Read a portion of the file
+        file_content = file.stream.read(1024)
+        file.stream.seek(0)  # Reset the file stream position for later use
+
+        # Attempt to decode the content as utf-8 text
+        file_content.decode('utf-8')
+
+        # If we were able to successfully decode the file as utf-8 text, it's likely a text file
+        file.filename += '.txt'
+        return True  # Successful decoding implies it's a text file
+    except UnicodeDecodeError:
+        return False  # Failed to decode, likely not a text file
 
 def remove_from_minio(filename):
     client = create_minio_client()

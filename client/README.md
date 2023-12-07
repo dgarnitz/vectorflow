@@ -17,10 +17,12 @@ vectorflow.embedding_api_key = "YOUR_OPEN_AI_KEY"
 filepath = './src/api/tests/fixtures/test_medium_text.txt'
 response = vectorflow.embed(filepath)
 ```
-This points at your local VectorFlow instance by default. You can also point at our free hosted version of VectorFlow, which is more performant. Just alter the `base_url` parameter of the embed method and set the `internal api key` from the [managed service.](https://app.getvectorflow.com/home)
+This points at your local VectorFlow instance by default. You can also point at our free hosted version of VectorFlow, which is more performant. Just set the `base_url` and the `internal_api_key` on the client object, which you can get from [the managed service](https://app.getvectorflow.com/home).
 ```
 vectorflow.internal_api_key = 'SWITCHINGKEYS1234567890'
-response = vectorflow.embed(filepath, base_url = "https://vectorflowembeddings.online")
+vectorflow.base_url = "https://vectorflowembeddings.online"
+
+response = vectorflow.embed(filepath)
 ```
 
 #### Embed Multiple Files
@@ -48,17 +50,28 @@ For more granular control over the chunking, embedding and vector DB configurati
 from vectorflow_client.vectorflow import Vectorflow
 from vectorflow_client.embeddings_type import EmbeddingsType
 from vectorflow_client.vector_db_type import VectorDBType
+from vectorflow_client.embeddings import Embeddings
 
-vectorflow = Vectorflow()
+vectorflow = Vectorflow(
+  internal_api_key = 'SWITCHINGKEYS1234567890',
+  vector_db_key = "your-vdb-key" ,
+  base_url = "https://vectorflowembeddings.online"
+)
 
 # use open source sentence transformer model
-vectorflow.embeddings.hugging_face_model_name = "thenlper/gte-base"
-vectorflow.embeddings.embeddings_type = EmbeddingsTypeClient.HUGGING_FACE
+embeddings = Embeddings(
+  hugging_face_model_name = "thenlper/gte-base"
+  embeddings_type = EmbeddingsTypeClient.HUGGING_FACE
+)
+vectorflow.embeddings = embeddings
 
 # use Pinecone
-vectorflow.vector_db.vector_db_type = VectorDBType.PINECONE
-vectorflow.vector_db.environment = "us-east-1-aws"
-vectorflow.vector_db.index_name = "test"
+vector_db = VectorDB(
+	vector_db_type = VectorDBType.PINECONE,
+	environment = "us-east-1-aws",
+	index_name = "test-1536",
+)
+vectorflow.vector_db = vector_db
 ```
 
 ## Chunk Enhancer

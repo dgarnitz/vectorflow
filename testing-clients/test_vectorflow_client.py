@@ -16,7 +16,12 @@ vectorflow.embeddings_api_key = os.getenv("OPEN_AI_KEY")
 
 filepath = './src/api/tests/fixtures/test_medium_text.txt'
 embed_response = vectorflow.embed(filepath)
-if embed_response.status_code == 500:
+if embed_response.status_code >= 400:
+    print(f"request failed with status code: {embed_response.status_code}")
+    if embed_response.message:
+        print(f"message: {embed_response.message}")
+    if embed_response.error:
+        print(f"error: {embed_response.error}")
     exit(0)
 
 print(f"Job ID: {embed_response.job_id}")
