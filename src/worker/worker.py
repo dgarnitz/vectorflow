@@ -30,7 +30,6 @@ logging.basicConfig(filename='./worker-errors.txt', level=logging.ERROR)
 publish_channel = None
 connection = None
 consume_channel = None
-retry_channel = None
 
 def process_batch(batch_id, source_data, vector_db_key, embeddings_api_key):
     batch = safe_db_operation(batch_service.get_batch, batch_id)
@@ -63,24 +62,10 @@ def process_batch(batch_id, source_data, vector_db_key, embeddings_api_key):
             else:
                 logging.error(f"Failed to get OPEN AI embeddings for batch {batch.id}. Adding batch to retry queue.")
                 update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id, batch.retries)
-                
-                if batch.retries < config.MAX_BATCH_RETRIES:
-                    logging.info(f"Adding Batch {batch.id} of job {batch.job_id} to retry queue.\nCurrent attempt {batch.retries} of {config.MAX_BATCH_RETRIES}")
-                    json_data = json.dumps((batch_id, source_data, vector_db_key, embeddings_api_key))
-                    publish_message_to_retry_queue(retry_channel, os.getenv('RETRY_QUEUE'), json_data)
-                else:
-                    logging.error(f"Max retries reached for batch {batch.id} for job {batch.job_id}.\nBATCH will be marked permanent as FAILED.")
 
         except Exception as e:
             logging.error('Error embedding batch: %s', e)
             update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
-
-            if batch.retries < config.MAX_BATCH_RETRIES:
-                logging.info(f"Adding Batch {batch.id} of job {batch.job_id} to retry queue.\nCurrent attempt {batch.retries} of {config.MAX_BATCH_RETRIES}")
-                json_data = json.dumps((batch_id, source_data, vector_db_key, embeddings_api_key))
-                publish_message_to_retry_queue(retry_channel, os.getenv('RETRY_QUEUE'), json_data)
-            else:
-                logging.error(f"Max retries reached for batch {batch.id} for job {batch.job_id}.\nBATCH will be marked permanent as FAILED.")
     
     elif embeddings_type == EmbeddingsType.HUGGING_FACE:
         try:
@@ -88,13 +73,6 @@ def process_batch(batch_id, source_data, vector_db_key, embeddings_api_key):
         except Exception as e:
             logging.error('Error embedding batch: %s', e)
             update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
-
-            if batch.retries < config.MAX_BATCH_RETRIES:
-                logging.info(f"Adding Batch {batch.id} of job {batch.job_id} to retry queue.\nCurrent attempt {batch.retries} of {config.MAX_BATCH_RETRIES}")
-                json_data = json.dumps((batch_id, source_data, vector_db_key, embeddings_api_key))
-                publish_message_to_retry_queue(retry_channel, os.getenv('RETRY_QUEUE'), json_data)
-            else:
-                logging.error(f"Max retries reached for batch {batch.id} for job {batch.job_id}.\nBATCH will be marked permanent as FAILED.")
     else:
         logging.error('Unsupported embeddings type: %s', embeddings_type.value)
         update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id, bypass_retries=True)      
@@ -459,46 +437,36 @@ def callback(ch, method, properties, body):
 
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
-def start_connection(max_retries=5, retry_delay=5):
+def start_connection():
     global publish_channel
     global connection
     global consume_channel
-    global retry_channel
 
-    for attempt in range(max_retries):
-        try:
-            connection_params = create_connection_params()
-            connection = pika.BlockingConnection(connection_params)
-            consume_channel = connection.channel()
-            publish_channel = connection.channel()
-            retry_channel = connection.channel()
+    try:
+        connection_params = create_connection_params()
+        connection = pika.BlockingConnection(connection_params)
+        consume_channel = connection.channel()
+        publish_channel = connection.channel()
 
-            consume_queue_name = os.getenv('EMBEDDING_QUEUE')
-            publish_queue_name = os.getenv('VDB_UPLOAD_QUEUE')
-            retry_queue_name = os.getenv('RETRY_QUEUE') 
+        consume_queue_name = os.getenv('EMBEDDING_QUEUE')
+        publish_queue_name = os.getenv('VDB_UPLOAD_QUEUE')
 
-            consume_channel.queue_declare(queue=consume_queue_name)
-            publish_channel.queue_declare(queue=publish_queue_name)
-            retry_channel.queue_declare(queue=retry_queue_name)
+        consume_channel.queue_declare(queue=consume_queue_name)
+        publish_channel.queue_declare(queue=publish_queue_name)
 
-            consume_channel.basic_consume(queue=consume_queue_name, on_message_callback=callback)
+        consume_channel.basic_consume(queue=consume_queue_name, on_message_callback=callback)
 
-            logging.info('Waiting for messages.')
-            consume_channel.start_consuming()
-            return  # If successful, exit the function
+        logging.info('Waiting for messages.')
+        consume_channel.start_consuming()
+        return  # If successful, exit the function
 
-        except AMQPConnectionError as e:
-            logging.error('AMQP Connection Error: %s', e)
-        except Exception as e:
-            logging.error('Unexpected error: %s', e)
-        finally:
-            if connection and not connection.is_closed:
-                connection.close()
-
-        logging.info('Retrying to connect in %s seconds (Attempt %s/%s)', retry_delay, attempt + 1, max_retries)
-        time.sleep(retry_delay)
-
-    raise Exception('Failed to connect after {} attempts'.format(max_retries))
+    except AMQPConnectionError as e:
+        logging.error('AMQP Connection Error: %s', e)
+    except Exception as e:
+        logging.error('Unexpected error: %s', e)
+    finally:
+        if connection and not connection.is_closed:
+            connection.close()
 
 if __name__ == "__main__":
     while True:
