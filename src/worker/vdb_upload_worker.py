@@ -10,11 +10,6 @@ import json
 import pinecone
 import logging
 import weaviate
-import redis
-import lancedb
-import pymongo
-import pyarrow as pa
-import numpy as np
 import worker.config as config
 import services.database.batch_service as batch_service
 import services.database.job_service as job_service
@@ -23,7 +18,6 @@ from shared.job_status import JobStatus
 from shared.batch_status import BatchStatus
 from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct
-from pymilvus import Collection, connections
 from shared.embeddings_type import EmbeddingsType
 from shared.vector_db_type import VectorDBType
 from shared.utils import generate_uuid_from_tuple
@@ -64,69 +58,8 @@ def write_embeddings_to_vector_db(chunks, vector_db_metadata, batch_id, job_id):
         return write_embeddings_to_qdrant(upsert_list, vector_db_metadata)
     elif vector_db_metadata.vector_db_type == VectorDBType.WEAVIATE:
         return write_embeddings_to_weaviate(text_embeddings_list, vector_db_metadata, batch_id, job_id, source_filename)
-    elif vector_db_metadata.vector_db_type == VectorDBType.MILVUS:
-        upsert_list = create_milvus_source_chunk_dict(text_embeddings_list, batch_id, job_id, source_filename)
-        return write_embeddings_to_milvus(upsert_list, vector_db_metadata)
-    elif vector_db_metadata.vector_db_type == VectorDBType.REDIS:
-        upsert_list = create_redis_source_chunk_dict(text_embeddings_list, batch_id, job_id, source_filename)
-        return write_embeddings_to_redis(upsert_list, vector_db_metadata)
-    elif vector_db_metadata.vector_db_type == VectorDBType.LANCEDB:
-        upsert_list = create_lancedb_source_chunks(text_embeddings_list, batch_id, job_id, source_filename)
-        return write_embeddings_to_lancedb(upsert_list, batch_id)
-    elif vector_db_metadata.vector_db_type == VectorDBType.MONGODB:
-        upsert_list = create_mongodb_source_chunk_dict(text_embeddings_list, batch_id, job_id, source_filename)
-        return write_embeddings_to_mongodb(upsert_list, vector_db_metadata)
     else:
         logging.error('Unsupported vector DB type: %s', vector_db_metadata.vector_db_type.value)
-
-def create_mongodb_source_chunk_dict(text_embeddings_list, batch_id, job_id, source_filename):
-    upsert_list = []
-    for i, (source_text, embedding) in enumerate(text_embeddings_list):
-        upsert_list.append(
-            {"_id": generate_uuid_from_tuple((job_id, batch_id, i)), 
-            "values": embedding, 
-            "source_text": source_text,
-            "source_document": source_filename
-            })
-    return upsert_list
-
-def write_embeddings_to_mongodb(upsert_list, vector_db_metadata):
-    mongo_conn_uri = vector_db_metadata.environment
-    mongo_password = quote_plus(os.getenv('VECTOR_DB_KEY'))
-    mongo_conn_uri = mongo_conn_uri.replace("<password>", mongo_password)
-
-    mongo_client = pymongo.MongoClient(mongo_conn_uri)
-    db_name, collection = vector_db_metadata.index_name.split(".")
-    db = mongo_client[db_name]
-
-    try:
-        db.command("ping")
-    except Exception as e:
-        logging.error(f"Error connecting to MongoDB via python client: {e}")
-        return None
-
-    if collection not in db.list_collection_names():
-        logging.error(f"Index {vector_db_metadata.index_name} does not exist in environment {vector_db_metadata.environment}")
-        return None
-    
-    index = db.get_collection(collection)
-    
-    logging.info(f"Starting MongoDB upsert for {len(upsert_list)} vectors")
-
-    batch_size = config.PINECONE_BATCH_SIZE
-    vectors_uploaded = 0
-
-    for i in range(0,len(upsert_list), batch_size):
-        try:
-            upsert_batch = upsert_list[i:i+batch_size]
-            upsert_response = index.insert_many(upsert_batch)
-            vectors_uploaded += len(upsert_batch)
-        except Exception as e:
-            logging.error('Error writing embeddings to Mongo:', e)
-            return None
-    
-    logging.info(f"Successfully uploaded {vectors_uploaded} vectors to MongoDB")
-    return vectors_uploaded
 
 def create_pinecone_source_chunk_dict(text_embeddings_list, batch_id, job_id, source_filename):
     upsert_list = []
@@ -160,45 +93,6 @@ def write_embeddings_to_pinecone(upsert_list, vector_db_metadata):
     
     logging.info(f"Successfully uploaded {vectors_uploaded} vectors to pinecone")
     return vectors_uploaded
-
-def create_redis_source_chunk_dict(text_embeddings_list, batch_id, job_id, source_filename):
-    ids = []
-    source_texts = []
-    source_documents = []
-    embeddings = []
-
-    for i, (source_text, embedding) in enumerate(text_embeddings_list):
-        ids.append(generate_uuid_from_tuple((job_id, batch_id, i)))
-        source_texts.append(source_text)
-        embeddings.append(embedding)
-        source_documents.append(source_filename)
-
-    return [ids, source_texts, embeddings, source_documents]
-
-def write_embeddings_to_redis(upsert_list, vector_db_metadata):
-    redis_client = redis.from_url(url=vector_db_metadata.environment, password=os.getenv('VECTOR_DB_KEY'), decode_responses=True)
-    
-    try:
-        redis_client.ft(vector_db_metadata.index_name).info()
-    except redis.exceptions.ResponseError as e:
-        if "Unknown Index name" in str(e):
-            logging.error(f"Index {vector_db_metadata.index_name} does not exist at redis URL {vector_db_metadata.environment}")
-            return None
-    
-    logging.info(f"Starting redis upsert for {len(upsert_list)} vectors")
-
-    redis_pipeline = redis_client.pipeline()
-
-    for i in range(0,len(upsert_list[0])):
-        key = f'{vector_db_metadata.collection}:{upsert_list[0][i]}'
-        obj = {"source_data": upsert_list[1][i], "embeddings": np.array(upsert_list[2][i]).tobytes(), "source_document": upsert_list[3][i]}
-
-        redis_pipeline.hset(key, mapping=obj)
-
-    res = redis_pipeline.execute()
-
-    logging.info(f"Successfully uploaded {len(res)} vectors to redis")
-    return len(res)
 
 def create_qdrant_source_chunk_dict(text_embeddings_list, batch_id, job_id, source_filename):
     upsert_list = []
@@ -276,101 +170,6 @@ def write_embeddings_to_weaviate(text_embeddings_list, vector_db_metadata,  batc
     
     logging.info(f"Successfully uploaded {len(text_embeddings_list)} vectors to Weaviate")
     return len(text_embeddings_list)
-
-def create_milvus_source_chunk_dict(text_embeddings_list, batch_id, job_id, source_filename):
-    ids = []
-    source_texts = []
-    embeddings = []
-    source_filenames = []
-    for i, (source_text, embedding) in enumerate(text_embeddings_list):
-        ids.append(generate_uuid_from_tuple((job_id, batch_id, i)))
-        source_texts.append(source_text)
-        embeddings.append(embedding)
-        source_filenames.append(source_filename)
-    return [ids, source_texts, embeddings, source_filenames]
-
-def write_embeddings_to_milvus(upsert_list, vector_db_metadata):
-    if vector_db_metadata.environment != os.getenv('LOCAL_VECTOR_DB'):
-        connections.connect("default", 
-            uri = vector_db_metadata.environment,
-            token = os.getenv('VECTOR_DB_KEY')
-        )
-    else:
-        connections.connect("default", 
-            host = vector_db_metadata.environment
-        )
-
-    collection = Collection(vector_db_metadata.index_name)
-    if not collection:
-        logging.error(f"Index {vector_db_metadata.index_name} does not exist in environment {vector_db_metadata.environment}")
-        return None
-    
-    logging.info(f"Starting Milvus insert for {len(upsert_list)} vectors")
-    batch_size = config.PINECONE_BATCH_SIZE
-    vectors_uploaded = 0
-
-    for i in range(0,len(upsert_list), batch_size):
-        try:
-            insert_response = collection.insert(upsert_list[i:i+batch_size])
-            vectors_uploaded += insert_response.insert_count
-        except Exception as e:
-            logging.error('Error writing embeddings to milvus: %s', e)
-            return None
-    
-    logging.info(f"Successfully uploaded {vectors_uploaded} vectors to milvus")
-    return vectors_uploaded
-
-def create_lancedb_source_chunks(text_embeddings_list, batch_id, job_id, source_filename):
-    upsert_list = []
-    for i, (source_text, embedding) in enumerate(text_embeddings_list):
-        upsert_list.append(
-            {
-                "id": generate_uuid_from_tuple((job_id, batch_id, i)),
-                "vector": embedding,
-                "source_text": source_text, 
-                "source_document": source_filename
-            }
-        )
-    return upsert_list
-
-def write_embeddings_to_lancedb(upsert_list, batch_id):
-    # right now only local connection, since its serverless and their cloud is in beta
-    batch = safe_db_operation(batch_service.get_batch, batch_id)
-    db = lancedb.connect(batch.vector_db_metadata.environment)
-    try:
-        table = db.open_table(batch.vector_db_metadata.index_name)
-    except FileNotFoundError as e:
-        logging.info(f"Table {batch.vector_db_metadata.index_name} does not exist in environment {batch.vector_db_metadata.environment}.")
-
-        if batch.embeddings_metadata.embeddings_type == EmbeddingsType.OPEN_AI:
-            schema = pa.schema(
-                [
-                    pa.field("id", pa.string()),
-                    pa.field("vector", pa.list_(pa.float32(), 1536)),
-                    pa.field("source_text", pa.string()),
-                    pa.field("source_document", pa.string()),
-                ])
-            table = db.create_table(batch.vector_db_metadata.index_name, schema=schema)
-            logging.info(f"Created table {batch.vector_db_metadata.index_name} in environment {batch.vector_db_metadata.environment}.")
-        else:
-            logging.error(f"Embeddings type {batch.embeddings_metadata.embeddings_type} not supported for LanceDB. Only Open AI")
-            return None
-
-    logging.info(f"Starting LanceDB upsert for {len(upsert_list)} vectors")
-
-    batch_size = config.PINECONE_BATCH_SIZE
-    vectors_uploaded = 0
-
-    for i in range(0,len(upsert_list), batch_size):
-        try:
-            table.add(data=upsert_list[i:i+batch_size])
-            vectors_uploaded += batch_size
-        except Exception as e:
-            logging.error('Error writing embeddings to lance db:', e)
-            return None
-    
-    logging.info(f"Successfully uploaded {vectors_uploaded} vectors to lance db")
-    return vectors_uploaded
 
 # TODO: refactor into utils
 def update_batch_and_job_status(job_id, batch_status, batch_id):
