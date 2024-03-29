@@ -72,7 +72,7 @@ RABBITMQ_PASSWORD=guest
 RABBITMQ_HOST=rabbitmq
 EMBEDDING_QUEUE=embeddings
 VDB_UPLOAD_QUEUE=vdb-upload
-LOCAL_VECTOR_DB=qdrant | milvus | weaviate
+LOCAL_VECTOR_DB=qdrant | weaviate
 API_STORAGE_DIRECTORY=/tmp
 MINIO_ACCESS_KEY=minio99
 MINIO_SECRET_KEY=minio123
@@ -89,7 +89,7 @@ Make sure you pull Rabbit MQ, Postgres, Min.io into your local docker repo. We a
 ```
 docker pull rabbitmq
 docker pull postgres
-docker pull qdrant/qdrant | docker pull milvusdb/milvus | docker pull semitechnologies/weaviate
+docker pull qdrant/qdrant | docker pull semitechnologies/weaviate
 docker pull minio/minio
 ```
 
@@ -122,9 +122,7 @@ To use VectorFlow for development, make an HTTP request to your API's URL - for 
 
 All requests require an HTTP Header with `Authorization` key which is the same as your `INTERNAL_API_KEY` env var that you defined before (see above). You must pass your vector database api key with the HTTP Header `X-VectorDB-Key` if you are running a connecting to a cloud-based instance of a vector DB, and the embedding api key with `X-EmbeddingAPI-Key` if you are using OpenAI. HuggingFace Sentence Transformer embeddings do not require an api key, but you must follow the above steps to run the container with the model you need. 
 
-VectorFlow currently supports Pinecone, Qdrant, Weaviate, Milvus, Redis, MongoDB and LanceDB vector databases. 
-
-If you are using MongoDB, please note that for the `environment` variable, you will need to pass your MongoDB connection URI, which you can find in your Atlas Console under `Database Deployments->Connect->Drivers`. Your URI should look like `mongodb+srv://<username>:<password>@cluster.mongodb.net/?retryWrites=true&w=majority`, where you will replace `<username>` with your username, and pass the string as the environment variable keeping `<password>` as is in the string. For the password, you pass it in the `X-VectorDB-Key` header option.
+VectorFlow currently supports Pinecone, Qdrant and Weaviate vector databases. 
 
 #### Embed a Single File
 To submit a single file for embedding, make a `POST` request to the `/embed` endpoint with a file attached, the `'Content-Type: multipart/form-data'` header and the following payload:
@@ -141,7 +139,7 @@ To submit a single file for embedding, make a `POST` request to the `/embed` end
         "hugging_face_model_name": "sentence-transformer-model-name-here"
     }'
     'VectorDBMetadata={
-        "vector_db_type": "PINECONE | QDRANT | WEAVIATE | MILVUS | REDIS | LANCEDB | MONGODB",
+        "vector_db_type": "PINECONE | QDRANT | WEAVIATE",
         "index_name": "index_name",
         "environment": "env_name"
     }'
@@ -304,7 +302,7 @@ We also recommend you add verification evidence, such as screenshots, that show 
 
 - [ ] Support for multi-file, directory data ingestion from sources such as Salesforce, Google Drive, etc
 - [ ] Retry mechanism
-- [ ] Langchain & Llama Index integrations
+- [ ] Langchain integrations
 - [ ] Support callbacks for writing object metadata to a separate store
 - [ ] Dynamically configurable vector DB schemas
 - [ ] Deduplication capabilities
@@ -321,7 +319,7 @@ Note that the `TESTING_ENV` variable is the equivalent of the `environment` fiel
 The `testing_clients` directory has sample scripts you can follow to run vectorflow. Add your embedding and database keys to the `env_scrips/env_vars.sh` script that was generated and set the `filepath` variable in `testing_clients/standard_upload_client.py` to point to the file you want to embed. Then run:
 ```
 source env_scrips/env_vars.sh
-python clients/standard_upload_client.py
+python testing-clients/standard_upload_client.py
 ```
 
 To upload multiple files at once, use the `testing_clients/streaming_upload_client.py`
@@ -357,7 +355,7 @@ To perform a search, send a `POST` request to `/images/search` endpoint with an 
     'ReturnVectors': boolean,
     'TopK': integer, less than 1000,
     'VectorDBMetadata={
-        "vector_db_type": "PINECONE | QDRANT | WEAVIATE | MILVUS | REDIS",
+        "vector_db_type": "PINECONE | QDRANT | WEAVIATE",
         "index_name": "index_name",
         "environment": "env_name"
     }'
