@@ -1,5 +1,5 @@
 import unittest
-import worker.vdb_upload_worker as vdb_upload_worker
+import worker.vector_uploader as vector_uploader
 import worker.worker as worker
 from unittest.mock import patch
 from models.batch import Batch
@@ -43,7 +43,7 @@ class TestVDBUploadWorker(unittest.TestCase):
         mock_safe_db_operation.return_value = "test_db"
 
         # act
-        vdb_upload_worker.upload_batch(batch, text_embedding_list)
+        vector_uploader.upload_batch(batch, text_embedding_list)
 
         # assert
         mock_write_embeddings_to_vector_db.assert_called_once_with(text_embedding_list, batch.vector_db_metadata, batch.id, batch.job_id)
@@ -82,7 +82,7 @@ class TestVDBUploadWorker(unittest.TestCase):
         mock_safe_db_operation.return_value = "test_db"
 
         # act
-        vdb_upload_worker.upload_batch(batch, text_embedding_list)
+        vector_uploader.upload_batch(batch, text_embedding_list)
 
         # assert
         mock_write_embeddings_to_vector_db.assert_called_once_with(text_embedding_list, batch.vector_db_metadata, batch.id, batch.job_id)
@@ -98,7 +98,7 @@ class TestVDBUploadWorker(unittest.TestCase):
             source_filename = "test_filename"
 
             # act
-            upsert_list = vdb_upload_worker.create_pinecone_source_chunk_dict(text_embeddings_dict, batch_id, job_id, source_filename)
+            upsert_list = vector_uploader.create_pinecone_source_chunk_dict(text_embeddings_dict, batch_id, job_id, source_filename)
 
             # assert
             self.assertEqual(len(upsert_list), 3)

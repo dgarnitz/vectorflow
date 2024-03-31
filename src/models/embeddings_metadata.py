@@ -12,8 +12,7 @@ class EmbeddingsMetadata(Base):
     chunk_size = Column(Integer)
     chunk_overlap = Column(Integer)
     chunk_strategy = Column(Enum(ChunkStrategy))
-    docker_image = Column(String)
-    hugging_face_model_name = Column(String)
+    model = Column(String)
 
     def serialize(self):
         return {
@@ -21,8 +20,7 @@ class EmbeddingsMetadata(Base):
             'chunk_size': self.chunk_size,
             'chunk_overlap': self.chunk_overlap,
             'chunk_strategy': self.chunk_strategy.name if self.chunk_strategy else None,
-            'docker_image': self.docker_image,
-            'hugging_face_model_name': self.hugging_face_model_name
+            'model': self.model
         }
     
     @staticmethod
@@ -44,8 +42,7 @@ class EmbeddingsMetadata(Base):
             chunk_size = embeddings_metadata_dict['chunk_size'] if 'chunk_size' in embeddings_metadata_dict else 512,
             chunk_overlap = embeddings_metadata_dict['chunk_overlap'] if 'chunk_overlap' in embeddings_metadata_dict else 256,
             chunk_strategy = chunk_strategy,
-            docker_image = embeddings_metadata_dict['docker_image'] if 'docker_image' in embeddings_metadata_dict else None,
-            hugging_face_model_name = embeddings_metadata_dict['hugging_face_model_name'] if 'hugging_face_model_name' in embeddings_metadata_dict else None)
+            model = embeddings_metadata_dict['model'] if 'model' in embeddings_metadata_dict else None)
         return embeddings_metadata
     
     @staticmethod
@@ -65,6 +62,5 @@ class EmbeddingsMetadata(Base):
             chunk_size = embeddings_metadata_dict['chunk_size'] if 'chunk_size' in embeddings_metadata_dict else 512,
             chunk_overlap = embeddings_metadata_dict['chunk_overlap'] if 'chunk_overlap' in embeddings_metadata_dict else 256,
             chunk_strategy = chunk_strategy,
-            docker_image = embeddings_metadata_dict['docker_image'] if 'docker_image' in embeddings_metadata_dict else None,
-            hugging_face_model_name = embeddings_metadata_dict['hugging_face_model_name'] if 'hugging_face_model_name' in embeddings_metadata_dict else None)
+            model = embeddings_metadata_dict['model'] if 'model' in embeddings_metadata_dict else None)
         return embeddings_metadata
