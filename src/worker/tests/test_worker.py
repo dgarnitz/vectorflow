@@ -47,7 +47,7 @@ class TestWorker(unittest.TestCase):
         worker.process_batch(batch.id, source_data, "fake_vdb_key", "fake_embedding_key")
 
         # assert
-        mock_embed_openai_batch.assert_called_once_with(batch, chunked_data)
+        mock_embed_openai_batch.assert_called_once_with(batch, chunked_data, 'text-embedding-ada-002')
         mock_upload_to_vector_db.assert_called_with(batch.id, text_embeddings_list)
 
     @patch('worker.worker.chunk_data')
@@ -57,12 +57,12 @@ class TestWorker(unittest.TestCase):
     @patch('services.database.database.safe_db_operation')
     @patch('services.database.job_service.get_job')
     @patch('services.database.batch_service.get_batch')
-    @patch('worker.worker.embed_hugging_face_batch')
+    @patch('worker.worker.embed_openai_batch')
     @patch('worker.worker.update_batch_status')
-    def test_process_batch_hugging_face_embeddings_success(
+    def test_process_batch_success_different_model(
         self, 
         mock_update_batch_and_job_status, 
-        mock_embed_hugging_face_batch, 
+        mock_embed_openai_batch, 
         mock_get_batch, 
         mock_get_job, 
         mock_safe_db_operation,
@@ -74,12 +74,12 @@ class TestWorker(unittest.TestCase):
         source_data = "source_data"
         job = Job(id=1, webhook_url="test_webhook_url", job_status=JobStatus.NOT_STARTED)
         batch = Batch(id=1, job_id=1, batch_status=BatchStatus.NOT_STARTED, 
-                      embeddings_metadata=EmbeddingsMetadata(embeddings_type=EmbeddingsType.HUGGING_FACE, 
-                                                             hugging_face_model_name="test_model_name"))
+                      embeddings_metadata=EmbeddingsMetadata(embeddings_type=EmbeddingsType.OPEN_AI, 
+                                                            model="text-embedding-3-small"))
+        text_embeddings_list = [("test", [0.1, 0.2, 0.3])]
         chunked_data = ["test"]
         mock_chunk_data.return_value = chunked_data
-        text_embeddings_list = [("test", [0.1, 0.2, 0.3])]
-        mock_embed_hugging_face_batch.return_value = text_embeddings_list
+        mock_embed_openai_batch.return_value = text_embeddings_list
         mock_get_batch.return_value = batch
         mock_get_job.return_value = job
         mock_safe_db_operation.return_value = "test_db"
@@ -88,7 +88,8 @@ class TestWorker(unittest.TestCase):
         worker.process_batch(batch.id, source_data, "fake_vdb_key", "fake_embedding_key")
 
         # assert
-        mock_embed_hugging_face_batch.assert_called_once_with(batch, chunked_data)
+        mock_embed_openai_batch.assert_called_once_with(batch, chunked_data, 'text-embedding-3-small')
+        mock_upload_to_vector_db.assert_called_with(batch.id, text_embeddings_list)
 
     @patch('worker.worker.chunk_data')
     @patch('worker.worker.upload_to_vector_db')
@@ -125,7 +126,7 @@ class TestWorker(unittest.TestCase):
         worker.process_batch(batch.id, source_data, "fake_vdb_key", "fake_embedding_key")
 
         # assert
-        mock_embed_openai_batch.assert_called_once_with(batch, chunked_data)
+        mock_embed_openai_batch.assert_called_once_with(batch, chunked_data, 'text-embedding-ada-002')
         mock_update_batch_and_job_status.assert_called_with(batch.job_id, BatchStatus.FAILED, batch.id, 3)
         mock_upload_to_vector_db.assert_not_called()
 
@@ -166,7 +167,7 @@ class TestWorker(unittest.TestCase):
         worker.process_batch(batch.id, source_data, "fake_vdb_key", "fake_embedding_key")
 
         # assert
-        mock_embed_openai_batch.assert_called_once_with(batch, chunked_data)
+        mock_embed_openai_batch.assert_called_once_with(batch, chunked_data, 'text-embedding-ada-002')
         mock_update_batch_and_job_status.assert_called_with(batch.job_id, BatchStatus.FAILED, batch.id)
         mock_upload_to_vector_db.assert_not_called()
 

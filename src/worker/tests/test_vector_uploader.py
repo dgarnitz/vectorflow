@@ -1,5 +1,4 @@
 import unittest
-import worker.vector_uploader as vector_uploader
 import worker.worker as worker
 from unittest.mock import patch
 from models.batch import Batch
@@ -7,8 +6,12 @@ from models.job import Job
 from models.vector_db_metadata import VectorDBMetadata
 from shared.batch_status import BatchStatus
 from shared.job_status import JobStatus
+from worker.vector_uploader import VectorUploader
 
-class TestVDBUploadWorker(unittest.TestCase):
+class TestVectorUploader(unittest.TestCase):
+    def setUp(self):
+         self.uploader = VectorUploader()
+
     @patch('worker.worker.upload_to_vector_db')
     @patch('sqlalchemy.orm.session.Session.refresh')
     @patch('services.database.batch_service.update_batch_status_with_successful_minibatch')
@@ -16,8 +19,8 @@ class TestVDBUploadWorker(unittest.TestCase):
     @patch('services.database.database.safe_db_operation')
     @patch('services.database.job_service.get_job')
     @patch('services.database.batch_service.get_batch')
-    @patch('worker.vdb_upload_worker.write_embeddings_to_vector_db')
-    @patch('worker.vdb_upload_worker.update_batch_and_job_status')
+    @patch('worker.vector_uploader.VectorUploader.write_embeddings_to_vector_db')
+    @patch('worker.vector_uploader.VectorUploader.update_batch_and_job_status')
     def test_process_upload_batch_success(
         self, 
         mock_update_batch_and_job_status, 
@@ -43,7 +46,7 @@ class TestVDBUploadWorker(unittest.TestCase):
         mock_safe_db_operation.return_value = "test_db"
 
         # act
-        vector_uploader.upload_batch(batch, text_embedding_list)
+        self.uploader.upload_batch(batch, text_embedding_list)
 
         # assert
         mock_write_embeddings_to_vector_db.assert_called_once_with(text_embedding_list, batch.vector_db_metadata, batch.id, batch.job_id)
@@ -56,8 +59,8 @@ class TestVDBUploadWorker(unittest.TestCase):
     @patch('services.database.database.safe_db_operation')
     @patch('services.database.job_service.get_job')
     @patch('services.database.batch_service.get_batch')
-    @patch('worker.vdb_upload_worker.write_embeddings_to_vector_db')
-    @patch('worker.vdb_upload_worker.update_batch_and_job_status')
+    @patch('worker.vector_uploader.VectorUploader.write_embeddings_to_vector_db')
+    @patch('worker.vector_uploader.VectorUploader.update_batch_and_job_status')
     def test_process_upload_batch_failure(
         self, 
         mock_update_batch_and_job_status, 
@@ -82,7 +85,7 @@ class TestVDBUploadWorker(unittest.TestCase):
         mock_safe_db_operation.return_value = "test_db"
 
         # act
-        vector_uploader.upload_batch(batch, text_embedding_list)
+        self.uploader.upload_batch(batch, text_embedding_list)
 
         # assert
         mock_write_embeddings_to_vector_db.assert_called_once_with(text_embedding_list, batch.vector_db_metadata, batch.id, batch.job_id)
@@ -98,7 +101,7 @@ class TestVDBUploadWorker(unittest.TestCase):
             source_filename = "test_filename"
 
             # act
-            upsert_list = vector_uploader.create_pinecone_source_chunk_dict(text_embeddings_dict, batch_id, job_id, source_filename)
+            upsert_list = self.uploader.create_pinecone_source_chunk_dict(text_embeddings_dict, batch_id, job_id, source_filename)
 
             # assert
             self.assertEqual(len(upsert_list), 3)

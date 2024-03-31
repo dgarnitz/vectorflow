@@ -24,7 +24,7 @@ from services.database.database import get_db, safe_db_operation
 from shared.job_status import JobStatus
 from shared.utils import send_embeddings_to_webhook, generate_uuid_from_tuple
 from services.rabbitmq.rabbit_service import create_connection_params
-from vector_uploader import VectorUploader
+from worker.vector_uploader import VectorUploader
 
 logging.basicConfig(filename='./worker-log.txt', level=logging.INFO)
 logging.basicConfig(filename='./worker-errors.txt', level=logging.ERROR)
