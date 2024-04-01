@@ -23,11 +23,11 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from services.database.database import get_db, safe_db_operation
 from shared.job_status import JobStatus
 from shared.utils import send_embeddings_to_webhook, generate_uuid_from_tuple
-from services.rabbitmq.rabbit_service import create_connection_params, publish_message_to_retry_queue
+from services.rabbitmq.rabbit_service import create_connection_params
+from worker.vector_uploader import VectorUploader
 
 logging.basicConfig(filename='./worker-log.txt', level=logging.INFO)
 logging.basicConfig(filename='./worker-errors.txt', level=logging.ERROR)
-publish_channel = None
 connection = None
 consume_channel = None
 
@@ -51,7 +51,8 @@ def process_batch(batch_id, source_data, vector_db_key, embeddings_api_key):
     embeddings_type = batch.embeddings_metadata.embeddings_type
     if embeddings_type == EmbeddingsType.OPEN_AI:
         try:
-            embedded_chunks = embed_openai_batch(batch, chunked_data)
+            model = batch.embeddings_metadata.model if batch.embeddings_metadata.model else "text-embedding-ada-002"
+            embedded_chunks = embed_openai_batch(batch, chunked_data, model)
             if embedded_chunks:
                 if job.webhook_url and job.webhook_key:
                     logging.info(f"Sending {len(embedded_chunks)} embeddings to webhook {job.webhook_url}")
@@ -67,24 +68,18 @@ def process_batch(batch_id, source_data, vector_db_key, embeddings_api_key):
             logging.error('Error embedding batch: %s', e)
             update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
     
-    elif embeddings_type == EmbeddingsType.HUGGING_FACE:
-        try:
-            embed_hugging_face_batch(batch, chunked_data)
-        except Exception as e:
-            logging.error('Error embedding batch: %s', e)
-            update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id)
     else:
         logging.error('Unsupported embeddings type: %s', embeddings_type.value)
         update_batch_status(batch.job_id, BatchStatus.FAILED, batch.id, bypass_retries=True)      
 
 # NOTE: this method will embed mulitple chunks (a list of strings) at once and return a list of lists of floats (a list of embeddings)
 # NOTE: this assumes that the embedded chunks are returned in the same order the raw chunks were sent
-def get_openai_embedding(chunks, attempts=5):
+def get_openai_embedding(chunks, model, attempts=5):
     batch_of_text_chunks = [chunk['text'] for chunk in chunks]
     for i in range(attempts):
         try:
             response = openai.Embedding.create(
-                model= "text-embedding-ada-002",
+                model= model,
                 input=batch_of_text_chunks
             )
             if response["data"]:
@@ -94,7 +89,7 @@ def get_openai_embedding(chunks, attempts=5):
             time.sleep(2**i)  # Exponential backoff: 1, 2, 4, 8, 16 seconds.
     return batch_of_text_chunks, None
 
-def embed_openai_batch(batch, chunked_data):
+def embed_openai_batch(batch, chunked_data, model):
     logging.info(f"Starting Open AI Embeddings for batch {batch.id} of job {batch.job_id}")
     openai.api_key = os.getenv('EMBEDDING_API_KEY')
     
@@ -103,7 +98,7 @@ def embed_openai_batch(batch, chunked_data):
     embedded_chunks: list[dict] = []
 
     with ThreadPoolExecutor(max_workers=config.MAX_THREADS_OPENAI) as executor:
-        futures = [executor.submit(get_openai_embedding, chunk) for chunk in open_ai_batches]
+        futures = [executor.submit(get_openai_embedding, chunk, model) for chunk in open_ai_batches]
         for future in as_completed(futures):
             chunks, embeddings = future.result()
             if embeddings is not None:
@@ -116,42 +111,6 @@ def embed_openai_batch(batch, chunked_data):
     
     logging.info("Open AI Embeddings completed successfully")
     return embedded_chunks
-
-def publish_to_embedding_queue(batch_id, batch_of_chunks: list[dict], model_name, attempts=5):
-    for _ in range(attempts):
-        try:
-            embedding_channel = connection.channel() 
-            embedding_channel.queue_declare(queue=model_name)
-
-            try:
-                serialized_data = json.dumps((batch_id, batch_of_chunks, os.getenv('VECTOR_DB_KEY')))
-            except (TypeError, ValueError) as e:
-                # this will propagate up and be logged
-                logging.error('Error serializing chunks to JSON: %s', e)
-                raise e
-
-            embedding_channel.basic_publish(exchange='',
-                                        routing_key=model_name,
-                                        body=serialized_data)
-            logging.info(f"Message published to open source queue {model_name} successfully")
-            return
-        except pika.exceptions.AMQPConnectionError as e:
-            logging.error('ERROR connecting to RabbitMQ, retrying now. See exception: %s', e)
-            time.sleep(config.PIKA_RETRY_INTERVAL)
-    
-    # TODO: implement logic to handle partial failures & retries
-    with get_db() as db:
-        batch_service.update_batch_status(db, batch_id, BatchStatus.FAILED)
-        logging.error(f"Failed to publish batch {batch_id} to open source queue {model_name} after {attempts} attempts.")
-
-def embed_hugging_face_batch(batch, chunked_data):
-    logging.info(f"Starting Hugging Face Embeddings with {batch.embeddings_metadata.hugging_face_model_name}")
-    hugging_face_batches = create_batches_for_embedding(chunked_data, config.HUGGING_FACE_BATCH_SIZE)
-    
-    safe_db_operation(batch_service.update_batch_minibatch_count, batch.id, len(hugging_face_batches))
-    
-    for batch_of_chunks in hugging_face_batches:
-        publish_to_embedding_queue(batch.id, batch_of_chunks, batch.embeddings_metadata.hugging_face_model_name)
 
 def chunk_data(batch, source_data, job):
     if batch.embeddings_metadata.chunk_strategy == ChunkStrategy.EXACT:
@@ -377,13 +336,11 @@ def update_batch_status(job_id, batch_status, batch_id, retries = None, bypass_r
 
 def upload_to_vector_db(batch_id, text_embeddings_list):
     try:
-        serialized_data = json.dumps((batch_id, text_embeddings_list, os.getenv('VECTOR_DB_KEY')))
-        publish_channel.basic_publish(exchange='',
-                                      routing_key=os.getenv('VDB_UPLOAD_QUEUE'),
-                                      body=serialized_data)
-        logging.info("Message published successfully")
+        uploader = VectorUploader()
+        uploader.upload_batch(batch_id, text_embeddings_list)
+
     except Exception as e:
-        logging.error('Error publishing message to RabbitMQ: %s', e)
+        logging.error('Error uploading chunks to vector DB: %s', e)
         raise e
 
 def process_webhook_response(response, job_id, batch_id):
@@ -438,7 +395,6 @@ def callback(ch, method, properties, body):
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
 def start_connection():
-    global publish_channel
     global connection
     global consume_channel
 
@@ -446,14 +402,9 @@ def start_connection():
         connection_params = create_connection_params()
         connection = pika.BlockingConnection(connection_params)
         consume_channel = connection.channel()
-        publish_channel = connection.channel()
 
         consume_queue_name = os.getenv('EMBEDDING_QUEUE')
-        publish_queue_name = os.getenv('VDB_UPLOAD_QUEUE')
-
         consume_channel.queue_declare(queue=consume_queue_name)
-        publish_channel.queue_declare(queue=publish_queue_name)
-
         consume_channel.basic_consume(queue=consume_queue_name, on_message_callback=callback)
 
         logging.info('Waiting for messages.')

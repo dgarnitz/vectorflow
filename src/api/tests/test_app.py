@@ -73,7 +73,8 @@ class TestApp(unittest.TestCase):
                                                    environment="test_environment")
 
         current_local_vector_db = os.getenv("LOCAL_VECTOR_DB")
-        del os.environ["LOCAL_VECTOR_DB"]
+        if current_local_vector_db:
+            del os.environ["LOCAL_VECTOR_DB"]
         headers = {"Authorization": app.auth.internal_api_key}
         with open('api/tests/fixtures/test_text.txt', 'rb') as data_file:
             response = self.client.post('/embed', 
@@ -84,7 +85,8 @@ class TestApp(unittest.TestCase):
         
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['error'], "Missing required fields")
-        os.environ["LOCAL_VECTOR_DB"] = current_local_vector_db
+        if current_local_vector_db:
+            os.environ["LOCAL_VECTOR_DB"] = current_local_vector_db
 
     def test_embed_endpoint_no_file(self):
         test_embeddings_metadata = EmbeddingsMetadata(embeddings_type=EmbeddingsType.OPEN_AI)
@@ -100,21 +102,6 @@ class TestApp(unittest.TestCase):
         
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['error'], "No file part in the request")
-
-    def test_embed_endpoint_no_hugging_face_model_name(self):
-        test_embeddings_metadata = EmbeddingsMetadata(embeddings_type=EmbeddingsType.HUGGING_FACE)
-        test_vector_db_metadata = VectorDBMetadata(vector_db_type=VectorDBType.PINECONE, 
-                                                   index_name="test_index", 
-                                                   environment="test_environment")
-        
-        response = self.client.post('/embed', 
-                                    data={ 
-                                        'EmbeddingsMetadata': json.dumps(test_embeddings_metadata.serialize()), 
-                                        'VectorDBMetadata': json.dumps(test_vector_db_metadata.serialize())},
-                                    headers=self.headers)
-        
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['error'], 'Hugging face embeddings models require a "hugging_face_model_name" in the "embeddings_metadata"')
 
     @patch('services.database.database.safe_db_operation')
     @patch('services.database.job_service.get_job')

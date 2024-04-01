@@ -22,9 +22,9 @@
 
 # Introduction
 
-VectorFlow is an open source, high throughput, fault tolerant vector embedding pipeline. With a simple API request, you can send raw data that will be chunked, embedded and stored in any vector database or returned back to you. VectorFlow is multi-modal and can ingest both textual and image data. 
+VectorFlow is an open source, high throughput, fault tolerant vector embedding pipeline. With a simple API request, you can send raw data that will be chunked, embedded and stored in any vector database or returned back to you.  
 
-This current version is an MVP. We recommend using it with Kubernetes in production (see below for details). For text-based files, it supports TXT, PDF, HTML and DOCX. For image files, it support JPG, JPEG, and PNG. 
+This current version is an MVP. We recommend using it with Kubernetes in production (see below for details). For text-based files, it supports TXT, PDF, HTML and DOCX. 
 
 # Run it Locally
 With three commands you can run VectorFlow locally:
@@ -70,8 +70,6 @@ POSTGRES_HOST=postgres
 RABBITMQ_USERNAME=guest
 RABBITMQ_PASSWORD=guest
 RABBITMQ_HOST=rabbitmq
-EMBEDDING_QUEUE=embeddings
-VDB_UPLOAD_QUEUE=vdb-upload
 LOCAL_VECTOR_DB=qdrant | weaviate
 API_STORAGE_DIRECTORY=/tmp
 MINIO_ACCESS_KEY=minio99
@@ -102,15 +100,6 @@ docker-compose up -d
 
 Note that the `init` containers are running a script that sets up the database schema, vector DB and Min.io object store. These containers stop after the script completes.
 
-### 3) (optional) Configure Sentence Transformer open face models. 
-VectorFlow can run any Sentence Transformer model but the `docker-compose` file will not spin it up automatically. Either run `app.py --model_name your-sentence-transformer-model`, or build and run the docker image in `src/hugging_face` with:
-
-```
-docker build --file hugging_face/Dockerfile -t vectorflow_hf:latest .
-docker run --network=vectorflow --name=vectorflow_hf -d --env-file=/path/to/.env vectorflow_hf:latest --model_name "your_model_name_here"
-```
-
-Note that the Sentence Transformer models can be large and take several minutes to download from Hugging Face. VectorFlow does not provision hardware, so you must ensure your hardware has enough RAM/VRAM for the model. By default, VectorFlow will run models on GPU with CUDA if available. 
 
 ## Using VectorFlow
 
@@ -132,11 +121,11 @@ To submit a single file for embedding, make a `POST` request to the `/embed` end
     'SourceData=path_to_txt_file'
     'LinesPerBatch=4096'
     'EmbeddingsMetadata={
-        "embeddings_type": "OPEN_AI | HUGGING_FACE | IMAGE",
+        "embeddings_type": "OPEN_AI",
         "chunk_size": 512,
         "chunk_overlap": 128,
         "chunk_strategy": "EXACT | PARAGRAPH | SENTENCE | CUSTOM",
-        "hugging_face_model_name": "sentence-transformer-model-name-here"
+        "model": "text-embedding-3-small | text-embedding-3-large | text-embedding-ada-002"
     }'
     'VectorDBMetadata={
         "vector_db_type": "PINECONE | QDRANT | WEAVIATE",
@@ -147,11 +136,11 @@ To submit a single file for embedding, make a `POST` request to the `/embed` end
 }
 ```
 
-This will create a `job and you will get the following payload back:
+This will create a `job` and you will get the following payload back:
 
 ```
 {
-    message': f"Successfully added {batch_count} batches to the queue",
+    'message': f"Successfully added {batch_count} batches to the queue",
     'JobID': job_id
 }
 ```
@@ -325,28 +314,6 @@ python testing-clients/standard_upload_client.py
 To upload multiple files at once, use the `testing_clients/streaming_upload_client.py`
 
 See above for a more detailed description of how to manually set up and configure the system. Please note that the `setup` script will not create a development environment on your machine, it only sets up and runs the docker-compose. We do not advise using VectorFlow on Windows. 
-
-## Image Embedding & Similarity Search
-VectorFlow can embed images using the [Image2Vec library](https://github.com/christiansafka/img2vec). It will create a 512 dimensional vector by default from any image. You can also perform a Top-K image similarity search. 
-
-### How to Use Image Upload
-Send a POST request to the `/images` endpoint to utilize this capability. You pass the same set of fields in `VectorDBMetadata` as you would for the `/embed` or `/s3` endpoints but for `EmbeddingsMetadata` you only need to pass `"embeddings_type": "IMAGE"` 
-
-The `docker-compose` file will not spin this capability up automatically. Either run `app.py --model_name your-sentence-transformer-model`, or build and run the docker image in `src/images` with:
-
-```
-docker build --file images/Dockerfile -t vectorflow_image_embedding:latest .
-docker run --network=vectorflow --name=vectorflow_image_embedding -d --env-file=/path/to/.env vectorflow_image_embedding:latest
-```
-
-Note that the Image2Vec uses the ResNet 18 by default. You can configure it to run larger models with higher dimensionality for more fine-grained embeddings. These take several minutes to download the weights from the source. VectorFlow does not provision hardware, so you must ensure your hardware has enough RAM/VRAM for the model. By default, VectorFlow will run models on GPU with CUDA if available.
-
-### How to Use Image Search
-Performing an image similarity search requires running another service. You can build and run it using docker:
-```
-docker build --file images/Dockerfile.search -t vectorflow_image_search:latest .
-docker run --network=vectorflow --name=vectorflow_image_search -d --env-file=/path/to/.env vectorflow_image_search:latest
-```
 
 ### Request
 To perform a search, send a `POST` request to `/images/search` endpoint with an image file attached, the `'Content-Type: multipart/form-data'` header and the following body:

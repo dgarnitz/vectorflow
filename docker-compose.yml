@@ -127,21 +127,6 @@ services:
       - extractor
     command: ["bash", "/wait-for-it.sh", "rabbitmq:5672", "--", "python", "worker.py"]
 
-  vdb-upload-worker:
-    build:
-      context: ./src
-      dockerfile: worker/Dockerfile.vdb-upload-worker
-    container_name: vectorflow_vdb_upload_worker
-    env_file:
-      - ./env_scripts/env_vars.env
-    networks:
-      - vectorflow
-    depends_on:
-      - qdrant-init
-      - worker
-    command: ["bash", "/wait-for-it.sh", "rabbitmq:5672", "--", "python", "vdb_upload_worker.py"]
-
-
 networks:
   vectorflow:
     name: vectorflow
