@@ -30,6 +30,7 @@ from llama_index import download_loader
 from services.minio.minio_service import create_minio_client
 from api.posthog import send_telemetry
 from datetime import datetime
+from validators import RequestValidator
 
 auth = Auth()
 pipeline = Pipeline()
@@ -39,24 +40,12 @@ CORS(app)
 logging.basicConfig(filename='./api-log.txt', level=logging.INFO)
 logging.basicConfig(filename='./api-errors.txt', level=logging.ERROR)
 
+
 @app.route("/embed", methods=['POST'])
 def embed():
-    # TODO: add validator service
     vectorflow_request = VectorflowRequest._from_flask_request(request)
-    if not vectorflow_request.vectorflow_key or not auth.validate_credentials(vectorflow_request.vectorflow_key):
-        return jsonify({'error': 'Invalid credentials'}), 401
- 
-    if not vectorflow_request.embeddings_metadata or not vectorflow_request.vector_db_metadata or (not vectorflow_request.vector_db_key and not os.getenv('LOCAL_VECTOR_DB')):
-        return jsonify({'error': 'Missing required fields'}), 400
-    
-    if vectorflow_request.embeddings_metadata.embeddings_type == EmbeddingsType.HUGGING_FACE and not vectorflow_request.embeddings_metadata.hugging_face_model_name:
-        return jsonify({'error': 'Hugging face embeddings models require a "hugging_face_model_name" in the "embeddings_metadata"'}), 400
-    
-    if vectorflow_request.webhook_url and not vectorflow_request.webhook_key:
-        return jsonify({'error': 'Webhook URL provided but no webhook key'}), 400
-    
-    if 'SourceData' not in request.files:
-        return jsonify({'error': 'No file part in the request'}), 400
+    if invalid := RequestValidator(request, auth).validate(["CRED", "METADATA", "EMBEDDING_TYPE", "WEBHOOK", "SOURCE_DATA"]):
+        return RequestValidator.dispatch_on_invalid(invalid, jsonify)
 
     file = request.files['SourceData']
     
@@ -87,23 +76,10 @@ def embed():
 
 @app.route('/jobs', methods=['POST'])
 def create_jobs():
-     # TODO: add validator service
     vectorflow_request = VectorflowRequest._from_flask_request(request)
-    if not vectorflow_request.vectorflow_key or not auth.validate_credentials(vectorflow_request.vectorflow_key):
-        return jsonify({'error': 'Invalid credentials'}), 401
- 
-    if not vectorflow_request.embeddings_metadata or not vectorflow_request.vector_db_metadata or (not vectorflow_request.vector_db_key and not os.getenv('LOCAL_VECTOR_DB')):
-        return jsonify({'error': 'Missing required fields'}), 400
-    
-    if vectorflow_request.embeddings_metadata.embeddings_type == EmbeddingsType.HUGGING_FACE and not vectorflow_request.embeddings_metadata.hugging_face_model_name:
-        return jsonify({'error': 'Hugging face embeddings models require a "hugging_face_model_name" in the "embeddings_metadata"'}), 400
-    
-    if vectorflow_request.webhook_url and not vectorflow_request.webhook_key:
-        return jsonify({'error': 'Webhook URL provided but no webhook key'}), 400
-    
-    if not hasattr(request, "files") or not request.files:
-        return jsonify({'error': 'No file part in the request'}), 400
-    
+    if invalid := RequestValidator(request, auth).validate(["CRED", "METADATA", "EMBEDDING_TYPE", "WEBHOOK", "HAS_FILES"]):
+        return RequestValidator.dispatch_on_invalid(invalid, jsonify)
+
     files = request.files.getlist('file')
     successfully_uploaded_files = dict()
     failed_uploads = []
@@ -199,17 +175,11 @@ def get_job_statuses():
     
 @app.route("/s3", methods=['POST'])
 def s3_presigned_url():
-    # TODO: add validator service
     vectorflow_request = VectorflowRequest._from_flask_request(request)
-    if not vectorflow_request.vectorflow_key or not auth.validate_credentials(vectorflow_request.vectorflow_key):
-        return jsonify({'error': 'Invalid credentials'}), 401
-    
-    if vectorflow_request.webhook_url and not vectorflow_request.webhook_key:
-        return jsonify({'error': 'Webhook URL provided but no webhook key'}), 400
- 
+    if invalid := RequestValidator.validate(["CRED", "WEBHOOK", "EMBEDDINGS", "PRE_SIGNED"]):
+        return RequestValidator.dispatch_on_invalid(invalid, jsonify)
+
     pre_signed_url = request.form.get('PreSignedURL')
-    if not vectorflow_request.embeddings_metadata or not vectorflow_request.vector_db_metadata or (not vectorflow_request.vector_db_key and not os.getenv('LOCAL_VECTOR_DB')) or not pre_signed_url:
-        return jsonify({'error': 'Missing required fields'}), 400
     
     response = requests.get(pre_signed_url)
     file_name = get_s3_file_name(pre_signed_url)
@@ -307,17 +277,10 @@ def split_file(file_content, lines_per_chunk=1000):
 
 @app.route("/images", methods=['POST'])
 def upload_image():
-    # TODO: add validator service
     vectorflow_request = VectorflowRequest._from_flask_request(request)
-    if not vectorflow_request.vectorflow_key or not auth.validate_credentials(vectorflow_request.vectorflow_key):
-        return jsonify({'error': 'Invalid credentials'}), 401
- 
-    if not vectorflow_request.vector_db_metadata or (not vectorflow_request.vector_db_key and not os.getenv('LOCAL_VECTOR_DB')):
-        return jsonify({'error': 'Missing required fields'}), 400
+    if invalid := RequestValidator(request, auth).validate(["CRED", "METADATA2", "WEBHOOK", "SOURCE_DATA"]):
+        return RequestValidator.dispatch_on_invalid(invalid, jsonify)
     
-    if 'SourceData' not in request.files:
-        return jsonify({'error': 'No file part in the request'}), 400
-
     file = request.files['SourceData']
 
     # TODO: Remove this once the application is reworked to support large files
