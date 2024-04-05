@@ -1,9 +1,8 @@
 import os
 from enum import Enum
-
 from shared.vectorflow_request import VectorflowRequest
 from shared.embeddings_type import EmbeddingsType
-
+from typing import Union
 
 class Validations(Enum):
     CRED = 'CRED'
@@ -15,13 +14,7 @@ class Validations(Enum):
     HAS_FILES = 'HAS_FILES'
     PRE_SIGNED = 'PRE_SIGNED'
 
-
 class RequestValidator:
-    def __init__(self, request, auth):
-        self.request = request
-        self.auth = auth
-        self.vfr = VectorflowRequest._from_flask_request(request)
-
     DISPATCH_ERROR_MAP = {
         Validations.CRED: ('Invalid credentials', 401),
         Validations.METADATA: ('Missing required fields', 400),
@@ -33,20 +26,26 @@ class RequestValidator:
         Validations.PRE_SIGNED: ('Missing required fields', 400),
     }
 
-    def validate(self, validatees: list[str] | tuple[str]):
+    def __init__(self, request, auth):
+        self.request = request
+        self.auth = auth
+        self.vectorflow_request = VectorflowRequest._from_flask_request(request)
+
+    def validate(self, validations_to_check: Union[list[str], tuple[str]]):
         VRF_VALIDATION_MAP = {
-            Validations.CRED: self.vfr.vectorflow_key and self.auth.validate_credentials(self.vfr.vectorflow_key),
-            Validations.METADATA: self.vfr.embeddings_metadata and self.vfr.vector_db_metadata and (self.vfr.vector_db_key or os.getenv('LOCAL_VECTOR_DB')),
-            Validations.METADATA2: self.vfr.vector_db_metadata and (self.vfr.vector_db_key or os.getenv('LOCAL_VECTOR_DB')),
-            Validations.EMBEDDING_TYPE: self.vfr.embeddings_metadata.embeddings_type == EmbeddingsType.HUGGING_FACE and self.vfr.embeddings_metadata.hugging_face_model_name,
-            Validations.WEBHOOK: not self.vfr.webhook_url or self.vfr.webhook_key,
+            Validations.CRED: self.vectorflow_request.vectorflow_key and self.auth.validate_credentials(self.vectorflow_request.vectorflow_key),
+            Validations.METADATA: self.vectorflow_request.embeddings_metadata and self.vectorflow_request.vector_db_metadata and (self.vectorflow_request.vector_db_key or os.getenv('LOCAL_VECTOR_DB')),
+            Validations.METADATA2: self.vectorflow_request.vector_db_metadata and (self.vectorflow_request.vector_db_key or os.getenv('LOCAL_VECTOR_DB')),
+            Validations.EMBEDDING_TYPE: self.vectorflow_request.embeddings_metadata.embeddings_type in [EmbeddingsType.OPEN_AI], 
+            Validations.WEBHOOK: not self.vectorflow_request.webhook_url or self.vectorflow_request.webhook_key,
             Validations.SOURCE_DATA: 'SourceData' in self.request.files,
             Validations.HAS_FILES: hasattr(self.request, "files") and self.request.files,
             Validations.PRE_SIGNED: self.request.form.get('PreSignedURL'),
         }
-        return next((v for v in validatees if not VRF_VALIDATION_MAP[v]), None)
+        return next((validation for validation in validations_to_check if not VRF_VALIDATION_MAP[validation]), None)
         
     @staticmethod
     def dispatch_on_invalid(validation, serialize): 
+        # key error 
         error_message, status_code = RequestValidator.DISPATCH_ERROR_MAP[validation]
         return serialize({'error': error_message}), status_code

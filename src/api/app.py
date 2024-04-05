@@ -30,7 +30,7 @@ from llama_index import download_loader
 from services.minio.minio_service import create_minio_client
 from api.posthog import send_telemetry
 from datetime import datetime
-from validators import RequestValidator
+from api.validators import RequestValidator, Validations
 
 auth = Auth()
 pipeline = Pipeline()
@@ -44,7 +44,11 @@ logging.basicConfig(filename='./api-errors.txt', level=logging.ERROR)
 @app.route("/embed", methods=['POST'])
 def embed():
     vectorflow_request = VectorflowRequest._from_flask_request(request)
-    if invalid := RequestValidator(request, auth).validate(["CRED", "METADATA", "EMBEDDING_TYPE", "WEBHOOK", "SOURCE_DATA"]):
+    if invalid := RequestValidator(request, auth).validate([Validations.CRED, 
+                                                            Validations.METADATA, 
+                                                            Validations.EMBEDDING_TYPE, 
+                                                            Validations.WEBHOOK, 
+                                                            Validations.SOURCE_DATA]):
         return RequestValidator.dispatch_on_invalid(invalid, jsonify)
 
     file = request.files['SourceData']
@@ -77,7 +81,11 @@ def embed():
 @app.route('/jobs', methods=['POST'])
 def create_jobs():
     vectorflow_request = VectorflowRequest._from_flask_request(request)
-    if invalid := RequestValidator(request, auth).validate(["CRED", "METADATA", "EMBEDDING_TYPE", "WEBHOOK", "HAS_FILES"]):
+    if invalid := RequestValidator(request, auth).validate([Validations.CRED, 
+                                                            Validations.METADATA, 
+                                                            Validations.EMBEDDING_TYPE, 
+                                                            Validations.WEBHOOK, 
+                                                            Validations.HAS_FILES]):
         return RequestValidator.dispatch_on_invalid(invalid, jsonify)
 
     files = request.files.getlist('file')
@@ -176,7 +184,10 @@ def get_job_statuses():
 @app.route("/s3", methods=['POST'])
 def s3_presigned_url():
     vectorflow_request = VectorflowRequest._from_flask_request(request)
-    if invalid := RequestValidator.validate(["CRED", "WEBHOOK", "EMBEDDINGS", "PRE_SIGNED"]):
+    if invalid := RequestValidator.validate([Validations.CRED, 
+                                             Validations.WEBHOOK, 
+                                             Validations.EMBEDDING_TYPE, 
+                                             Validations.PRE_SIGNED]):
         return RequestValidator.dispatch_on_invalid(invalid, jsonify)
 
     pre_signed_url = request.form.get('PreSignedURL')
@@ -274,137 +285,6 @@ def split_file(file_content, lines_per_chunk=1000):
     lines = file_content.splitlines()
     for i in range(0, len(lines), lines_per_chunk):
         yield lines[i:i+lines_per_chunk]
-
-@app.route("/images", methods=['POST'])
-def upload_image():
-    vectorflow_request = VectorflowRequest._from_flask_request(request)
-    if invalid := RequestValidator(request, auth).validate(["CRED", "METADATA2", "WEBHOOK", "SOURCE_DATA"]):
-        return RequestValidator.dispatch_on_invalid(invalid, jsonify)
-    
-    file = request.files['SourceData']
-
-    # TODO: Remove this once the application is reworked to support large files
-    # Get the file size - Go to the end of the file, get the current position, and reset the file to the beginning
-    file.seek(0, os.SEEK_END)
-    file_size = file.tell()
-    file.seek(0)
-
-    if file_size > 2 * 1024 * 1024:
-        return jsonify({'error': 'File is too large. VectorFlow currently only supports 2 MB files or less for images. Larger file support coming soon.'}), 413
-    
-    # empty filename means no file was selected
-    if file.filename == '':
-        return jsonify({'error': 'No selected file'}), 400
-    
-    if file and (file.filename.endswith('.jpg') or file.filename.endswith('.jpeg') or file.filename.endswith('.png')):
-        try:
-            job_id = process_image(file, vectorflow_request)
-            return jsonify({'message': f"Successfully added {file.filename} batches to the queue", 'JobID': job_id}), 200
-        
-        except Exception as e:
-            logging.error(f"Attempt to upload file {file.filename} failed due to error: {e}")
-            return jsonify({'error': f"Attempt to upload file {file.filename} failed due to error: {e}"}), 400
-    else:
-        return jsonify({'error': 'Uploaded file is not a JPG, JPEG, or PNG file'}), 400
-
-def process_image(file, vectorflow_request):
-    # Create job
-    with get_db() as db:
-        job = job_service.create_job_with_vdb_metadata(db, vectorflow_request, file.filename)
-
-    # Convert image to bytes
-    img_bytes_io = BytesIO()
-    file.save(img_bytes_io)
-    image_bytes = img_bytes_io.getvalue()
-
-    # Encode image bytes to Base64 string to allowed for serializaton to JSON
-    encoded_image_string = base64.b64encode(image_bytes).decode("utf-8")
-
-    # Convert to JSON - this format can be read agnostic of the technology on the other side
-    message_body = {
-        'image_bytes': encoded_image_string,
-        'vector_db_key': vectorflow_request.vector_db_key,
-        'job_id': job.id,
-    }
-    json_data = json.dumps(message_body)
-
-    pipeline.connect(queue=os.getenv('IMAGE_QUEUE'))
-    pipeline.add_to_queue(json_data, queue=os.getenv('IMAGE_QUEUE'))
-    pipeline.disconnect()
-    
-    return job.id
-
-@app.route("/images/search", methods=['POST'])
-def search_image_from_vdb():
-    image_search_request = ImageSearchRequest._from_request(request)
-    if not image_search_request.vectorflow_key or not auth.validate_credentials(image_search_request.vectorflow_key):
-        return jsonify({'error': 'Invalid credentials'}), 401
- 
-    if not image_search_request.vector_db_metadata or (not image_search_request.vector_db_key and not os.getenv('LOCAL_VECTOR_DB')):
-        return jsonify({'error': 'Missing required fields'}), 400
-    
-    if 'SourceData' not in request.files:
-        return jsonify({'error': 'No file part in the request'}), 400
-
-    file = request.files['SourceData']
-
-    # TODO: Remove this once the application is reworked to support large files
-    # Get the file size - Go to the end of the file, get the current position, and reset the file to the beginning
-    file.seek(0, os.SEEK_END)
-    file_size = file.tell()
-    file.seek(0)
-
-    if file_size > 2 * 1024 * 1024:
-        return jsonify({'error': 'File is too large. VectorFlow currently only supports 2 MB files or less for images. Larger file support coming soon.'}), 413
-    
-    # empty filename means no file was selected
-    if file.filename == '':
-        return jsonify({'error': 'No selected file'}), 400
-    
-    if file and (file.filename.endswith('.jpg') or file.filename.endswith('.jpeg') or file.filename.endswith('.png')):
-        try:
-            response = search_image_from_vdb(file, image_search_request)
-
-            if response.status_code == 200:
-                response_json = response.json()
-                if "vectors" in response_json:
-                    return jsonify({'message': f"Successfully fetched {image_search_request.top_k} results including vectors",
-                        'similar_images': response_json['similar_images'],
-                        'vectors': response_json['vectors']}), 200
-                else:
-                    return jsonify({'message': f"Successfully fetched {image_search_request.top_k} results", 
-                        'similar_images': response_json['similar_images']}), 200
-            else:
-                response_json = response.json()
-                error_message = response_json["error"]
-                return jsonify({'error': f"Attempt to fetch images similar to {file.filename} failed due to error: {error_message}"}), response.status_code
-        
-        except Exception as e:
-            logging.error(f"Attempt to fetch images similar to {file.filename} failed due to error: {e}")
-            return jsonify({'error': f"Attempt to fetch images similar to {file.filename} failed due to error: {e}"}), 400
-    else:
-        return jsonify({'error': 'Uploaded file is not a JPG, JPEG, or PNG file'}), 400
-    
-def search_image_from_vdb(file, image_search_request):
-    url = f"{os.getenv('IMAGE_SEARCH_URL')}/search"
-    data = {
-        'ImageSearchRequest': json.dumps(image_search_request.serialize()),
-    }
-
-    files = {
-        'SourceData': file
-    }
-
-    try:
-        response = requests.post(
-            url=url, 
-            data=data, 
-            files=files
-        )
-        return response
-    except requests.RequestException as e:
-        print(f"Error: {e}")
-        return {"error": str(e)}, 500
     
 def get_s3_file_name(pre_signed_url):
     parsed_url = urlparse(pre_signed_url)
