@@ -1,3 +1,4 @@
+import os
 from enum import Enum
 
 from shared.vectorflow_request import VectorflowRequest
@@ -37,7 +38,7 @@ class RequestValidator:
             Validations.CRED: self.vfr.vectorflow_key and self.auth.validate_credentials(self.vfr.vectorflow_key),
             Validations.METADATA: self.vfr.embeddings_metadata and self.vfr.vector_db_metadata and (self.vfr.vector_db_key or os.getenv('LOCAL_VECTOR_DB')),
             Validations.METADATA2: self.vfr.vector_db_metadata and (self.vfr.vector_db_key or os.getenv('LOCAL_VECTOR_DB')),
-            Validations.EMBEDDING_TYPE: self.vfr.embeddings_metadata.embeddings_type == EmbeddingsType.HUGGING_FACE and self.embeddings_metadata.hugging_face_model_name,
+            Validations.EMBEDDING_TYPE: self.vfr.embeddings_metadata.embeddings_type == EmbeddingsType.HUGGING_FACE and self.vfr.embeddings_metadata.hugging_face_model_name,
             Validations.WEBHOOK: not self.vfr.webhook_url or self.vfr.webhook_key,
             Validations.SOURCE_DATA: 'SourceData' in self.request.files,
             Validations.HAS_FILES: hasattr(self.request, "files") and self.request.files,
