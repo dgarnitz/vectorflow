@@ -5,7 +5,7 @@ Use this Python client to embed documents and upload them to a vector database w
 The client has 2 methods for uploading documents to embed and 2 for checking statuses, listed below. All four methods return a python `response` object from the python `requests` library. You must parse the response using the `.json()` method. 
 
 #### Initialize
-```
+```python
 from vectorflow_client.vectorflow import Vectorflow
 
 vectorflow = Vectorflow()
@@ -13,12 +13,12 @@ vectorflow.embedding_api_key = "YOUR_OPEN_AI_KEY"
 ```
 
 #### Embed a Single File
-```
+```python
 filepath = './src/api/tests/fixtures/test_medium_text.txt'
 response = vectorflow.embed(filepath)
 ```
 This points at your local VectorFlow instance by default. You can also point at our free hosted version of VectorFlow, which is more performant. Just set the `base_url` and the `internal_api_key` on the client object, which you can get from [the managed service](https://app.getvectorflow.com/home).
-```
+```python
 vectorflow.internal_api_key = 'SWITCHINGKEYS1234567890'
 vectorflow.base_url = "https://vectorflowembeddings.online"
 
@@ -26,18 +26,18 @@ response = vectorflow.embed(filepath)
 ```
 
 #### Embed Multiple Files
-```
+```python
 paths = ['./src/api/tests/fixtures/test_pdf.pdf', './src/api/tests/fixtures/test_medium_text.txt']
 response = vectorflow.upload(paths)
 ```
 
 #### Get Statuses for Multiple Jobs
-```
+```python
 response = vectorflow.get_job_statuses(jobs_ids)
 ```
 
 #### Get Status for Single Job
-```
+```python
 response = vectorflow.get_job_status(job_id)
 ```
 
@@ -46,7 +46,7 @@ By default, this will set up vectorflow to embed files locally and upload them t
 
 For more granular control over the chunking, embedding and vector DB configurations, override default values on the `Vectorflow` class or on its `embeddings` and `vector_db` fields. For example:
 
-```
+```python
 from vectorflow_client.vectorflow import Vectorflow
 from vectorflow_client.embeddings_type import EmbeddingsType
 from vectorflow_client.vector_db_type import VectorDBType
@@ -79,7 +79,7 @@ The VectorFlow Client also features a RAG chunk enhancer. It works by passing it
 
 ### Usage
 
-```
+```python
 from vectorflow_client.chunk_enhancer import ChunkEnhancer
 import fitz
 
