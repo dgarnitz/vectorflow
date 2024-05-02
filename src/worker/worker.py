@@ -22,7 +22,7 @@ from shared.batch_status import BatchStatus
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from services.database.database import get_db, safe_db_operation
 from shared.job_status import JobStatus
-from shared.utils import send_embeddings_to_webhook, generate_uuid_from_tuple
+from shared.utils import send_embeddings_to_webhook, generate_uuid_from_tuple, update_batch_and_job_status, update_batch_status
 from services.rabbitmq.rabbit_service import create_connection_params
 from worker.vector_uploader import VectorUploader
 
@@ -323,16 +323,6 @@ def create_batches_for_embedding(chunks, max_batch_size):
     embedding_batches = [chunks[i:i + max_batch_size] for i in range(0, len(chunks), max_batch_size)]
     return embedding_batches
 
-# TODO: refactor into utils
-def update_batch_status(job_id, batch_status, batch_id, retries = None, bypass_retries=False):
-    try:
-        updated_batch_status = safe_db_operation(batch_service.update_batch_status, batch_id, batch_status)
-        logging.info(f"Status for batch {batch_id} as part of job {job_id} updated to {updated_batch_status}") 
-        if updated_batch_status == BatchStatus.FAILED and (retries == config.MAX_BATCH_RETRIES or bypass_retries):
-            logging.info(f"Batch {batch_id} failed. Updating job status.")
-            update_batch_and_job_status(job_id, BatchStatus.FAILED, batch_id)     
-    except Exception as e:
-        logging.error('Error updating batch status: %s', e)
 
 def upload_to_vector_db(batch_id, text_embeddings_list):
     try:
@@ -352,24 +342,6 @@ def process_webhook_response(response, job_id, batch_id):
         if response.json() and response.json()['error']:
             logging.error("Error message: %s", response.json()['error'])
 
-# TODO: refactor into utils
-def update_batch_and_job_status(job_id, batch_status, batch_id):
-    try:
-        if not job_id and batch_id:
-            job = safe_db_operation(batch_service.get_batch, batch_id)
-            job_id = job.job_id
-        updated_batch_status = safe_db_operation(batch_service.update_batch_status, batch_id, batch_status)
-        job = safe_db_operation(job_service.update_job_with_batch, job_id, updated_batch_status)
-        if job.job_status == JobStatus.COMPLETED:
-            logging.info(f"Job {job_id} completed successfully")
-        elif job.job_status == JobStatus.PARTIALLY_COMPLETED:
-            logging.info(f"Job {job_id} partially completed. {job.batches_succeeded} out of {job.total_batches} batches succeeded")
-        elif job.job_status == JobStatus.FAILED:
-            logging.info(f"Job {job_id} failed. {job.batches_succeeded} out of {job.total_batches} batches succeeded")
-                
-    except Exception as e:
-        logging.error('Error updating job and batch status: %s', e)
-        safe_db_operation(job_service.update_job_status, job_id, JobStatus.FAILED)
 
 def callback(ch, method, properties, body):
     try:

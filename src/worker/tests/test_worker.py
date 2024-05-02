@@ -2,6 +2,7 @@ import unittest
 from shared.chunk_strategy import ChunkStrategy
 import worker.worker as worker
 import worker.config as config
+import shared.utils as utils
 from models.batch import Batch
 from models.embeddings_metadata import EmbeddingsMetadata
 from models.job import Job
@@ -19,7 +20,7 @@ class TestWorker(unittest.TestCase):
     @patch('services.database.job_service.get_job')
     @patch('services.database.batch_service.get_batch')
     @patch('worker.worker.embed_openai_batch')
-    @patch('worker.worker.update_batch_status')
+    @patch('shared.utils.update_batch_status')
     def test_process_batch_success(
         self, 
         mock_update_batch_and_job_status, 
@@ -58,7 +59,7 @@ class TestWorker(unittest.TestCase):
     @patch('services.database.job_service.get_job')
     @patch('services.database.batch_service.get_batch')
     @patch('worker.worker.embed_openai_batch')
-    @patch('worker.worker.update_batch_status')
+    @patch('shared.utils.update_batch_status')
     def test_process_batch_success_different_model(
         self, 
         mock_update_batch_and_job_status, 
@@ -99,7 +100,7 @@ class TestWorker(unittest.TestCase):
     @patch('services.database.job_service.get_job')
     @patch('services.database.batch_service.get_batch')
     @patch('worker.worker.embed_openai_batch')
-    @patch('worker.worker.update_batch_status')
+    @patch('shared.utils.update_batch_status')
     def test_process_batch_failure_no_vectors(
         self, 
         mock_update_batch_and_job_status, 
@@ -138,7 +139,7 @@ class TestWorker(unittest.TestCase):
     @patch('services.database.job_service.get_job')
     @patch('services.database.batch_service.get_batch')
     @patch('worker.worker.embed_openai_batch')
-    @patch('worker.worker.update_batch_status')
+    @patch('shared.utils.update_batch_status')
     def test_process_batch_failure_openai(
         self, 
         mock_update_batch_and_job_status, 
@@ -179,7 +180,7 @@ class TestWorker(unittest.TestCase):
     @patch('services.database.job_service.get_job')
     @patch('services.database.batch_service.get_batch')
     @patch('worker.worker.embed_openai_batch')
-    @patch('worker.worker.update_batch_and_job_status')
+    @patch('shared.utils.update_batch_and_job_status')
     def test_process_batch_failure_validate_chunks(
         self, 
         mock_update_batch_and_job_status, 
