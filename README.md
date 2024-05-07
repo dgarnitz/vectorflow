@@ -98,7 +98,7 @@ docker-compose build --no-cache
 docker-compose up -d
 ```
 
-Note that the `init` containers are running a script that sets up the database schema, vector DB and Min.io object store. These containers stop after the script completes.
+Note that the `init` containers are running a script that sets up the database schema, vector DB and Min.io object store. These containers stop after the script completes. For qdrant, make sure to pull version 1.9.1 since that is the version the qdrant client python package is supposed to work with. 
 
 
 ## Using VectorFlow
@@ -346,3 +346,9 @@ where `match`` objects are defined as:
     "metadata": {"source_document" : str}
 }
 ```
+
+### Building the Individual Images with Docker Commands
+If you want to use `docker build` and `docker run` to build and run individual images instead of `docker-compose` follow these steps:
+1. `cd src/`
+2. `docker build --file api/Dockerfile -t vectorflow_api:latest .` to build - don't forget the period at the end
+3. `docker run --network=vectorflow --name=vectorflow_api -d --env-file=../env_scripts/env_vars.env -p 8000:8000 vectorflow_api:latest` to run the api. you don't need the port argument to run the worker
