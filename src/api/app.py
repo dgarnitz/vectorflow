@@ -8,7 +8,6 @@ import requests
 import magic # magic requires lib magic to be installed on the system. If running on mac and an error occurs, run `brew install libmagic`
 import json
 import fitz
-import base64
 import logging
 import copy
 from io import BytesIO
@@ -21,12 +20,9 @@ from api.auth import Auth
 from api.pipeline import Pipeline
 from services.database.database import get_db, safe_db_operation
 from shared.vectorflow_request import VectorflowRequest
-from shared.embeddings_type import EmbeddingsType
 from docx import Document
-from shared.image_search_request import ImageSearchRequest
 from urllib.parse import urlparse
 from pathlib import Path
-from llama_index import download_loader
 from services.minio.minio_service import create_minio_client
 from api.posthog import send_telemetry
 from datetime import datetime
@@ -241,11 +237,9 @@ def process_file(file, vectorflow_request, job_id):
         temp_file_path = Path('./temp_file.md')
         file.save(temp_file_path)
             
-        MarkdownReader = download_loader("MarkdownReader")
-        loader = MarkdownReader()
-        documents = loader.load_data(file=Path('./temp_file.md'))
-
-        file_content = "\n".join([document.text for document in documents])
+        with open(temp_file_path, 'r') as file:
+            file_content = file.read()
+        
         temp_file_path.unlink()
     
     elif file.filename.endswith('.html'):
