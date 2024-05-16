@@ -2,7 +2,6 @@ import unittest
 from shared.chunk_strategy import ChunkStrategy
 import worker.worker as worker
 import worker.config as config
-import shared.utils as utils
 from models.batch import Batch
 from models.embeddings_metadata import EmbeddingsMetadata
 from models.job import Job
