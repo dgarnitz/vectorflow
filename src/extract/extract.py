@@ -22,6 +22,7 @@ from llama_index import download_loader
 from shared.vectorflow_request import VectorflowRequest
 from services.rabbitmq.rabbit_service import create_connection_params
 from pika.exceptions import AMQPConnectionError
+from shared.utils import update_batch_and_job_status
 
 logging.basicConfig(filename='./extract-log.txt', level=logging.INFO)
 logging.basicConfig(filename='./extract-error-log.txt', level=logging.ERROR)
@@ -134,24 +135,7 @@ def remove_from_minio(filename):
     client = create_minio_client()
     client.remove_object(os.getenv("MINIO_BUCKET"), filename)
 
-# TODO: refactor into utils
-def update_batch_and_job_status(job_id, batch_status, batch_id):
-    try:
-        if not job_id and batch_id:
-            job = safe_db_operation(batch_service.get_batch, batch_id)
-            job_id = job.job_id
-        updated_batch_status = safe_db_operation(batch_service.update_batch_status, batch_id, batch_status)
-        job = safe_db_operation(job_service.update_job_with_batch, job_id, updated_batch_status)
-        if job.job_status == JobStatus.COMPLETED:
-            logging.info(f"Job {job_id} completed successfully")
-        elif job.job_status == JobStatus.PARTIALLY_COMPLETED:
-            logging.info(f"Job {job_id} partially completed. {job.batches_succeeded} out of {job.total_batches} batches succeeded")
-        elif job.job_status == JobStatus.FAILED:
-            logging.info(f"Job {job_id} failed. {job.batches_succeeded} out of {job.total_batches} batches succeeded")
-                
-    except Exception as e:
-        logging.error('Error updating job and batch status: %s', e)
-        safe_db_operation(job_service.update_job_status, job_id, JobStatus.FAILED)
+
 
 ####################
 ## RabbitMQ Logic ##
